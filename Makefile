@@ -2,7 +2,7 @@ include .env
 export
 DB_DSN := postgres://$(DB_USER):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(DB_NAME)?sslmode=disable
 
-.PHONY: db-up db-down db-psql api-run api-test web-install web-run web-build web-lint web-test test health migrate-up migrate-down migrate-status migrate-create api-fmt api-lint
+.PHONY: db-up db-down db-psql api-run api-test web-install web-run web-build web-lint web-test test health migrate-up migrate-down migrate-status migrate-create api-fmt api-lint web-fmt web-fmt-check
 
 db-up:
 	docker compose up -d
@@ -55,5 +55,11 @@ web-lint:
 
 web-test:
 	cd web && pnpm test
+
+web-fmt:
+	cd web && pnpm format
+
+web-fmt-check:
+	cd web && pnpm format:check
 
 test: api-test web-test
