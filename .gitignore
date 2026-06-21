@@ -1,0 +1,8 @@
+# local secrets / config
+.env
+
+# OS noise
+.DS_Store
+
+# Go build artifacts
+/api/api
