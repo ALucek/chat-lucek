@@ -2,7 +2,7 @@ include .env
 export
 DB_DSN := postgres://$(DB_USER):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(DB_NAME)?sslmode=disable
 
-.PHONY: db-up db-down db-psql api-run api-test web-install web-run web-build web-lint web-test test health migrate-up migrate-down migrate-status migrate-create
+.PHONY: db-up db-down db-psql api-run api-test web-install web-run web-build web-lint web-test test health migrate-up migrate-down migrate-status migrate-create api-fmt api-lint
 
 db-up:
 	docker compose up -d
@@ -21,6 +21,13 @@ health:
 
 api-test:
 	cd api && go test ./...
+
+api-fmt:
+	cd api && gofmt -w .
+
+api-lint:
+	@cd api && test -z "$$(gofmt -l .)" || { echo "gofmt needed — run 'make api-fmt'"; gofmt -l .; exit 1; }
+	cd api && go vet ./...
 
 migrate-up:
 	@cd api && go tool goose -dir migrations postgres "$(DB_DSN)" up
