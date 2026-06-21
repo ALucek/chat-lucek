@@ -228,6 +228,8 @@ func (c *Chat) Send(w http.ResponseWriter, r *http.Request) {
 	}
 	rows.Close() // free the pooled connection before the (long) stream
 
+	firstMessage := len(msgs) == 2 // system prompt + the just-inserted user message
+
 	// Commit to the stream: from here, failures are reported as SSE events.
 	flusher, ok := w.(http.Flusher)
 	if !ok {
@@ -264,10 +266,28 @@ func (c *Chat) Send(w http.ResponseWriter, r *http.Request) {
 
 	writeSSE(w, "done", map[string]int64{"message_id": msgID})
 	flusher.Flush()
+
+	// On the first message, name the conversation from its opening words.
+	if firstMessage {
+		title := firstWords(body.Content, 5)
+		_, _ = c.pool.Exec(r.Context(),
+			`update conversations set title = $1 where id = $2`, title, id)
+		writeSSE(w, "title", map[string]string{"title": title})
+		flusher.Flush()
+	}
 }
 
 // writeSSE writes one SSE frame; data is JSON-encoded so every frame is a JSON object.
 func writeSSE(w http.ResponseWriter, event string, data any) {
 	payload, _ := json.Marshal(data)
 	fmt.Fprintf(w, "event: %s\ndata: %s\n\n", event, payload)
+}
+
+// firstWords returns the first n whitespace-separated words of s.
+func firstWords(s string, n int) string {
+	words := strings.Fields(s)
+	if len(words) > n {
+		words = words[:n]
+	}
+	return strings.Join(words, " ")
 }
