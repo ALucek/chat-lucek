@@ -1,6 +1,11 @@
 package main
 
-import "testing"
+import (
+	"testing"
+	"time"
+
+	"github.com/golang-jwt/jwt/v4"
+)
 
 func TestPasswordHashAndCheck(t *testing.T) {
 	hash, err := hashPassword("password123")
@@ -15,5 +20,54 @@ func TestPasswordHashAndCheck(t *testing.T) {
 	}
 	if err := checkPassword(hash, "wrong"); err == nil {
 		t.Fatal("wrong password should fail")
+	}
+}
+
+func TestAccessTokenRoundTrip(t *testing.T) {
+	secret := []byte("test-secret-key-at-least-32-bytes!!")
+	tok, err := mintAccessToken(secret, 42, time.Now())
+	if err != nil {
+		t.Fatalf("mint: %v", err)
+	}
+	uid, err := parseAccessToken(secret, tok)
+	if err != nil {
+		t.Fatalf("parse: %v", err)
+	}
+	if uid != 42 {
+		t.Fatalf("want user 42, got %d", uid)
+	}
+}
+
+func TestAccessTokenTampered(t *testing.T) {
+	secret := []byte("test-secret-key-at-least-32-bytes!!")
+	tok, _ := mintAccessToken(secret, 1, time.Now())
+	if _, err := parseAccessToken(secret, tok+"x"); err == nil {
+		t.Fatal("tampered token must fail")
+	}
+}
+
+func TestAccessTokenWrongSecret(t *testing.T) {
+	tok, _ := mintAccessToken([]byte("secret-one-aaaaaaaaaaaaaaaaaaaaaaaa"), 1, time.Now())
+	if _, err := parseAccessToken([]byte("secret-two-bbbbbbbbbbbbbbbbbbbbbbbb"), tok); err == nil {
+		t.Fatal("wrong secret must fail")
+	}
+}
+
+func TestAccessTokenExpired(t *testing.T) {
+	secret := []byte("test-secret-key-at-least-32-bytes!!")
+	// mint as if an hour ago: exp = (now-1h)+15m, already in the past
+	tok, _ := mintAccessToken(secret, 1, time.Now().Add(-time.Hour))
+	if _, err := parseAccessToken(secret, tok); err == nil {
+		t.Fatal("expired token must fail")
+	}
+}
+
+func TestAccessTokenAlgNoneRejected(t *testing.T) {
+	secret := []byte("test-secret-key-at-least-32-bytes!!")
+	claims := jwt.RegisteredClaims{Subject: "1", ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour))}
+	unsigned := jwt.NewWithClaims(jwt.SigningMethodNone, claims)
+	str, _ := unsigned.SignedString(jwt.UnsafeAllowNoneSignatureType)
+	if _, err := parseAccessToken(secret, str); err == nil {
+		t.Fatal("alg=none token must be rejected")
 	}
 }
