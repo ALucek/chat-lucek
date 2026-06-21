@@ -33,7 +33,7 @@ func main() {
 
 	mux := newMux(check, auth, chat)
 
-	server := &http.Server{Addr: ":" + cfg.Port, Handler: mux}
+	server := &http.Server{Addr: ":" + cfg.Port, Handler: withCORS(cfg.AllowedOrigin, mux)}
 
 	go func() {
 		log.Printf("listening on :%s", cfg.Port)

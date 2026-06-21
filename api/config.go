@@ -17,6 +17,7 @@ type Config struct {
 	OpenRouterKey string
 	Model         string
 	SystemPrompt  string
+	AllowedOrigin string
 }
 
 // LoadConfig reads the required settings from the environment.
@@ -32,6 +33,7 @@ func LoadConfig() (Config, error) {
 		OpenRouterKey: os.Getenv("OPENROUTER_API_KEY"),
 		Model:         getenvDefault("OPENROUTER_MODEL", "openrouter/free"),
 		SystemPrompt:  getenvDefault("SYSTEM_PROMPT", "You are a helpful assistant."),
+		AllowedOrigin: getenvDefault("ALLOWED_ORIGIN", "http://localhost:3000"),
 	}
 
 	required := []struct{ name, value string }{
