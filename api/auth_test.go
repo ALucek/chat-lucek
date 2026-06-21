@@ -82,7 +82,8 @@ func TestRefreshTokenHashing(t *testing.T) {
 	if len(raw) != 64 {
 		t.Fatalf("want 64 hex chars, got %d", len(raw))
 	}
-	if hashToken(raw) != hashToken(raw) {
+	h1, h2 := hashToken(raw), hashToken(raw)
+	if h1 != h2 {
 		t.Fatal("hash must be deterministic")
 	}
 	if hashToken(raw) == raw {
