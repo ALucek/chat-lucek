@@ -27,8 +27,15 @@ func main() {
 
 	check := func(ctx context.Context) error { return Healthy(ctx, pool) }
 
+	auth := &Auth{pool: pool, secret: []byte(cfg.JWTSecret)}
+
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /health", healthHandler(check))
+	mux.HandleFunc("POST /api/signup", auth.Signup)
+	mux.HandleFunc("POST /api/login", auth.Login)
+	mux.HandleFunc("POST /api/refresh", auth.Refresh)
+	mux.HandleFunc("POST /api/logout", auth.Logout)
+	mux.Handle("GET /api/me", auth.Middleware(http.HandlerFunc(auth.Me)))
 
 	server := &http.Server{Addr: ":" + cfg.Port, Handler: mux}
 
