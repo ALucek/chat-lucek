@@ -40,6 +40,7 @@ func main() {
 	mux.Handle("GET /api/me", auth.Middleware(http.HandlerFunc(auth.Me)))
 	mux.Handle("GET /api/conversations", protect(chat.List))
 	mux.Handle("POST /api/conversations", protect(chat.Create))
+	mux.Handle("GET /api/conversations/{id}/messages", protect(chat.Messages))
 
 	server := &http.Server{Addr: ":" + cfg.Port, Handler: mux}
 
