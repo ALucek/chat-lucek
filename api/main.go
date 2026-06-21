@@ -28,23 +28,10 @@ func main() {
 	check := func(ctx context.Context) error { return Healthy(ctx, pool) }
 
 	auth := &Auth{pool: pool, secret: []byte(cfg.JWTSecret)}
-	llm := &openRouterClient{key: cfg.OpenRouterKey, model: cfg.Model, http: &http.Client{}}
+	llm := &openRouterClient{key: cfg.OpenRouterKey, model: cfg.Model, baseURL: openRouterURL, http: &http.Client{}}
 	chat := &Chat{pool: pool, llm: llm, systemPrompt: cfg.SystemPrompt}
-	protect := func(h http.HandlerFunc) http.Handler { return auth.Middleware(http.HandlerFunc(h)) }
 
-	mux := http.NewServeMux()
-	mux.HandleFunc("GET /health", healthHandler(check))
-	mux.HandleFunc("POST /api/signup", auth.Signup)
-	mux.HandleFunc("POST /api/login", auth.Login)
-	mux.HandleFunc("POST /api/refresh", auth.Refresh)
-	mux.HandleFunc("POST /api/logout", auth.Logout)
-	mux.Handle("GET /api/me", auth.Middleware(http.HandlerFunc(auth.Me)))
-	mux.Handle("GET /api/conversations", protect(chat.List))
-	mux.Handle("POST /api/conversations", protect(chat.Create))
-	mux.Handle("GET /api/conversations/{id}/messages", protect(chat.Messages))
-	mux.Handle("PATCH /api/conversations/{id}", protect(chat.Rename))
-	mux.Handle("DELETE /api/conversations/{id}", protect(chat.Delete))
-	mux.Handle("POST /api/conversations/{id}/messages", protect(chat.Send))
+	mux := newMux(check, auth, chat)
 
 	server := &http.Server{Addr: ":" + cfg.Port, Handler: mux}
 
@@ -79,4 +66,24 @@ func writeJSON(w http.ResponseWriter, status int, body any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	_ = json.NewEncoder(w).Encode(body)
+}
+
+// newMux registers every route.
+func newMux(check func(context.Context) error, auth *Auth, chat *Chat) *http.ServeMux {
+	protect := func(h http.HandlerFunc) http.Handler { return auth.Middleware(http.HandlerFunc(h)) }
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /health", healthHandler(check))
+	mux.HandleFunc("POST /api/signup", auth.Signup)
+	mux.HandleFunc("POST /api/login", auth.Login)
+	mux.HandleFunc("POST /api/refresh", auth.Refresh)
+	mux.HandleFunc("POST /api/logout", auth.Logout)
+	mux.Handle("GET /api/me", auth.Middleware(http.HandlerFunc(auth.Me)))
+	mux.Handle("GET /api/conversations", protect(chat.List))
+	mux.Handle("POST /api/conversations", protect(chat.Create))
+	mux.Handle("GET /api/conversations/{id}/messages", protect(chat.Messages))
+	mux.Handle("PATCH /api/conversations/{id}", protect(chat.Rename))
+	mux.Handle("DELETE /api/conversations/{id}", protect(chat.Delete))
+	mux.Handle("POST /api/conversations/{id}/messages", protect(chat.Send))
+	return mux
 }

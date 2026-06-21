@@ -14,9 +14,10 @@ const openRouterURL = "https://openrouter.ai/api/v1/chat/completions"
 
 // openRouterClient talks to OpenRouter's OpenAI-compatible chat completions API.
 type openRouterClient struct {
-	key   string
-	model string
-	http  *http.Client
+	key     string
+	model   string
+	baseURL string // defaults to openRouterURL (set in main.go); overridden in tests
+	http    *http.Client
 }
 
 // llmMessage is the OpenAI/OpenRouter request message shape.
@@ -38,7 +39,7 @@ func (c *openRouterClient) stream(ctx context.Context, msgs []llmMessage, onText
 		return err
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, openRouterURL, bytes.NewReader(reqBody))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL, bytes.NewReader(reqBody))
 	if err != nil {
 		return err
 	}
