@@ -47,7 +47,7 @@ web-install:
 	cd web && pnpm install --frozen-lockfile
 
 web-run:
-	cd web && pnpm dev
+	cd web && pnpm dev --port 3000
 
 web-build:
 	cd web && pnpm build
