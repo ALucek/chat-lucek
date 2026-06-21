@@ -19,8 +19,13 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
-	// Stubbed health check — replaced with the real DB check in Task 4.
-	check := func(context.Context) error { return nil }
+	pool, err := NewPool(ctx, cfg)
+	if err != nil {
+		log.Fatalf("db: %v", err)
+	}
+	defer pool.Close()
+
+	check := func(ctx context.Context) error { return Healthy(ctx, pool) }
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /health", healthHandler(check))
