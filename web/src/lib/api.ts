@@ -209,3 +209,66 @@ export function parseSSE(buffer: string): { events: SSEEvent[]; rest: string } {
   }
   return { events, rest };
 }
+
+export interface StreamHandlers {
+  onDelta: (text: string) => void;
+  onDone: (messageId: number) => void;
+  onTitle: (title: string) => void;
+  onError: (message: string) => void;
+}
+
+export async function sendMessage(
+  id: number,
+  content: string,
+  handlers: StreamHandlers,
+): Promise<void> {
+  const send = () =>
+    fetch(`${API_URL}/api/conversations/${id}/messages`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+      },
+      body: JSON.stringify({ content }),
+    });
+
+  let res = await send();
+  if (res.status === 401 && hasRefreshToken()) {
+    const token = await refreshAccess();
+    if (token) res = await send();
+  }
+  if (!res.ok || !res.body) {
+    handlers.onError(await errorMessage(res));
+    return;
+  }
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  // The server sends `title` after `done`, so we read until the stream
+  // closes rather than stopping on any single event.
+  for (;;) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const parsed = parseSSE(buffer);
+    buffer = parsed.rest;
+    for (const ev of parsed.events) {
+      const payload = ev.data ? JSON.parse(ev.data) : {};
+      switch (ev.event) {
+        case 'delta':
+          handlers.onDelta(payload.text);
+          break;
+        case 'done':
+          handlers.onDone(payload.message_id);
+          break;
+        case 'title':
+          handlers.onTitle(payload.title);
+          break;
+        case 'error':
+          handlers.onError(payload.error);
+          break;
+      }
+    }
+  }
+}

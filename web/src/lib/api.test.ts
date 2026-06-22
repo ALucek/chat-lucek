@@ -11,6 +11,7 @@ import {
   deleteConversation,
   getMessages,
   parseSSE,
+  sendMessage,
 } from './api';
 
 // Minimal Response stand-in for a JSON body.
@@ -177,5 +178,105 @@ describe('parseSSE', () => {
   it('returns no events for a blank or partial buffer', () => {
     expect(parseSSE('').events).toEqual([]);
     expect(parseSSE('event: delta').events).toEqual([]);
+  });
+});
+
+function streamResponse(status: number, frames: string[]): Response {
+  const encoder = new TextEncoder();
+  const body = new ReadableStream<Uint8Array>({
+    start(controller) {
+      for (const f of frames) controller.enqueue(encoder.encode(f));
+      controller.close();
+    },
+  });
+  return {
+    ok: status >= 200 && status < 300,
+    status,
+    body,
+    json: async () => ({}),
+  } as Response;
+}
+
+describe('sendMessage', () => {
+  it('dispatches delta/title and resolves on done', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(
+        streamResponse(200, [
+          'event: delta\ndata: {"text":"Hel"}\n\n',
+          'event: delta\ndata: {"text":"lo"}\n\n',
+          'event: done\ndata: {"message_id":42}\n\n',
+          'event: title\ndata: {"title":"Hi there"}\n\n',
+        ]),
+      );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const deltas: string[] = [];
+    let doneId = 0;
+    let title = '';
+    await sendMessage(7, 'hello', {
+      onDelta: (t) => deltas.push(t),
+      onDone: (id) => {
+        doneId = id;
+      },
+      onTitle: (t) => {
+        title = t;
+      },
+      onError: () => {},
+    });
+
+    expect(deltas).toEqual(['Hel', 'lo']);
+    expect(doneId).toBe(42);
+    expect(title).toBe('Hi there');
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe('http://localhost:8080/api/conversations/7/messages');
+    expect(init).toMatchObject({ method: 'POST' });
+    expect(JSON.parse((init as RequestInit).body as string)).toEqual({
+      content: 'hello',
+    });
+  });
+
+  it('calls onError on a non-ok initial response', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(
+        jsonResponse(404, { error: 'conversation not found' }),
+      );
+    vi.stubGlobal('fetch', fetchMock);
+
+    let err = '';
+    await sendMessage(7, 'hello', {
+      onDelta: () => {},
+      onDone: () => {},
+      onTitle: () => {},
+      onError: (m) => {
+        err = m;
+      },
+    });
+    expect(err).toBe('conversation not found');
+  });
+
+  it('refreshes once and retries on a 401 initial response', async () => {
+    localStorage.setItem('refresh_token', 'r1');
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse(401, { error: 'expired' })) // first POST
+      .mockResolvedValueOnce(jsonResponse(200, { access_token: 'a2' })) // refresh
+      .mockResolvedValueOnce(
+        streamResponse(200, ['event: done\ndata: {"message_id":1}\n\n']),
+      ); // retried POST
+    vi.stubGlobal('fetch', fetchMock);
+
+    let doneId = 0;
+    await sendMessage(7, 'hello', {
+      onDelta: () => {},
+      onDone: (id) => {
+        doneId = id;
+      },
+      onTitle: () => {},
+      onError: () => {},
+    });
+    expect(doneId).toBe(1);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 });
