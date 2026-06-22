@@ -42,3 +42,26 @@ func TestLoadConfig_MissingKey(t *testing.T) {
 		t.Fatal("expected an error for missing PORT, got nil")
 	}
 }
+
+func TestLoadConfig_OpenRouterBaseURLDefault(t *testing.T) {
+	setAllEnv(t)
+	cfg, err := LoadConfig()
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if cfg.OpenRouterBaseURL != openRouterURL {
+		t.Fatalf("want default %q, got %q", openRouterURL, cfg.OpenRouterBaseURL)
+	}
+}
+
+func TestLoadConfig_OpenRouterBaseURLOverride(t *testing.T) {
+	setAllEnv(t)
+	t.Setenv("OPENROUTER_BASE_URL", "http://localhost:8090")
+	cfg, err := LoadConfig()
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if cfg.OpenRouterBaseURL != "http://localhost:8090" {
+		t.Fatalf("want override, got %q", cfg.OpenRouterBaseURL)
+	}
+}

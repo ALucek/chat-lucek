@@ -28,7 +28,7 @@ func main() {
 	check := func(ctx context.Context) error { return Healthy(ctx, pool) }
 
 	auth := &Auth{pool: pool, secret: []byte(cfg.JWTSecret)}
-	llm := &openRouterClient{key: cfg.OpenRouterKey, model: cfg.Model, baseURL: openRouterURL, http: &http.Client{}}
+	llm := &openRouterClient{key: cfg.OpenRouterKey, model: cfg.Model, baseURL: cfg.OpenRouterBaseURL, http: &http.Client{}}
 	chat := &Chat{pool: pool, llm: llm, systemPrompt: cfg.SystemPrompt}
 
 	mux := newMux(check, auth, chat)
