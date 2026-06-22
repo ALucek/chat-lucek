@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/lib/auth-context';
 import { ApiError } from '@/lib/api';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 
 export default function LoginPage() {
   const { status, login } = useAuth();
@@ -29,40 +31,38 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-4 p-6">
-      <h1 className="text-2xl font-semibold">Log in</h1>
-      <form onSubmit={onSubmit} className="flex flex-col gap-3">
-        <input
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-          className="rounded border border-gray-300 px-3 py-2"
-        />
-        <input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-          className="rounded border border-gray-300 px-3 py-2"
-        />
-        {error && (
-          <p role="alert" className="text-sm text-red-600">
-            {error}
-          </p>
-        )}
-        <button type="submit" className="rounded bg-black px-4 py-2 text-white">
-          Log in
-        </button>
-      </form>
-      <p className="text-sm text-gray-600">
-        No account?{' '}
-        <Link href="/signup" className="underline">
-          Sign up
-        </Link>
-      </p>
+    <main className="bg-bg flex min-h-screen items-center justify-center p-6">
+      <div className="border-border bg-surface w-full max-w-sm rounded-[--radius] border p-8">
+        <h1 className="text-fg mb-6 text-2xl font-semibold">Log in</h1>
+        <form onSubmit={onSubmit} className="flex flex-col gap-3">
+          <Input
+            type="email"
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+          <Input
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+          {error && (
+            <p role="alert" className="text-danger text-sm">
+              {error}
+            </p>
+          )}
+          <Button type="submit">Log in</Button>
+        </form>
+        <p className="text-muted mt-4 text-sm">
+          No account?{' '}
+          <Link href="/signup" className="text-fg underline">
+            Sign up
+          </Link>
+        </p>
+      </div>
     </main>
   );
 }
