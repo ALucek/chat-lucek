@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useConversationsContext } from '@/lib/conversations-context';
 import { useAuth } from '@/lib/auth-context';
 import { ConversationItem } from './conversation-item';
+import { Button } from '@/components/ui/button';
 
 export function Sidebar() {
   const router = useRouter();
@@ -17,19 +18,16 @@ export function Sidebar() {
   }
 
   return (
-    <aside className="flex h-full w-64 flex-col border-r border-gray-200">
-      <div className="border-b border-gray-200 p-2">
-        <button
-          onClick={onNew}
-          className="w-full rounded bg-black px-3 py-2 text-sm text-white"
-        >
+    <aside className="border-border bg-surface flex h-full w-64 flex-col border-r">
+      <div className="border-border border-b p-2">
+        <Button onClick={onNew} className="w-full">
           New conversation
-        </button>
+        </Button>
       </div>
 
       <nav className="flex-1 overflow-y-auto p-1">
-        {loading && <p className="p-2 text-sm text-gray-500">Loading…</p>}
-        {error && <p className="p-2 text-sm text-red-600">{error}</p>}
+        {loading && <p className="text-muted p-2 text-sm">Loading…</p>}
+        {error && <p className="text-danger p-2 text-sm">{error}</p>}
         {!loading &&
           !error &&
           conversations.map((c) => (
@@ -42,11 +40,16 @@ export function Sidebar() {
           ))}
       </nav>
 
-      <div className="border-t border-gray-200 p-2 text-sm">
-        <p className="truncate text-gray-600">{user?.email}</p>
-        <button onClick={() => logout()} className="mt-1 underline">
+      <div className="border-border border-t p-3 text-sm">
+        <p className="text-muted truncate">{user?.email}</p>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => logout()}
+          className="mt-1 px-0"
+        >
           Log out
-        </button>
+        </Button>
       </div>
     </aside>
   );

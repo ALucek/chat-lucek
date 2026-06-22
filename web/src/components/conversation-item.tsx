@@ -4,6 +4,8 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useParams } from 'next/navigation';
 import type { Conversation } from '@/lib/api';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 
 interface Props {
   conversation: Conversation;
@@ -40,7 +42,7 @@ export function ConversationItem({ conversation, rename, remove }: Props) {
 
   if (editing) {
     return (
-      <input
+      <Input
         autoFocus
         aria-label="Conversation title"
         value={draft}
@@ -50,45 +52,55 @@ export function ConversationItem({ conversation, rename, remove }: Props) {
           if (e.key === 'Enter') saveRename();
           if (e.key === 'Escape') cancelEdit();
         }}
-        className="w-full rounded border border-gray-300 px-2 py-1 text-sm"
+        className="px-2 py-1"
       />
     );
   }
 
   return (
-    <div className="flex items-center gap-1 px-2 py-1">
+    <div
+      className={`group hover:bg-surface-muted flex items-center gap-1 rounded-[--radius] px-2 py-1 ${
+        isOpen ? 'bg-surface-muted' : ''
+      }`}
+    >
       <Link
         href={`/c/${conversation.id}`}
-        className={`flex-1 truncate text-sm ${isOpen ? 'font-semibold' : ''}`}
+        className={`flex-1 truncate text-sm ${isOpen ? 'text-fg font-semibold' : 'text-muted'}`}
       >
         {conversation.title || 'New conversation'}
       </Link>
       {confirming ? (
-        <span className="flex items-center gap-1 text-xs text-gray-600">
+        <span className="text-muted flex items-center gap-1 text-xs">
           Delete?
-          <button onClick={confirmDelete} className="underline">
+          <Button variant="ghost" size="sm" onClick={confirmDelete}>
             yes
-          </button>
-          <button onClick={() => setConfirming(false)} className="underline">
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setConfirming(false)}
+          >
             no
-          </button>
+          </Button>
         </span>
       ) : (
         <>
-          <button
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => setEditing(true)}
             aria-label="Rename"
-            className="text-xs text-gray-500 hover:text-black"
           >
             Edit
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => setConfirming(true)}
             aria-label="Delete"
-            className="text-xs text-gray-500 hover:text-black"
           >
             Delete
-          </button>
+          </Button>
         </>
       )}
     </div>
