@@ -77,6 +77,9 @@ web-typecheck:
 web-test:
 	cd web && pnpm test
 
+e2e:
+	cd web && pnpm e2e
+
 # ── Quality gates (aggregates) ─────────────────────────────────────────
 
 fmt: api-fmt web-fmt
