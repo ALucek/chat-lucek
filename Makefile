@@ -114,7 +114,7 @@ api-check: api-fmt-check api-lint api-typecheck api-test
 web-check: web-fmt-check web-lint web-typecheck web-test web-build
 
 # Full local gate: everything that must pass before merge.
-check: api-check web-check e2e
+check: api-check web-check e2e-local
 
 # ── Dev tooling ────────────────────────────────────────────────────────
 
