@@ -8,20 +8,10 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version-file: api/go.mod
-      - name: gofmt
-        working-directory: api
-        run: |
-          out=$(gofmt -l .)
-          if [ -n "$out" ]; then echo "::error::gofmt needed:"; echo "$out"; exit 1; fi
-      - run: go vet ./...
-        working-directory: api
-      - run: go test ./...
-        working-directory: api
+      # Runs gofmt check, go vet, go build, and go test — same as `make api-check` locally.
+      - run: make api-check
   web-test:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: web
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -32,8 +22,6 @@ jobs:
           node-version: '25'
           cache: pnpm
           cache-dependency-path: web/pnpm-lock.yaml
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm format:check
-      - run: pnpm lint
-      - run: pnpm test
-      - run: pnpm build
+      - run: make web-install
+      # Runs prettier check, eslint, tsc, vitest, and next build — same as `make web-check` locally.
+      - run: make web-check

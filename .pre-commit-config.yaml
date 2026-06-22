@@ -41,3 +41,17 @@ repos:
         files: ^web/
         pass_filenames: false
         stages: [pre-push]
+      - id: api-typecheck
+        name: go build
+        entry: make api-typecheck
+        language: system
+        files: ^api/.*\.go$
+        pass_filenames: false
+        stages: [pre-push]
+      - id: web-typecheck
+        name: tsc --noEmit
+        entry: make web-typecheck
+        language: system
+        files: ^web/
+        pass_filenames: false
+        stages: [pre-push]
