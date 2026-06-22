@@ -19,7 +19,7 @@ From the repo root (the `Makefile` and `.env` live there):
 cp .env.example .env        # then fill in OPENROUTER_API_KEY and a JWT_SECRET
 make db-up                  # start Postgres in Docker
 make migrate-up             # apply migrations
-make run                    # start the API on :$PORT (default 8080)
+make api-run                # start the API on :$PORT (default 8080)
 make health                 # -> 200 when the DB is reachable
 ```
 
@@ -37,7 +37,10 @@ Read from the environment (see `.env.example`):
 | `JWT_SECRET` | yes | — | HS256 signing key |
 | `OPENROUTER_API_KEY` | yes | — | LLM access |
 | `OPENROUTER_MODEL` | no | `openrouter/free` | any openrouter.ai/models slug |
+| `OPENROUTER_BASE_URL` | no | OpenRouter chat-completions URL | override the upstream (the e2e suite points it at a fake) |
 | `SYSTEM_PROMPT` | no | `You are a helpful assistant.` | prepended to every request |
+| `ALLOWED_ORIGIN` | no | `http://localhost:3000` | CORS allow-origin for the web client |
+| `DATABASE_URL` | no | — | full DSN override; used verbatim if set (e.g. a Cloud SQL socket), else built from `DB_*` |
 
 ## API
 
@@ -80,10 +83,18 @@ data: {"title":"Plan a trip to"}
 - `title` — on a conversation's first message only, its generated name (may follow `done`)
 - `error` — something failed mid-stream (`{"error":"..."}`)
 
+## Container image
+
+`make docker-build` builds a multi-stage image: the static Go binary (`CGO_ENABLED=0`) is
+copied onto `gcr.io/distroless/static:nonroot` — no shell or package manager, runs non-root.
+It takes all config from env (point `DATABASE_URL` at a managed Postgres). Migrations are
+**not** run on boot — apply them out-of-band (`make migrate-up`). See the root README for the
+full local stack (`make stack-up`).
+
 ## Tests
 
 ```bash
-make test     # or: cd api && go test ./...
+make api-test     # or: cd api && go test ./...
 ```
 
 Integration tests run the real handlers against a throwaway Postgres
