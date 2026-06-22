@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
+import { Sidebar } from '@/components/sidebar';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { status } = useAuth();
@@ -13,5 +14,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }, [status, router]);
 
   if (status !== 'authed') return null;
-  return <>{children}</>;
+  return (
+    <div className="flex h-screen">
+      <Sidebar />
+      <main className="flex-1 overflow-y-auto">{children}</main>
+    </div>
+  );
 }

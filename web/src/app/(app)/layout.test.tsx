@@ -6,6 +6,7 @@ import { useAuth } from '@/lib/auth-context';
 const replace = vi.fn();
 vi.mock('next/navigation', () => ({ useRouter: () => ({ replace }) }));
 vi.mock('@/lib/auth-context');
+vi.mock('@/components/sidebar', () => ({ Sidebar: () => <div>sidebar</div> }));
 
 function authValue(status: 'loading' | 'authed' | 'anon') {
   return {
@@ -41,6 +42,7 @@ describe('AppLayout guard', () => {
       </AppLayout>,
     );
     expect(screen.getByText('secret')).toBeInTheDocument();
+    expect(screen.getByText('sidebar')).toBeInTheDocument();
   });
 
   it('renders nothing while loading', () => {
