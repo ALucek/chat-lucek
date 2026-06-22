@@ -10,6 +10,7 @@ import {
   renameConversation,
   deleteConversation,
   getMessages,
+  parseSSE,
 } from './api';
 
 // Minimal Response stand-in for a JSON body.
@@ -135,5 +136,46 @@ describe('conversation endpoints', () => {
     expect(fetchMock.mock.calls[0][0]).toBe(
       'http://localhost:8080/api/conversations/7/messages',
     );
+  });
+});
+
+describe('parseSSE', () => {
+  it('parses one complete frame', () => {
+    const { events, rest } = parseSSE('event: delta\ndata: {"text":"hi"}\n\n');
+    expect(events).toEqual([{ event: 'delta', data: '{"text":"hi"}' }]);
+    expect(rest).toBe('');
+  });
+
+  it('parses multiple frames in one buffer', () => {
+    const buf =
+      'event: delta\ndata: {"text":"a"}\n\n' +
+      'event: done\ndata: {"message_id":5}\n\n';
+    const { events, rest } = parseSSE(buf);
+    expect(events).toEqual([
+      { event: 'delta', data: '{"text":"a"}' },
+      { event: 'done', data: '{"message_id":5}' },
+    ]);
+    expect(rest).toBe('');
+  });
+
+  it('keeps a trailing partial frame in rest and completes it next call', () => {
+    const first = parseSSE('event: delta\ndata: {"text":"hel');
+    expect(first.events).toEqual([]);
+    expect(first.rest).toBe('event: delta\ndata: {"text":"hel');
+    const second = parseSSE(first.rest + 'lo"}\n\n');
+    expect(second.events).toEqual([
+      { event: 'delta', data: '{"text":"hello"}' },
+    ]);
+    expect(second.rest).toBe('');
+  });
+
+  it('still parses an unknown event name', () => {
+    const { events } = parseSSE('event: surprise\ndata: {}\n\n');
+    expect(events).toEqual([{ event: 'surprise', data: '{}' }]);
+  });
+
+  it('returns no events for a blank or partial buffer', () => {
+    expect(parseSSE('').events).toEqual([]);
+    expect(parseSSE('event: delta').events).toEqual([]);
   });
 });

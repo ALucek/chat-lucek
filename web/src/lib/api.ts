@@ -180,3 +180,32 @@ export async function deleteConversation(id: number): Promise<void> {
 export function getMessages(id: number): Promise<Message[]> {
   return request<Message[]>(`/api/conversations/${id}/messages`);
 }
+
+export interface SSEEvent {
+  event: string;
+  data: string;
+}
+
+function parseFrame(frame: string): SSEEvent | null {
+  let event = '';
+  let data = '';
+  for (const line of frame.split('\n')) {
+    if (line.startsWith('event:')) event = line.slice(6).trim();
+    else if (line.startsWith('data:')) data = line.slice(5).trim();
+  }
+  if (!event) return null;
+  return { event, data };
+}
+
+export function parseSSE(buffer: string): { events: SSEEvent[]; rest: string } {
+  const events: SSEEvent[] = [];
+  let rest = buffer;
+  let idx: number;
+  while ((idx = rest.indexOf('\n\n')) !== -1) {
+    const frame = rest.slice(0, idx);
+    rest = rest.slice(idx + 2);
+    const ev = parseFrame(frame);
+    if (ev) events.push(ev);
+  }
+  return { events, rest };
+}
