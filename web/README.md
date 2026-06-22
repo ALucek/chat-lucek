@@ -6,7 +6,8 @@ conversation sidebar, and assistant replies streamed in token-by-token over SSE.
 ## Stack
 
 - **Next.js** 16 (App Router, TypeScript strict), **React** 19
-- **Tailwind CSS** v4 — no component kit; a hand-built black-and-white UI
+- **Tailwind CSS** v4 with a hand-built design system — semantic `@theme` tokens + small
+  primitives (`Button`/`Input`/`Textarea`); no component kit. Black-and-white UI
 - **pnpm** package manager
 - **Tests**: Vitest + React Testing Library (`@testing-library/user-event`, `renderHook`)
 
@@ -31,6 +32,24 @@ the web origin (it defaults to `http://localhost:3000`).
 | Var                   | Required | Default                 | Notes                  |
 | --------------------- | -------- | ----------------------- | ---------------------- |
 | `NEXT_PUBLIC_API_URL` | no       | `http://localhost:8080` | base URL of the Go API |
+
+`NEXT_PUBLIC_API_URL` is a public var, so in the production image it's baked at **build**
+time as a Docker build-arg (see the root README's production-parity stack), not read at runtime.
+
+## Design system
+
+The UI is hand-built on a small token + primitive foundation — no component kit.
+
+- **Tokens.** Semantic colors and one radius live in a Tailwind v4 `@theme` block in
+  `src/app/globals.css` (`bg-surface`, `text-muted`, `border-border`, `bg-accent`,
+  `--radius`, …). Components reference these names, never raw palette values, so the whole
+  look changes from one place.
+- **`cn()`** (`src/lib/cn.ts`) — merges class strings via `clsx` + `tailwind-merge`, so a
+  caller's `className` can safely override a primitive's base styles.
+- **Primitives** (`src/components/ui/`) — `Button` (`variant`/`size`), `Input`, `Textarea`.
+  Presentational only; variants are plain lookup objects. Feature components compose these.
+
+To restyle, edit the tokens (and, for shape changes, the primitives) — not every component.
 
 ## How it works
 
@@ -69,11 +88,13 @@ web/src/
     (app)/page.tsx            # index empty state
     (app)/c/[id]/page.tsx     # one conversation: history + composer
   components/
+    ui/                       # presentational primitives: Button, Input, Textarea
     sidebar.tsx               # conversation list; new / rename / delete
     conversation-item.tsx     # one sidebar row (inline rename + delete confirm)
-    message-list.tsx          # message history + streaming caret
+    message-list.tsx          # message bubbles + streaming caret
     composer.tsx              # message input box
   lib/
+    cn.ts                     # clsx + tailwind-merge class-merge helper
     api.ts                    # fetch client: auth, CRUD, SSE streaming (parseSSE/sendMessage)
     auth-context.tsx          # session state + login / signup / logout
     conversations-context.tsx # shared conversation list + patchConversation
