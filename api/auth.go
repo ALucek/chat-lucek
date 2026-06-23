@@ -27,6 +27,8 @@ type ctxKey string
 const userIDKey ctxKey = "userID"
 
 const accessTokenTTL = 15 * time.Minute
+const minPasswordLen = 8    // characters
+const maxPasswordBytes = 72 // bcrypt ignores bytes past 72; reject rather than truncate
 
 // hashPassword returns a bcrypt hash of the plaintext password.
 func hashPassword(plain string) (string, error) {

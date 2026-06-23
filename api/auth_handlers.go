@@ -25,6 +25,14 @@ func (a *Auth) Signup(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "email and password required"})
 		return
 	}
+	if len(c.Password) > maxPasswordBytes {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "password too long"})
+		return
+	}
+	if len(c.Password) < minPasswordLen {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "password too short"})
+		return
+	}
 	hash, err := hashPassword(c.Password)
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "could not hash password"})

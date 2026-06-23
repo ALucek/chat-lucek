@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 	"testing"
 )
 
@@ -123,5 +124,26 @@ func TestRefresh_Then_LogoutRevokes(t *testing.T) {
 	if rr2 := do(t, mux, http.MethodPost, "/api/refresh", "",
 		map[string]string{"refresh_token": tok.RefreshToken}); rr2.Code != http.StatusUnauthorized {
 		t.Fatalf("refresh after logout: want 401, got %d", rr2.Code)
+	}
+}
+
+func TestSignup_PasswordTooShort(t *testing.T) {
+	resetDB(t)
+	mux := newTestMux(nil)
+	rec := do(t, mux, http.MethodPost, "/api/signup", "",
+		map[string]string{"email": "short@x.com", "password": "abc123"}) // 6 chars
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("want 400, got %d (%s)", rec.Code, rec.Body)
+	}
+}
+
+func TestSignup_PasswordTooLong(t *testing.T) {
+	resetDB(t)
+	mux := newTestMux(nil)
+	long := strings.Repeat("a", 73) // 73 bytes, over bcrypt's 72-byte limit
+	rec := do(t, mux, http.MethodPost, "/api/signup", "",
+		map[string]string{"email": "long@x.com", "password": long})
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("want 400, got %d (%s)", rec.Code, rec.Body)
 	}
 }
