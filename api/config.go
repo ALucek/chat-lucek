@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"strconv"
 )
 
 // Config holds everything the app needs to run, read once from the environment.
@@ -21,6 +22,7 @@ type Config struct {
 	OpenRouterBaseURL string
 	DatabaseURL       string
 	LogLevel          string
+	TokenBudgetDaily  int
 }
 
 // LoadConfig reads the required settings from the environment.
@@ -40,6 +42,7 @@ func LoadConfig() (Config, error) {
 		OpenRouterBaseURL: getenvDefault("OPENROUTER_BASE_URL", openRouterURL),
 		LogLevel:          getenvDefault("LOG_LEVEL", "info"),
 		DatabaseURL:       os.Getenv("DATABASE_URL"),
+		TokenBudgetDaily:  getenvInt("TOKEN_BUDGET_DAILY", 8192),
 	}
 
 	required := []struct{ name, value string }{
@@ -64,6 +67,16 @@ func LoadConfig() (Config, error) {
 func getenvDefault(key, def string) string {
 	if v := os.Getenv(key); v != "" {
 		return v
+	}
+	return def
+}
+
+// getenvInt returns the env var parsed as a positive int, otherwise def.
+func getenvInt(key string, def int) int {
+	if v := os.Getenv(key); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n > 0 {
+			return n
+		}
 	}
 	return def
 }

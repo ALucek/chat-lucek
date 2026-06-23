@@ -33,7 +33,7 @@ func main() {
 
 	auth := &Auth{pool: pool, secret: []byte(cfg.JWTSecret)}
 	llm := &openRouterClient{key: cfg.OpenRouterKey, model: cfg.Model, baseURL: cfg.OpenRouterBaseURL, http: &http.Client{}}
-	chat := &Chat{pool: pool, llm: llm, systemPrompt: cfg.SystemPrompt}
+	chat := &Chat{pool: pool, llm: llm, systemPrompt: cfg.SystemPrompt, tokenBudget: cfg.TokenBudgetDaily}
 
 	mux := newMux(check, auth, chat)
 

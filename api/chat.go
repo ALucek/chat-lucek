@@ -17,6 +17,7 @@ type Chat struct {
 	pool         *pgxpool.Pool
 	llm          *openRouterClient
 	systemPrompt string
+	tokenBudget  int
 }
 
 type conversation struct {
@@ -199,6 +200,16 @@ func (c *Chat) Send(w http.ResponseWriter, r *http.Request) {
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Content == "" {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "content required"})
+		return
+	}
+
+	used, err := usageSince(r.Context(), c.pool, userID, time.Now().Add(-24*time.Hour))
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "usage check failed"})
+		return
+	}
+	if used >= c.tokenBudget {
+		writeJSON(w, http.StatusTooManyRequests, map[string]string{"error": "daily token budget exceeded"})
 		return
 	}
 

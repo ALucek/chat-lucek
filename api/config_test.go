@@ -76,3 +76,22 @@ func TestLoadConfig_LogLevelDefault(t *testing.T) {
 		t.Fatalf("want default \"info\", got %q", cfg.LogLevel)
 	}
 }
+
+func TestGetenvInt(t *testing.T) {
+	t.Setenv("X_BUDGET", "1234")
+	if got := getenvInt("X_BUDGET", 8192); got != 1234 {
+		t.Fatalf("set: want 1234, got %d", got)
+	}
+	t.Setenv("X_BUDGET", "")
+	if got := getenvInt("X_BUDGET", 8192); got != 8192 {
+		t.Fatalf("empty: want default 8192, got %d", got)
+	}
+	t.Setenv("X_BUDGET", "-5")
+	if got := getenvInt("X_BUDGET", 8192); got != 8192 {
+		t.Fatalf("negative: want default 8192, got %d", got)
+	}
+	t.Setenv("X_BUDGET", "notanumber")
+	if got := getenvInt("X_BUDGET", 8192); got != 8192 {
+		t.Fatalf("unparseable: want default 8192, got %d", got)
+	}
+}

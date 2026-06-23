@@ -26,6 +26,7 @@ var testPool *pgxpool.Pool
 var testSecret = []byte("test-secret-at-least-32-bytes-long-xx")
 
 const testSystemPrompt = "You are a helpful assistant."
+const testTokenBudget = 1_000_000
 
 // TestMain spins up one Postgres container for the whole package, applies the
 // migrations, then runs every test against it.
@@ -88,11 +89,15 @@ func resetDB(t *testing.T) {
 	}
 }
 
-// newTestMux builds the router against the test pool. client may be nil for
-// tests that never reach the streaming handler.
-func newTestMux(client *openRouterClient) *http.ServeMux {
+// newTestMux builds the router against the test pool with a generous budget.
+func newTestMux(client *openRouterClient) http.Handler {
+	return newTestMuxBudget(client, testTokenBudget)
+}
+
+// newTestMuxBudget builds the router with an explicit daily token budget.
+func newTestMuxBudget(client *openRouterClient, budget int) http.Handler {
 	auth := &Auth{pool: testPool, secret: testSecret}
-	chat := &Chat{pool: testPool, llm: client, systemPrompt: testSystemPrompt}
+	chat := &Chat{pool: testPool, llm: client, systemPrompt: testSystemPrompt, tokenBudget: budget}
 	check := func(ctx context.Context) error { return Healthy(ctx, testPool) }
 	return newMux(check, auth, chat)
 }
