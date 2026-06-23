@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 )
@@ -113,12 +114,20 @@ func decodeJSON(w http.ResponseWriter, r *http.Request, dst any) bool {
 func newMux(check func(context.Context) error, auth *Auth, chat *Chat) *http.ServeMux {
 	protect := func(h http.HandlerFunc) http.Handler { return auth.Middleware(http.HandlerFunc(h)) }
 
+	authLimiter := newLimiter(authRatePerMin, authRateBurst)
+	chatLimiter := newLimiter(chatRatePerMin, chatRateBurst)
+	limitIP := authLimiter.middleware(clientIP)
+	limitUser := chatLimiter.middleware(func(r *http.Request) string {
+		uid, _ := userIDFromContext(r.Context())
+		return strconv.FormatInt(uid, 10)
+	})
+
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /livez", liveHandler())
 	mux.HandleFunc("GET /readyz", readyHandler(check))
-	mux.HandleFunc("POST /api/signup", auth.Signup)
-	mux.HandleFunc("POST /api/login", auth.Login)
-	mux.HandleFunc("POST /api/refresh", auth.Refresh)
+	mux.Handle("POST /api/signup", limitIP(http.HandlerFunc(auth.Signup)))
+	mux.Handle("POST /api/login", limitIP(http.HandlerFunc(auth.Login)))
+	mux.Handle("POST /api/refresh", limitIP(http.HandlerFunc(auth.Refresh)))
 	mux.HandleFunc("POST /api/logout", auth.Logout)
 	mux.Handle("GET /api/me", auth.Middleware(http.HandlerFunc(auth.Me)))
 	mux.Handle("GET /api/conversations", protect(chat.List))
@@ -126,6 +135,8 @@ func newMux(check func(context.Context) error, auth *Auth, chat *Chat) *http.Ser
 	mux.Handle("GET /api/conversations/{id}/messages", protect(chat.Messages))
 	mux.Handle("PATCH /api/conversations/{id}", protect(chat.Rename))
 	mux.Handle("DELETE /api/conversations/{id}", protect(chat.Delete))
-	mux.Handle("POST /api/conversations/{id}/messages", protect(chat.Send))
+	// auth first (puts user in context) → then the user-keyed limiter → handler.
+	mux.Handle("POST /api/conversations/{id}/messages",
+		auth.Middleware(limitUser(http.HandlerFunc(chat.Send))))
 	return mux
 }
