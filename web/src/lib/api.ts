@@ -60,9 +60,9 @@ async function doRefresh(): Promise<string | null> {
     clearSession();
     return null;
   }
-  const data = (await res.json()) as { access_token: string };
-  accessToken = data.access_token;
-  return accessToken;
+  const data = (await res.json()) as Tokens;
+  setSession(data);
+  return data.access_token;
 }
 
 interface RequestOpts {

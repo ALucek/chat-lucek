@@ -52,7 +52,9 @@ describe('api client', () => {
     const fetchMock = vi
       .fn()
       .mockResolvedValueOnce(jsonResponse(401, { error: 'expired' })) // me()
-      .mockResolvedValueOnce(jsonResponse(200, { access_token: 'a2' })) // refresh
+      .mockResolvedValueOnce(
+        jsonResponse(200, { access_token: 'a2', refresh_token: 'r2' }),
+      ) // refresh
       .mockResolvedValueOnce(jsonResponse(200, { id: 1, email: 'a@b.co' })); // retry
     vi.stubGlobal('fetch', fetchMock);
 
@@ -61,11 +63,28 @@ describe('api client', () => {
     expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 
+  it('persists the rotated refresh token after a refresh', async () => {
+    localStorage.setItem('refresh_token', 'r1');
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse(401, { error: 'expired' })) // me()
+      .mockResolvedValueOnce(
+        jsonResponse(200, { access_token: 'a2', refresh_token: 'r2' }),
+      ) // refresh rotates
+      .mockResolvedValueOnce(jsonResponse(200, { id: 1, email: 'a@b.co' })); // retry
+    vi.stubGlobal('fetch', fetchMock);
+
+    await me();
+    expect(localStorage.getItem('refresh_token')).toBe('r2');
+  });
+
   it('shares a single refresh among concurrent callers', async () => {
     localStorage.setItem('refresh_token', 'r1');
     const fetchMock = vi
       .fn()
-      .mockResolvedValue(jsonResponse(200, { access_token: 'a2' }));
+      .mockResolvedValue(
+        jsonResponse(200, { access_token: 'a2', refresh_token: 'r2' }),
+      );
     vi.stubGlobal('fetch', fetchMock);
 
     const [t1, t2] = await Promise.all([refreshAccess(), refreshAccess()]);
