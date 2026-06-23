@@ -5,6 +5,7 @@ const PORT = process.env.FAKE_PORT ? Number(process.env.FAKE_PORT) : 8090;
 const FRAMES = [
   'data: {"choices":[{"delta":{"content":"Hello "}}]}\n\n',
   'data: {"choices":[{"delta":{"content":"from the stub."}}]}\n\n',
+  'data: {"choices":[],"usage":{"prompt_tokens":11,"completion_tokens":7,"total_tokens":18}}\n\n',
   'data: [DONE]\n\n',
 ];
 
