@@ -65,3 +65,14 @@ func TestLoadConfig_OpenRouterBaseURLOverride(t *testing.T) {
 		t.Fatalf("want override, got %q", cfg.OpenRouterBaseURL)
 	}
 }
+
+func TestLoadConfig_LogLevelDefault(t *testing.T) {
+	setAllEnv(t)
+	cfg, err := LoadConfig()
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if cfg.LogLevel != "info" {
+		t.Fatalf("want default \"info\", got %q", cfg.LogLevel)
+	}
+}

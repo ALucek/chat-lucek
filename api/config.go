@@ -20,6 +20,7 @@ type Config struct {
 	AllowedOrigin     string
 	OpenRouterBaseURL string
 	DatabaseURL       string
+	LogLevel          string
 }
 
 // LoadConfig reads the required settings from the environment.
@@ -37,6 +38,7 @@ func LoadConfig() (Config, error) {
 		SystemPrompt:      getenvDefault("SYSTEM_PROMPT", "You are a helpful assistant."),
 		AllowedOrigin:     getenvDefault("ALLOWED_ORIGIN", "http://localhost:3000"),
 		OpenRouterBaseURL: getenvDefault("OPENROUTER_BASE_URL", openRouterURL),
+		LogLevel:          getenvDefault("LOG_LEVEL", "info"),
 		DatabaseURL:       os.Getenv("DATABASE_URL"),
 	}
 

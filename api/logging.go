@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"log/slog"
 	"net/http"
+	"os"
 	"time"
 )
 
@@ -108,4 +109,20 @@ func withLogging(next http.Handler) http.Handler {
 		}
 		slog.LogAttrs(r.Context(), level, "request", attrs...)
 	})
+}
+
+func setupLogger(level string) {
+	var lvl slog.Level
+	switch level {
+	case "debug":
+		lvl = slog.LevelDebug
+	case "warn":
+		lvl = slog.LevelWarn
+	case "error":
+		lvl = slog.LevelError
+	default:
+		lvl = slog.LevelInfo
+	}
+	h := slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: lvl})
+	slog.SetDefault(slog.New(contextHandler{h}))
 }

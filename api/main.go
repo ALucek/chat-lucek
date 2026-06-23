@@ -3,8 +3,9 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"log"
+	"log/slog"
 	"net/http"
+	"os"
 	"os/signal"
 	"syscall"
 	"time"
@@ -13,15 +14,18 @@ import (
 func main() {
 	cfg, err := LoadConfig()
 	if err != nil {
-		log.Fatalf("config: %v", err)
+		slog.Error("config", "err", err)
+		os.Exit(1)
 	}
+	setupLogger(cfg.LogLevel)
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
 	pool, err := NewPool(ctx, cfg)
 	if err != nil {
-		log.Fatalf("db: %v", err)
+		slog.Error("db", "err", err)
+		os.Exit(1)
 	}
 	defer pool.Close()
 
@@ -35,23 +39,24 @@ func main() {
 
 	server := &http.Server{
 		Addr:              ":" + cfg.Port,
-		Handler:           withCORS(cfg.AllowedOrigin, mux),
+		Handler:           withRequestID(withLogging(withCORS(cfg.AllowedOrigin, mux))),
 		ReadHeaderTimeout: 10 * time.Second,
 	}
 
 	go func() {
-		log.Printf("listening on :%s", cfg.Port)
+		slog.Info("listening", "port", cfg.Port)
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("server: %v", err)
+			slog.Error("server", "err", err)
+			os.Exit(1)
 		}
 	}()
 
 	<-ctx.Done()
-	log.Println("shutting down")
+	slog.Info("shutting down")
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	if err := server.Shutdown(shutdownCtx); err != nil {
-		log.Printf("shutdown: %v", err)
+		slog.Error("shutdown", "err", err)
 	}
 }
 
