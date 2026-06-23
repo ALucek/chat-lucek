@@ -82,7 +82,7 @@ func migrate(dsn string) error {
 func resetDB(t *testing.T) {
 	t.Helper()
 	_, err := testPool.Exec(context.Background(),
-		`truncate users, refresh_tokens, conversations, messages restart identity cascade`)
+		`truncate users, refresh_tokens, conversations, messages, token_usage restart identity cascade`)
 	if err != nil {
 		t.Fatalf("reset db: %v", err)
 	}
