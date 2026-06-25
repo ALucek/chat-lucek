@@ -1,5 +1,5 @@
 # ---- build ----
-FROM node:25-alpine AS build
+FROM node@sha256:bdf2cca6fe3dabd014ea60163eca3f0f7015fbd5c7ee1b0e9ccb4ced6eb02ef4 AS build
 WORKDIR /app
 RUN npm install -g pnpm@11.8.0
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
@@ -11,7 +11,7 @@ ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 RUN pnpm build
 
 # ---- runtime ----
-FROM node:25-alpine AS runtime
+FROM node@sha256:bdf2cca6fe3dabd014ea60163eca3f0f7015fbd5c7ee1b0e9ccb4ced6eb02ef4 AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
 RUN addgroup -S nodejs && adduser -S nextjs -G nodejs

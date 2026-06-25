@@ -17,6 +17,7 @@ services:
   api:
     profiles: [full]
     build: ./api
+    image: simple-ai-chatbot-api:local
     environment:
       DB_HOST: db
       DB_PORT: "5432"
@@ -41,6 +42,7 @@ services:
       context: ./web
       args:
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8080}
+    image: simple-ai-chatbot-web:local
     ports:
       - "3000:3000"
     depends_on:
