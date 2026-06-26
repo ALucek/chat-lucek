@@ -6,10 +6,12 @@ import { Textarea } from '@/components/ui/textarea';
 
 export function Composer({
   onSend,
-  disabled,
+  onStop,
+  sending,
 }: {
   onSend: (text: string) => void;
-  disabled: boolean;
+  onStop: () => void;
+  sending: boolean;
 }) {
   const [text, setText] = useState('');
 
@@ -34,14 +36,20 @@ export function Composer({
           value={text}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={onKeyDown}
-          disabled={disabled}
+          disabled={sending}
           rows={1}
           placeholder="Send a message…"
           className="flex-1"
         />
-        <Button onClick={submit} disabled={disabled}>
-          Send
-        </Button>
+        {sending ? (
+          <Button type="button" variant="ghost" onClick={onStop}>
+            Stop
+          </Button>
+        ) : (
+          <Button type="button" onClick={submit}>
+            Send
+          </Button>
+        )}
       </div>
     </div>
   );

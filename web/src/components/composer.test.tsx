@@ -10,7 +10,7 @@ beforeEach(() => {
 describe('Composer', () => {
   it('Enter submits the trimmed text and clears the box', async () => {
     const onSend = vi.fn();
-    render(<Composer onSend={onSend} disabled={false} />);
+    render(<Composer onSend={onSend} onStop={vi.fn()} sending={false} />);
     const box = screen.getByRole('textbox');
     await userEvent.type(box, 'hello{Enter}');
     expect(onSend).toHaveBeenCalledWith('hello');
@@ -19,7 +19,7 @@ describe('Composer', () => {
 
   it('Shift+Enter inserts a newline and does not submit', async () => {
     const onSend = vi.fn();
-    render(<Composer onSend={onSend} disabled={false} />);
+    render(<Composer onSend={onSend} onStop={vi.fn()} sending={false} />);
     const box = screen.getByRole('textbox');
     await userEvent.type(box, 'a{Shift>}{Enter}{/Shift}b');
     expect(onSend).not.toHaveBeenCalled();
@@ -28,15 +28,17 @@ describe('Composer', () => {
 
   it('does not submit empty or whitespace-only input', async () => {
     const onSend = vi.fn();
-    render(<Composer onSend={onSend} disabled={false} />);
+    render(<Composer onSend={onSend} onStop={vi.fn()} sending={false} />);
     const box = screen.getByRole('textbox');
     await userEvent.type(box, '   {Enter}');
     expect(onSend).not.toHaveBeenCalled();
   });
 
-  it('disables the controls when disabled', () => {
-    render(<Composer onSend={vi.fn()} disabled={true} />);
+  it('shows Stop while sending and calls onStop', async () => {
+    const onStop = vi.fn();
+    render(<Composer onSend={vi.fn()} onStop={onStop} sending={true} />);
     expect(screen.getByRole('textbox')).toBeDisabled();
-    expect(screen.getByRole('button', { name: /send/i })).toBeDisabled();
+    await userEvent.click(screen.getByRole('button', { name: /stop/i }));
+    expect(onStop).toHaveBeenCalled();
   });
 });

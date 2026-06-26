@@ -8,7 +8,8 @@ import { Composer } from '@/components/composer';
 export default function ConversationPage() {
   const params = useParams();
   const id = Number(params.id);
-  const { messages, loading, error, notFound, send, sending } = useMessages(id);
+  const { messages, loading, error, notFound, send, sending, stop } =
+    useMessages(id);
 
   if (loading) return <p className="text-muted p-6 text-sm">Loading…</p>;
   if (notFound)
@@ -29,7 +30,7 @@ export default function ConversationPage() {
         )}
         {error && <p className="text-danger px-6 pb-4 text-sm">{error}</p>}
       </div>
-      <Composer onSend={send} disabled={sending} />
+      <Composer onSend={send} onStop={stop} sending={sending} />
     </div>
   );
 }
