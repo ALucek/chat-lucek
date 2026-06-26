@@ -8,7 +8,7 @@ per-user conversations, and replies streamed from an LLM over Server-Sent Events
 - **Go** `net/http` (1.22 method+path routing), `pgx`/`pgxpool`
 - **Postgres** (local via Docker), schema managed with **goose** migrations
 - **Auth**: `bcrypt` + HS256 JWT access tokens + **rotating** DB-backed refresh tokens (reuse detection), case-insensitive email, constant-time login
-- **LLM**: OpenRouter (OpenAI-compatible) streamed as raw SSE
+- **LLM**: OpenRouter (OpenAI-compatible) streamed as raw SSE, behind an HTTP client with connect / TLS / response-header timeouts (a stalled upstream fails fast; the stream body is intentionally unbounded so a healthy long reply isn't cut)
 - **Observability**: structured `log/slog` JSON access logs + per-request id (stdlib, zero deps)
 - **Guardrails**: request/message size caps, hand-rolled token-bucket rate limiting (IP on auth, user on chat), a daily per-user token budget
 - **Tests**: `testcontainers-go` against a real ephemeral Postgres
@@ -86,7 +86,11 @@ data: {"title":"Plan a trip to"}
 - `delta` — an incremental chunk of the reply
 - `done` — the reply is complete and persisted (`message_id`)
 - `title` — on a conversation's first message only, its generated name (may follow `done`)
-- `error` — something failed mid-stream (`{"error":"..."}`)
+- `error` — something failed mid-stream (`{"error":"..."}`). The upstream HTTP client has
+  connect / TLS / response-header timeouts, so a stalled upstream surfaces here promptly
+  instead of hanging; the user message is already persisted and the partial reply is dropped,
+  so the conversation reverts to the last user turn. (`Client.Timeout` is deliberately unset —
+  it would cut a healthy long stream.)
 
 ## Observability
 
