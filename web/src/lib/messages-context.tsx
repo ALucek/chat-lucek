@@ -190,9 +190,11 @@ export function useMessages(id: number): UseMessages {
   if (!ctx)
     throw new Error('useMessages must be used within a MessagesProvider');
 
+  // load is referentially stable, so the effect only re-runs on id change.
+  const load = ctx.load;
   useEffect(() => {
-    ctx.load(id);
-  }, [id, ctx.load]);
+    load(id);
+  }, [id, load]);
 
   const state = ctx.byId[id] ?? LOADING;
   return {
