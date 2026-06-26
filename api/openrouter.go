@@ -6,11 +6,20 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/http"
 	"strings"
+	"time"
 )
 
 const openRouterURL = "https://openrouter.ai/api/v1/chat/completions"
+
+// Upstream timeouts
+const (
+	llmDialTimeout           = 10 * time.Second
+	llmTLSTimeout            = 10 * time.Second
+	llmResponseHeaderTimeout = 30 * time.Second
+)
 
 // openRouterClient talks to OpenRouter's OpenAI-compatible chat completions API.
 type openRouterClient struct {
@@ -93,4 +102,12 @@ func (c *openRouterClient) stream(ctx context.Context, msgs []llmMessage, onText
 		}
 	}
 	return usage, scanner.Err()
+}
+
+func newLLMHTTPClient() *http.Client {
+	tr := http.DefaultTransport.(*http.Transport).Clone()
+	tr.DialContext = (&net.Dialer{Timeout: llmDialTimeout}).DialContext
+	tr.TLSHandshakeTimeout = llmTLSTimeout
+	tr.ResponseHeaderTimeout = llmResponseHeaderTimeout
+	return &http.Client{Transport: tr} // no Timeout: would cut SSE
 }
