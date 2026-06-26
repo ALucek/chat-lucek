@@ -2,7 +2,10 @@ import type { ChatMessage } from '@/lib/messages-context';
 
 export function MessageList({ messages }: { messages: ChatMessage[] }) {
   return (
-    <ul className="mx-auto flex max-w-2xl flex-col gap-4 p-6">
+    <ul
+      aria-live="polite"
+      className="mx-auto flex max-w-2xl flex-col gap-4 p-6"
+    >
       {messages.map((m) => (
         <li
           key={m.id}
