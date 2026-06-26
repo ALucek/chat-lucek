@@ -12,6 +12,7 @@ import {
   getMessages,
   parseSSE,
   sendMessage,
+  setOnUnauthorized,
 } from './api';
 
 // Minimal Response stand-in for a JSON body.
@@ -317,4 +318,19 @@ it('swallows an AbortError without calling onError', async () => {
     ),
   ).resolves.toBeUndefined();
   expect(onError).not.toHaveBeenCalled();
+});
+
+it('notifies onUnauthorized when a refresh fails', async () => {
+  localStorage.setItem('refresh_token', 'r1');
+  const cb = vi.fn();
+  setOnUnauthorized(cb);
+  const fetchMock = vi
+    .fn()
+    .mockResolvedValueOnce(jsonResponse(401, { error: 'expired' })) // me()
+    .mockResolvedValueOnce(jsonResponse(401, { error: 'invalid refresh' })); // refresh
+  vi.stubGlobal('fetch', fetchMock);
+
+  await expect(me()).rejects.toBeInstanceOf(ApiError);
+  expect(cb).toHaveBeenCalled();
+  setOnUnauthorized(null);
 });

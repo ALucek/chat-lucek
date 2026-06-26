@@ -43,6 +43,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
+  // A failed mid-session refresh notifies here → drop to anon so the shell redirects.
+  useEffect(() => {
+    api.setOnUnauthorized(() => {
+      setUser(null);
+      setStatus('anon');
+    });
+    return () => api.setOnUnauthorized(null);
+  }, []);
+
   async function login(email: string, password: string) {
     await api.login(email, password);
     setUser(await api.me());

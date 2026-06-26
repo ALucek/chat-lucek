@@ -48,6 +48,13 @@ export function refreshAccess(): Promise<string | null> {
   return refreshing;
 }
 
+let onUnauthorized: (() => void) | null = null;
+
+// setOnUnauthorized registers a callback fired when a mid-session refresh fails. Pass null to clear it.
+export function setOnUnauthorized(fn: (() => void) | null): void {
+  onUnauthorized = fn;
+}
+
 async function doRefresh(): Promise<string | null> {
   const refresh = localStorage.getItem(REFRESH_KEY);
   if (!refresh) return null;
@@ -58,6 +65,7 @@ async function doRefresh(): Promise<string | null> {
   });
   if (!res.ok) {
     clearSession();
+    onUnauthorized?.();
     return null;
   }
   const data = (await res.json()) as Tokens;
