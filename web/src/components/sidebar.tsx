@@ -28,7 +28,7 @@ export function Sidebar() {
 
   return (
     <aside className="border-border bg-surface flex h-full w-64 flex-col border-r">
-      <div className="border-border border-b p-3">
+      <div className="border-border border-b p-3 pl-[52px]">
         <Button onClick={onNew} className="w-full">
           New conversation
         </Button>
