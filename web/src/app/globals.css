@@ -2,22 +2,48 @@
 
 @theme {
   /* surfaces */
-  --color-bg: #ffffff; /* app background */
-  --color-surface: #ffffff; /* raised areas (cards) */
-  --color-surface-muted: #f5f5f5; /* assistant bubble, hover */
+  --color-bg: #ffffff;
+  --color-surface: #ffffff;
+  --color-surface-muted: #fafafa;
 
   /* text */
-  --color-fg: #0a0a0a; /* primary text */
-  --color-muted: #525252; /* secondary text */
-  --color-subtle: #a3a3a3; /* placeholders, captions */
+  --color-fg: #333333;
+  --color-fg-strong: #1a1a1a;
+  --color-muted: #555555;
+  --color-subtle: #888888;
 
-  /* lines & actions */
-  --color-border: #e5e5e5;
-  --color-accent: #0a0a0a; /* primary action (near-black) */
-  --color-accent-fg: #ffffff; /* text on accent */
-  --color-danger: #dc2626; /* errors */
+  /* lines & states */
+  --color-border: rgba(0, 0, 0, 0.125);
+  --color-hover: rgba(0, 0, 0, 0.03);
 
-  --radius: 0.5rem; /* one corner radius everywhere */
+  /* actions */
+  --color-accent: #1a1a1a;
+  --color-accent-fg: #ffffff;
+  --color-danger: #c0392b;
+
+  /* shape / type / layout */
+  --radius: 6px;
+  --bottombar-h: 64px;
+  --font-mono:
+    var(--font-share-tech), ui-monospace, 'SFMono-Regular', Menlo, Consolas,
+    monospace;
+}
+
+@layer base {
+  body {
+    font-family: var(--font-mono);
+    color: var(--color-fg);
+    background: var(--color-bg);
+    line-height: 1.5;
+  }
+  strong,
+  b {
+    /* synthetic bold — mono fonts bold weakly */
+    font-weight: 400;
+    color: var(--color-fg-strong);
+    text-shadow: 0.4px 0 0 currentColor;
+    letter-spacing: 0.02em;
+  }
 }
 
 .markdown > :first-child {
@@ -27,12 +53,41 @@
   margin-bottom: 0;
 }
 .markdown p {
-  margin: 0.5rem 0;
+  margin: 10px 0;
+}
+.markdown h1,
+.markdown h2,
+.markdown h3 {
+  color: var(--color-fg-strong);
+  font-weight: 400;
+  line-height: 1.35;
+  text-shadow: 0.4px 0 0 currentColor;
+  margin: 18px 0 8px;
+}
+.markdown h1 {
+  font-size: 19px;
+}
+.markdown h2 {
+  font-size: 17px;
+}
+.markdown h3 {
+  font-size: 15px;
+}
+/* lucek.ai heading underline accent */
+.markdown h2::after,
+.markdown h3::after {
+  content: '';
+  display: block;
+  width: 48px;
+  height: 2px;
+  background: var(--color-border);
+  margin-top: 5px;
+  border-radius: 2px;
 }
 .markdown ul,
 .markdown ol {
-  margin: 0.5rem 0;
-  padding-left: 1.25rem;
+  margin: 10px 0;
+  padding-left: 22px;
 }
 .markdown ul {
   list-style: disc;
@@ -40,47 +95,111 @@
 .markdown ol {
   list-style: decimal;
 }
+.markdown li {
+  margin: 5px 0;
+}
 .markdown a {
+  color: var(--color-fg);
   text-decoration: underline;
 }
-.markdown h1,
-.markdown h2,
-.markdown h3 {
-  font-weight: 600;
-  margin: 0.75rem 0 0.25rem;
+.markdown a:hover {
+  color: var(--color-muted);
 }
 .markdown code {
-  background: var(--color-bg);
+  background: var(--color-surface-muted);
   border: 1px solid var(--color-border);
-  border-radius: 0.25rem;
-  padding: 0.05em 0.3em;
-  font-size: 0.85em;
+  border-radius: 3px;
+  padding: 1px 5px;
+  font-size: 0.92em;
 }
 .markdown pre {
-  background: var(--color-bg);
+  background: var(--color-surface-muted);
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
-  padding: 0.75rem;
-  margin: 0.5rem 0;
+  padding: 12px 14px;
+  margin: 12px 0;
   overflow-x: auto;
+  line-height: 1.5;
 }
 .markdown pre code {
   background: none;
   border: 0;
   padding: 0;
+  font-size: 13px;
 }
 .markdown blockquote {
-  border-left: 3px solid var(--color-border);
-  padding-left: 0.75rem;
+  margin: 12px 0;
+  padding: 8px 16px;
+  background: var(--color-surface-muted);
+  border-left: 3px solid var(--color-muted);
+  border-radius: 0 var(--radius) var(--radius) 0;
   color: var(--color-muted);
-  margin: 0.5rem 0;
+  font-style: italic;
 }
 .markdown table {
   border-collapse: collapse;
-  margin: 0.5rem 0;
+  margin: 12px 0;
+  font-size: 13px;
+}
+.markdown th {
+  background: var(--color-hover);
+  text-align: left;
+  font-weight: 400;
+  color: var(--color-fg-strong);
+  text-shadow: 0.4px 0 0 currentColor;
 }
 .markdown th,
 .markdown td {
   border: 1px solid var(--color-border);
-  padding: 0.25rem 0.5rem;
+  padding: 6px 10px;
+}
+
+/* Syntax highlighting — lucek.ai's light palette, mapped to highlight.js classes */
+.markdown .hljs {
+  color: var(--color-fg);
+}
+.markdown .hljs-comment,
+.markdown .hljs-quote {
+  color: slategray;
+}
+.markdown .hljs-keyword,
+.markdown .hljs-selector-tag,
+.markdown .hljs-literal {
+  color: #07a;
+}
+.markdown .hljs-string,
+.markdown .hljs-attr,
+.markdown .hljs-built_in,
+.markdown .hljs-attribute {
+  color: #690;
+}
+.markdown .hljs-number,
+.markdown .hljs-symbol,
+.markdown .hljs-meta {
+  color: #905;
+}
+.markdown .hljs-title,
+.markdown .hljs-title.function_,
+.markdown .hljs-type,
+.markdown .hljs-class .hljs-title {
+  color: #dd4a68;
+}
+.markdown .hljs-variable,
+.markdown .hljs-template-variable,
+.markdown .hljs-regexp {
+  color: #e90;
+}
+.markdown .hljs-operator,
+.markdown .hljs-punctuation {
+  color: #9a6e3a;
+}
+
+/* streaming caret */
+.caret-blink {
+  animation: blink 1s step-end infinite;
+}
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
 }

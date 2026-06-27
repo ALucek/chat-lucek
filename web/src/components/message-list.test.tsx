@@ -48,4 +48,19 @@ describe('MessageList markdown', () => {
     // raw HTML is not parsed
     expect(document.querySelector('img')).toBeNull();
   });
+
+  it('highlights fenced code blocks and keeps sanitization', () => {
+    const msgs: ChatMessage[] = [
+      {
+        id: 1,
+        role: 'assistant',
+        content: '```go\nfunc main() {}\n```',
+        created_at: '',
+      },
+    ];
+    render(<MessageList messages={msgs} />);
+    const code = document.querySelector('pre code');
+    expect(code?.className).toMatch(/hljs/);
+    expect(document.querySelector('.hljs-keyword')).not.toBeNull();
+  });
 });
