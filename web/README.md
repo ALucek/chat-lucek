@@ -77,6 +77,12 @@ To restyle, edit the tokens (and, for shape changes, the primitives) — not eve
   outer wrapper animates its width; the sidebar stays a fixed-width inner panel and is
   clipped, so it never reflows mid-slide, and the centered conversation column recenters
   in the freed space.
+- **Responsive / mobile.** Below the `md` breakpoint (768px) the sidebar becomes a `fixed`
+  overlay drawer with a dimming backdrop instead of a push column, so chat content stays
+  full-width. A separate floating `☰` (mobile-only) toggles an ephemeral `useMobileDrawer`
+  state that always starts closed and auto-closes on navigation, backdrop tap, or toggle.
+  The desktop push-sidebar is unchanged. The auth wordmark scales with a fluid `clamp()`
+  font size so the ASCII art fits narrow screens.
 - **Data.** Hand-built hooks and contexts instead of a data library. `ConversationsProvider`
   owns the sidebar list; `MessagesProvider` (`lib/messages-context.tsx`) is an app-level
   per-conversation message store, and `useMessages(id)` reads it. Because the store sits
@@ -155,6 +161,7 @@ web/src/
     messages-context.tsx      # app-level message store; survives navigation; send / stop / stream
     usage-context.tsx         # fetches GET /api/usage; refreshes after each reply
     use-sidebar-collapsed.ts  # persisted left-sidebar collapse state (localStorage)
+    use-mobile-drawer.ts      # ephemeral mobile drawer state; auto-closes on route change
     toast-context.tsx         # ToastProvider + useToast (auto-dismiss notifications)
     csp.ts                    # builds the page Content-Security-Policy (used by next.config.ts)
 ```
