@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -28,6 +29,23 @@ func TestStream_SkipsCommentsAndStopsAtDone(t *testing.T) {
 	}
 	if got.String() != "Hello" {
 		t.Fatalf("want %q, got %q", "Hello", got.String())
+	}
+}
+
+func TestStream_SendsMaxTokens(t *testing.T) {
+	var body map[string]any
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewDecoder(r.Body).Decode(&body)
+		fmt.Fprint(w, "data: [DONE]\n\n")
+	}))
+	defer srv.Close()
+	client := &openRouterClient{baseURL: srv.URL, http: srv.Client()}
+
+	if _, err := client.stream(context.Background(), nil, func(string) {}); err != nil {
+		t.Fatalf("stream: %v", err)
+	}
+	if body["max_tokens"] != float64(maxOutputTokens) {
+		t.Fatalf("want max_tokens %d, got %v", maxOutputTokens, body["max_tokens"])
 	}
 }
 

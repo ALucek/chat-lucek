@@ -14,6 +14,9 @@ import (
 
 const openRouterURL = "https://openrouter.ai/api/v1/chat/completions"
 
+// max output tokens per reply
+const maxOutputTokens = 8192
+
 // Upstream timeouts
 const (
 	llmDialTimeout           = 10 * time.Second
@@ -46,6 +49,7 @@ func (c *openRouterClient) stream(ctx context.Context, msgs []llmMessage, onText
 		"messages":       msgs,
 		"stream":         true,
 		"stream_options": map[string]any{"include_usage": true},
+		"max_tokens":     maxOutputTokens,
 	})
 	if err != nil {
 		return usage, err
