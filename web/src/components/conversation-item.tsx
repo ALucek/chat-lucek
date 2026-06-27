@@ -110,7 +110,7 @@ export function ConversationItem({ conversation, rename, remove }: Props) {
           </Button>
         </span>
       ) : (
-        <span className="hidden items-center gap-1 group-hover:flex">
+        <span className="flex items-center gap-1 md:hidden md:group-hover:flex">
           <Button
             variant="ghost"
             size="sm"
