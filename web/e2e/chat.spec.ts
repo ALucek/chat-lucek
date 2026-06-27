@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test';
 test('signup, send a message, stream a reply, persist on reload', async ({
   page,
 }) => {
-  const email = `e2e-${Date.now()}@example.com`;
+  const email = `e2e-${Date.now()}@gmail.com`;
   const message = 'Tell me a joke about cats please';
 
   // Sign up → lands on the app shell.

@@ -26,6 +26,17 @@ func (a *Auth) Signup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	c.Email = normalizeEmail(c.Email)
+	if err := checkEmailDeliverable(r.Context(), c.Email); err != nil {
+		switch {
+		case errors.Is(err, errEmailUnverifiable):
+			writeJSON(w, http.StatusServiceUnavailable, map[string]string{"error": "could not verify email, please try again"})
+		case errors.Is(err, errEmailUndeliverable):
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "email domain can't receive mail"})
+		default:
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid email"})
+		}
+		return
+	}
 	if len(c.Password) > maxPasswordBytes {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "password too long"})
 		return

@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -59,6 +60,10 @@ func TestMain(m *testing.M) {
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "pool: %v\n", err)
 		os.Exit(1)
+	}
+	// Signup hits real DNS in production; stub it so the suite is hermetic.
+	lookupMX = func(context.Context, string) ([]*net.MX, error) {
+		return []*net.MX{{Host: "mx.test.", Pref: 10}}, nil
 	}
 
 	code := m.Run()

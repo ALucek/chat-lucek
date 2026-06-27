@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -287,5 +289,37 @@ func TestLogout_DeletesWithoutRevokingOthers(t *testing.T) {
 	// the other login still works (logout didn't revoke a family)
 	if rr := do(t, mux, http.MethodPost, "/api/refresh", "", map[string]string{"refresh_token": rB}); rr.Code != http.StatusOK {
 		t.Fatalf("other session after logout: want 200, got %d", rr.Code)
+	}
+}
+
+func TestSignup_MalformedEmail(t *testing.T) {
+	resetDB(t)
+	mux := newTestMux(nil)
+	rec := do(t, mux, http.MethodPost, "/api/signup", "",
+		map[string]string{"email": "not-an-email", "password": "password123"})
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("want 400, got %d", rec.Code)
+	}
+}
+
+func TestSignup_UndeliverableEmail(t *testing.T) {
+	resetDB(t)
+	withLookupMX(t, func(context.Context, string) ([]*net.MX, error) { return nil, nil })
+	mux := newTestMux(nil)
+	rec := do(t, mux, http.MethodPost, "/api/signup", "",
+		map[string]string{"email": "user@nope.example", "password": "password123"})
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("want 400, got %d", rec.Code)
+	}
+}
+
+func TestSignup_UnverifiableEmail(t *testing.T) {
+	resetDB(t)
+	withLookupMX(t, func(context.Context, string) ([]*net.MX, error) { return nil, errors.New("dns down") })
+	mux := newTestMux(nil)
+	rec := do(t, mux, http.MethodPost, "/api/signup", "",
+		map[string]string{"email": "user@blip.example", "password": "password123"})
+	if rec.Code != http.StatusServiceUnavailable {
+		t.Fatalf("want 503, got %d", rec.Code)
 	}
 }
