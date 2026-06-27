@@ -148,7 +148,7 @@ web/src/
     (app)/c/[id]/page.tsx     # one conversation: history + composer (skeleton while loading)
   components/
     ui/                       # presentational primitives: Button, Input, Textarea, Skeleton
-    wordmark.tsx              # "Adam Łucek" ASCII wordmark (Courier New) for the auth pages
+    wordmark.tsx              # "Łucek Chat" ASCII wordmark (Courier New) for the auth pages
     error-fallback.tsx        # shared "something went wrong" + try-again UI
     toaster.tsx               # fixed-corner stack of toasts
     sidebar.tsx               # conversation list; new / rename / delete (skeleton while loading)
