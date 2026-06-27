@@ -60,6 +60,12 @@ func LoadConfig() (Config, error) {
 			return Config{}, fmt.Errorf("missing required env var: %s", r.name)
 		}
 	}
+
+	// A too-short JWT_SECRET makes session tokens forgeable.
+	if len(cfg.JWTSecret) < 32 {
+		return Config{}, fmt.Errorf("JWT_SECRET must be at least 32 characters, got %d", len(cfg.JWTSecret))
+	}
+
 	return cfg, nil
 }
 
