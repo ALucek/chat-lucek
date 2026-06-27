@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"encoding/json"
+	"net/http"
 	"testing"
 	"time"
 )
@@ -69,5 +71,52 @@ func TestUsage_SurvivesConversationDelete(t *testing.T) {
 	}
 	if total != 10 {
 		t.Fatalf("usage must survive conversation delete; want 10, got %d", total)
+	}
+}
+
+func TestUsage_Endpoint(t *testing.T) {
+	resetDB(t)
+	mux := newTestMuxBudget(nil, 8192)
+	ta, uid := signup(t, mux, "a@x.com")
+
+	ctx := context.Background()
+	if err := recordUsage(ctx, testPool, uid, tokenUsage{Prompt: 10, Completion: 5}); err != nil {
+		t.Fatalf("record 1: %v", err)
+	}
+	if err := recordUsage(ctx, testPool, uid, tokenUsage{Prompt: 3, Completion: 2}); err != nil {
+		t.Fatalf("record 2: %v", err)
+	}
+	// A row older than the 24h window must not count.
+	if _, err := testPool.Exec(ctx,
+		`insert into token_usage (user_id, prompt_tokens, completion_tokens, created_at)
+		 values ($1, 100, 100, now() - interval '25 hours')`, uid); err != nil {
+		t.Fatalf("seed old: %v", err)
+	}
+
+	rec := do(t, mux, http.MethodGet, "/api/usage", ta, nil)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("want 200, got %d (%s)", rec.Code, rec.Body)
+	}
+	var out struct {
+		Used   int `json:"used"`
+		Budget int `json:"budget"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &out); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if out.Used != 20 {
+		t.Fatalf("want used 20, got %d", out.Used)
+	}
+	if out.Budget != 8192 {
+		t.Fatalf("want budget 8192, got %d", out.Budget)
+	}
+}
+
+func TestUsage_Endpoint_RequiresAuth(t *testing.T) {
+	resetDB(t)
+	mux := newTestMuxBudget(nil, 8192)
+	rec := do(t, mux, http.MethodGet, "/api/usage", "", nil)
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("want 401, got %d", rec.Code)
 	}
 }
