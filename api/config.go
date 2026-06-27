@@ -61,9 +61,7 @@ func LoadConfig() (Config, error) {
 		}
 	}
 
-	// JWT_SECRET signs every session token. Require a meaningful key length so a
-	// weak or truncated value (e.g. an empty/misconfigured secret injection)
-	// can't slip through and leave tokens forgeable — fail loud at startup.
+	// A too-short JWT_SECRET makes session tokens forgeable.
 	if len(cfg.JWTSecret) < 32 {
 		return Config{}, fmt.Errorf("JWT_SECRET must be at least 32 characters, got %d", len(cfg.JWTSecret))
 	}
