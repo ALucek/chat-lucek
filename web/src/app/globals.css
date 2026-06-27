@@ -153,3 +153,43 @@
   border: 1px solid var(--color-border);
   padding: 6px 10px;
 }
+
+/* Syntax highlighting — lucek.ai's light palette, mapped to highlight.js classes */
+.markdown .hljs {
+  color: var(--color-fg);
+}
+.markdown .hljs-comment,
+.markdown .hljs-quote {
+  color: slategray;
+}
+.markdown .hljs-keyword,
+.markdown .hljs-selector-tag,
+.markdown .hljs-literal {
+  color: #07a;
+}
+.markdown .hljs-string,
+.markdown .hljs-attr,
+.markdown .hljs-built_in,
+.markdown .hljs-attribute {
+  color: #690;
+}
+.markdown .hljs-number,
+.markdown .hljs-symbol,
+.markdown .hljs-meta {
+  color: #905;
+}
+.markdown .hljs-title,
+.markdown .hljs-title.function_,
+.markdown .hljs-type,
+.markdown .hljs-class .hljs-title {
+  color: #dd4a68;
+}
+.markdown .hljs-variable,
+.markdown .hljs-template-variable,
+.markdown .hljs-regexp {
+  color: #e90;
+}
+.markdown .hljs-operator,
+.markdown .hljs-punctuation {
+  color: #9a6e3a;
+}

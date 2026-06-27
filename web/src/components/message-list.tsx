@@ -1,6 +1,5 @@
 import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import rehypeSanitize from 'rehype-sanitize';
+import { remarkPlugins, rehypePlugins } from '@/lib/markdown';
 import type { ChatMessage } from '@/lib/messages-context';
 
 export function MessageList({ messages }: { messages: ChatMessage[] }) {
@@ -22,8 +21,8 @@ export function MessageList({ messages }: { messages: ChatMessage[] }) {
           {m.role === 'assistant' ? (
             <div className="markdown bg-surface-muted text-fg max-w-[80%] rounded-[--radius] px-4 py-2 text-sm">
               <ReactMarkdown
-                remarkPlugins={[remarkGfm]}
-                rehypePlugins={[rehypeSanitize]}
+                remarkPlugins={remarkPlugins}
+                rehypePlugins={rehypePlugins}
                 components={{
                   a: (props) => (
                     <a {...props} target="_blank" rel="noopener noreferrer" />
