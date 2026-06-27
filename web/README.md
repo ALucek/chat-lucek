@@ -84,6 +84,13 @@ To restyle, edit the tokens (and, for shape changes, the primitives) — not eve
     sanitized by `rehype-sanitize` with raw HTML disabled; user messages stay plain text.
   - **Page CSP** — a pragmatic `Content-Security-Policy` (built in `lib/csp.ts`, applied in
     `next.config.ts`) is sent on every response as defense-in-depth.
+  - **Error boundaries** — a render crash shows a fallback with a "try again" button instead of
+    a blank screen: `app/(app)/error.tsx` catches the authed shell, `app/global-error.tsx` the
+    root layout. Both reuse the presentational `components/error-fallback.tsx`.
+  - **Loading skeletons** — the sidebar list and conversation history render pulsing `Skeleton`
+    placeholders (`components/ui/skeleton.tsx`) off their existing `loading` flags, not bare text.
+  - **Failure toasts** — a hand-built toast surface (`lib/toast-context.tsx` + `components/toaster.tsx`,
+    mounted in the root layout) surfaces the otherwise-swallowed create / rename / delete failures.
 
 ## Tests
 
@@ -99,14 +106,18 @@ SSE parser and consumer are unit-tested directly. CI runs the suite on every pus
 ```
 web/src/
   app/
-    layout.tsx                # root layout, wraps the app in AuthProvider
+    layout.tsx                # root layout: AuthProvider + ToastProvider + Toaster
+    global-error.tsx          # root-level crash fallback (renders its own html/body)
     (auth)/login, signup      # public auth pages
     (app)/layout.tsx          # auth guard + sidebar shell (ConversationsProvider)
+    (app)/error.tsx           # crash fallback for the authed shell subtree
     (app)/page.tsx            # index empty state
-    (app)/c/[id]/page.tsx     # one conversation: history + composer
+    (app)/c/[id]/page.tsx     # one conversation: history + composer (skeleton while loading)
   components/
-    ui/                       # presentational primitives: Button, Input, Textarea
-    sidebar.tsx               # conversation list; new / rename / delete
+    ui/                       # presentational primitives: Button, Input, Textarea, Skeleton
+    error-fallback.tsx        # shared "something went wrong" + try-again UI
+    toaster.tsx               # fixed-corner stack of toasts
+    sidebar.tsx               # conversation list; new / rename / delete (skeleton while loading)
     conversation-item.tsx     # one sidebar row (inline rename + delete confirm)
     message-list.tsx          # message bubbles (sanitized Markdown) + streaming caret
     composer.tsx              # message input box + Stop button
@@ -116,5 +127,6 @@ web/src/
     auth-context.tsx          # session state + login / signup / logout
     conversations-context.tsx # shared conversation list + patchConversation
     messages-context.tsx      # app-level message store; survives navigation; send / stop / stream
+    toast-context.tsx         # ToastProvider + useToast (auto-dismiss notifications)
     csp.ts                    # builds the page Content-Security-Policy (used by next.config.ts)
 ```
