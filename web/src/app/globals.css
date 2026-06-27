@@ -2,22 +2,48 @@
 
 @theme {
   /* surfaces */
-  --color-bg: #ffffff; /* app background */
-  --color-surface: #ffffff; /* raised areas (cards) */
-  --color-surface-muted: #f5f5f5; /* assistant bubble, hover */
+  --color-bg: #ffffff;
+  --color-surface: #ffffff;
+  --color-surface-muted: #fafafa;
 
   /* text */
-  --color-fg: #0a0a0a; /* primary text */
-  --color-muted: #525252; /* secondary text */
-  --color-subtle: #a3a3a3; /* placeholders, captions */
+  --color-fg: #333333;
+  --color-fg-strong: #1a1a1a;
+  --color-muted: #555555;
+  --color-subtle: #888888;
 
-  /* lines & actions */
-  --color-border: #e5e5e5;
-  --color-accent: #0a0a0a; /* primary action (near-black) */
-  --color-accent-fg: #ffffff; /* text on accent */
-  --color-danger: #dc2626; /* errors */
+  /* lines & states */
+  --color-border: rgba(0, 0, 0, 0.125);
+  --color-hover: rgba(0, 0, 0, 0.03);
 
-  --radius: 0.5rem; /* one corner radius everywhere */
+  /* actions */
+  --color-accent: #1a1a1a;
+  --color-accent-fg: #ffffff;
+  --color-danger: #c0392b;
+
+  /* shape / type / layout */
+  --radius: 6px;
+  --bottombar-h: 64px;
+  --font-mono:
+    var(--font-share-tech), ui-monospace, 'SFMono-Regular', Menlo, Consolas,
+    monospace;
+}
+
+@layer base {
+  body {
+    font-family: var(--font-mono);
+    color: var(--color-fg);
+    background: var(--color-bg);
+    line-height: 1.5;
+  }
+  strong,
+  b {
+    /* synthetic bold — mono fonts bold weakly */
+    font-weight: 400;
+    color: var(--color-fg-strong);
+    text-shadow: 0.4px 0 0 currentColor;
+    letter-spacing: 0.02em;
+  }
 }
 
 .markdown > :first-child {
