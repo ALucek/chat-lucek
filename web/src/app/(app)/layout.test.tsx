@@ -5,7 +5,10 @@ import AppLayout from './layout';
 import { useAuth } from '@/lib/auth-context';
 
 const replace = vi.fn();
-vi.mock('next/navigation', () => ({ useRouter: () => ({ replace }) }));
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ replace }),
+  usePathname: () => '/',
+}));
 vi.mock('@/lib/auth-context');
 vi.mock('@/components/sidebar', () => ({ Sidebar: () => <div>sidebar</div> }));
 vi.mock('@/lib/conversations-context', () => ({
@@ -86,5 +89,40 @@ describe('AppLayout guard', () => {
     );
     const wrapper = screen.getByText('sidebar').parentElement as HTMLElement;
     expect(wrapper.className).toContain('w-0');
+  });
+
+  it('opens the mobile drawer and shows a backdrop, then closes on backdrop tap', async () => {
+    vi.mocked(useAuth).mockReturnValue(authValue('authed'));
+    render(
+      <AppLayout>
+        <div>secret</div>
+      </AppLayout>,
+    );
+    const wrapper = screen.getByText('sidebar').parentElement as HTMLElement;
+
+    // Closed by default.
+    expect(wrapper.className).toContain('-translate-x-full');
+    expect(screen.queryByTestId('backdrop')).toBeNull();
+
+    // Mobile toggle opens it.
+    await userEvent.click(screen.getByLabelText('Toggle menu'));
+    expect(wrapper.className).not.toContain('-translate-x-full');
+    expect(screen.getByTestId('backdrop')).toBeInTheDocument();
+
+    // Backdrop tap closes it.
+    await userEvent.click(screen.getByTestId('backdrop'));
+    expect(wrapper.className).toContain('-translate-x-full');
+    expect(screen.queryByTestId('backdrop')).toBeNull();
+  });
+
+  it('keeps desktop and mobile toggles as separate controls', () => {
+    vi.mocked(useAuth).mockReturnValue(authValue('authed'));
+    render(
+      <AppLayout>
+        <div>secret</div>
+      </AppLayout>,
+    );
+    expect(screen.getByLabelText('Toggle sidebar')).toBeInTheDocument();
+    expect(screen.getByLabelText('Toggle menu')).toBeInTheDocument();
   });
 });
