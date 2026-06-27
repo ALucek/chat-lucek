@@ -40,7 +40,7 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="bg-bg flex min-h-screen items-center justify-center p-6">
+    <main className="bg-bg flex min-h-dvh items-center justify-center p-6">
       <div className="flex flex-col items-center gap-6">
         <Wordmark />
         <div className="border-border bg-surface w-full max-w-sm rounded-[var(--radius)] border p-8">
