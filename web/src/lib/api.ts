@@ -149,6 +149,15 @@ export function me(): Promise<User> {
   return request<User>('/api/me');
 }
 
+export interface Usage {
+  used: number;
+  budget: number;
+}
+
+export function getUsage(): Promise<Usage> {
+  return request<Usage>('/api/usage');
+}
+
 export interface Conversation {
   id: number;
   title: string;

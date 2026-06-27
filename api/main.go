@@ -156,6 +156,7 @@ func newMux(check func(context.Context) error, auth *Auth, chat *Chat) *http.Ser
 	mux.Handle("GET /api/conversations/{id}/messages", protect(chat.Messages))
 	mux.Handle("PATCH /api/conversations/{id}", protect(chat.Rename))
 	mux.Handle("DELETE /api/conversations/{id}", protect(chat.Delete))
+	mux.Handle("GET /api/usage", protect(chat.Usage))
 	// auth first (puts user in context) → then the user-keyed limiter → handler.
 	mux.Handle("POST /api/conversations/{id}/messages",
 		auth.Middleware(limitUser(http.HandlerFunc(chat.Send))))

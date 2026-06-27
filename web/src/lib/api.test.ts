@@ -10,6 +10,7 @@ import {
   renameConversation,
   deleteConversation,
   getMessages,
+  getUsage,
   parseSSE,
   sendMessage,
   setOnUnauthorized,
@@ -157,6 +158,14 @@ describe('conversation endpoints', () => {
     expect(fetchMock.mock.calls[0][0]).toBe(
       'http://localhost:8080/api/conversations/7/messages',
     );
+  });
+
+  it('getUsage GETs the usage summary', async () => {
+    const data = { used: 3851, budget: 8192 };
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(200, data));
+    vi.stubGlobal('fetch', fetchMock);
+    await expect(getUsage()).resolves.toEqual(data);
+    expect(fetchMock.mock.calls[0][0]).toBe('http://localhost:8080/api/usage');
   });
 });
 

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"net/http"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -29,4 +30,15 @@ func usageSince(ctx context.Context, pool *pgxpool.Pool, userID int64, since tim
 		 from token_usage where user_id = $1 and created_at > $2`,
 		userID, since).Scan(&total)
 	return total, err
+}
+
+// Usage reports the caller's rolling-24h token usage against the daily budget.
+func (c *Chat) Usage(w http.ResponseWriter, r *http.Request) {
+	userID, _ := userIDFromContext(r.Context())
+	used, err := usageSince(r.Context(), c.pool, userID, time.Now().Add(-24*time.Hour))
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "usage check failed"})
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]int{"used": used, "budget": c.tokenBudget})
 }
