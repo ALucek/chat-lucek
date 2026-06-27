@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import AppLayout from './layout';
 import { useAuth } from '@/lib/auth-context';
 
@@ -25,6 +26,7 @@ function authValue(status: 'loading' | 'authed' | 'anon') {
 
 beforeEach(() => {
   vi.resetAllMocks();
+  localStorage.clear();
 });
 
 describe('AppLayout guard', () => {
@@ -58,5 +60,31 @@ describe('AppLayout guard', () => {
       </AppLayout>,
     );
     expect(screen.queryByText('secret')).not.toBeInTheDocument();
+  });
+
+  it('toggles the sidebar collapsed and persists it', async () => {
+    vi.mocked(useAuth).mockReturnValue(authValue('authed'));
+    render(
+      <AppLayout>
+        <div>secret</div>
+      </AppLayout>,
+    );
+    const wrapper = screen.getByText('sidebar').parentElement as HTMLElement;
+    expect(wrapper.className).toContain('w-64');
+    await userEvent.click(screen.getByLabelText('Toggle sidebar'));
+    expect(wrapper.className).toContain('w-0');
+    expect(localStorage.getItem('sidebar-collapsed')).toBe('true');
+  });
+
+  it('starts collapsed when storage says so', () => {
+    localStorage.setItem('sidebar-collapsed', 'true');
+    vi.mocked(useAuth).mockReturnValue(authValue('authed'));
+    render(
+      <AppLayout>
+        <div>secret</div>
+      </AppLayout>,
+    );
+    const wrapper = screen.getByText('sidebar').parentElement as HTMLElement;
+    expect(wrapper.className).toContain('w-0');
   });
 });
