@@ -68,7 +68,7 @@ func (c *Chat) List(w http.ResponseWriter, r *http.Request) {
 	rows, err := c.pool.Query(r.Context(),
 		`select id, coalesce(title,''), created_at, updated_at
 		 from conversations where user_id = $1
-		 order by updated_at desc limit $2 offset $3`, userID, limit, offset)
+		 order by updated_at desc, id desc limit $2 offset $3`, userID, limit, offset)
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "could not list conversations"})
 		return

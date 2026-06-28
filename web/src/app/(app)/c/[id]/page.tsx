@@ -15,6 +15,7 @@ export default function ConversationPage() {
     messages,
     loading,
     loadingOlder,
+    hasMore,
     error,
     notFound,
     send,
@@ -24,28 +25,25 @@ export default function ConversationPage() {
   } = useMessages(id);
   const { scrollRef, contentRef } = useStickToBottom({ initial: 'instant' });
 
-  const prevFirstId = useRef<number | null>(null);
-  const prevHeight = useRef(0);
+  // Scroll metrics captured when a load starts, restored after older messages prepend.
+  const restore = useRef<{ height: number; top: number } | null>(null);
 
-  // When an older page prepends, keep the viewport anchored where it was.
   useLayoutEffect(() => {
     const el = scrollRef.current;
-    if (!el) return;
-    const firstId = messages[0]?.id ?? null;
-    if (
-      prevFirstId.current !== null &&
-      firstId !== null &&
-      firstId < prevFirstId.current
-    ) {
-      el.scrollTop += el.scrollHeight - prevHeight.current;
+    if (el && restore.current) {
+      el.scrollTop =
+        el.scrollHeight - restore.current.height + restore.current.top;
+      restore.current = null;
     }
-    prevFirstId.current = firstId;
-    prevHeight.current = el.scrollHeight;
   }, [messages, scrollRef]);
 
-  // Fetch older messages when scrolled near the top.
+  // Fetch older messages near the top, anchoring the viewport so it doesn't jump.
   function onScroll(e: React.UIEvent<HTMLDivElement>) {
-    if (e.currentTarget.scrollTop < 200) loadOlder();
+    const el = e.currentTarget;
+    if (el.scrollTop < 200 && hasMore && !loadingOlder) {
+      restore.current = { height: el.scrollHeight, top: el.scrollTop };
+      loadOlder();
+    }
   }
 
   if (notFound)
@@ -70,12 +68,15 @@ export default function ConversationPage() {
         <div
           ref={scrollRef}
           onScroll={onScroll}
-          className="flex-1 overflow-y-auto"
+          data-testid="messages-scroll"
+          className="relative flex-1 overflow-y-auto [overflow-anchor:none]"
         >
+          {loadingOlder && (
+            <p className="text-subtle bg-surface/80 absolute inset-x-0 top-0 z-10 py-2 text-center text-xs">
+              loading…
+            </p>
+          )}
           <div ref={contentRef}>
-            {loadingOlder && (
-              <p className="text-subtle py-2 text-center text-xs">loading…</p>
-            )}
             <MessageList messages={messages} />
           </div>
         </div>
