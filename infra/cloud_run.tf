@@ -49,8 +49,7 @@ resource "google_cloud_run_v2_service" "web" {
     }
   }
 
-  # client/client_version stamped by gcloud deploys; service-level scaling
-  # is populated by Cloud Run. Both platform-managed, neither in this config.
+  # Fields written by gcloud/Cloud Run, not managed here.
   lifecycle {
     ignore_changes = [
       client,
@@ -160,8 +159,7 @@ resource "google_cloud_run_v2_service" "api" {
     }
   }
 
-  # client/client_version stamped by gcloud deploys; scaling + cloudsql mount
-  # are populated by Cloud Run. All platform-managed, none in this config.
+  # Fields written by gcloud/Cloud Run, not managed here.
   lifecycle {
     ignore_changes = [
       client,
@@ -229,7 +227,7 @@ resource "google_cloud_run_v2_job" "migrate" {
     }
   }
 
-  # client/client_version stamped by gcloud; cloudsql mount populated by Cloud Run.
+  # Fields written by gcloud/Cloud Run, not managed here.
   lifecycle {
     ignore_changes = [
       client,
