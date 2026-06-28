@@ -162,6 +162,39 @@ func TestRefresh_ReuseRevokesFamilyOnly(t *testing.T) {
 	}
 }
 
+func TestRefresh_PurgesExpiredTokens(t *testing.T) {
+	resetDB(t)
+	mux := newTestMux(nil)
+	r0 := googleLogin(t, mux, "purge@x.com")
+
+	var uid int64
+	if err := testPool.QueryRow(context.Background(),
+		`select id from users limit 1`).Scan(&uid); err != nil {
+		t.Fatalf("user id: %v", err)
+	}
+	// Seed an already-expired refresh token row.
+	if _, err := testPool.Exec(context.Background(),
+		`insert into refresh_tokens (token_hash, user_id, family_id, expires_at)
+		 values ($1, $2, $3, now() - interval '1 hour')`,
+		hashToken("stale"), uid, "stale-family"); err != nil {
+		t.Fatalf("seed expired token: %v", err)
+	}
+
+	// A successful refresh should sweep expired rows.
+	if rr := doCookie(t, mux, http.MethodPost, "/api/refresh", r0); rr.Code != http.StatusOK {
+		t.Fatalf("refresh: want 200, got %d", rr.Code)
+	}
+
+	var expired int
+	if err := testPool.QueryRow(context.Background(),
+		`select count(*) from refresh_tokens where expires_at < now()`).Scan(&expired); err != nil {
+		t.Fatalf("count expired: %v", err)
+	}
+	if expired != 0 {
+		t.Fatalf("want 0 expired tokens after refresh, got %d", expired)
+	}
+}
+
 func TestLogout_DeletesWithoutRevokingOthers(t *testing.T) {
 	resetDB(t)
 	mux := newTestMux(nil)
