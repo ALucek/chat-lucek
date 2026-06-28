@@ -30,7 +30,7 @@ resource "google_project_iam_member" "api_sql" {
 resource "google_cloud_run_v2_service" "web" {
   name                = "chat-web"
   location            = var.region
-  ingress             = "INGRESS_TRAFFIC_ALL"
+  ingress             = "INGRESS_TRAFFIC_INTERNAL_LOAD_BALANCER"
   deletion_protection = false
 
   template {
@@ -57,7 +57,7 @@ resource "google_cloud_run_v2_service" "web" {
 resource "google_cloud_run_v2_service" "api" {
   name                = "chat-api"
   location            = var.region
-  ingress             = "INGRESS_TRAFFIC_ALL"
+  ingress             = "INGRESS_TRAFFIC_INTERNAL_LOAD_BALANCER"
   deletion_protection = false
 
   template {
@@ -108,7 +108,7 @@ resource "google_cloud_run_v2_service" "api" {
       }
       env {
         name  = "ALLOWED_ORIGIN"
-        value = google_cloud_run_v2_service.web.uri
+        value = "https://${var.domain}"
       }
 
       env {
