@@ -17,3 +17,8 @@ output "web_url" {
   value       = google_cloud_run_v2_service.web.uri
   description = "Cloud Run URL of the web service."
 }
+
+output "lb_ip" {
+  value       = google_compute_global_address.lb.address
+  description = "Static IP for the chat.lucek.ai DNS A-record."
+}
