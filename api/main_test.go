@@ -43,10 +43,11 @@ func TestSecurityHeaders(t *testing.T) {
 	h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/", nil))
 
 	want := map[string]string{
-		"X-Content-Type-Options":  "nosniff",
-		"X-Frame-Options":         "DENY",
-		"Referrer-Policy":         "no-referrer",
-		"Content-Security-Policy": "default-src 'none'; frame-ancestors 'none'",
+		"X-Content-Type-Options":    "nosniff",
+		"X-Frame-Options":           "DENY",
+		"Referrer-Policy":           "no-referrer",
+		"Content-Security-Policy":   "default-src 'none'; frame-ancestors 'none'",
+		"Strict-Transport-Security": "max-age=31536000; includeSubDomains",
 	}
 	for k, v := range want {
 		if got := rec.Header().Get(k); got != v {
