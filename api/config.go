@@ -23,6 +23,10 @@ type Config struct {
 	DatabaseURL       string
 	LogLevel          string
 	TokenBudgetDaily  int
+	GoogleClientID    string
+	OwnerEmail        string
+	GoogleAuthFake    bool
+	SignupOpen        bool
 }
 
 // LoadConfig reads the required settings from the environment.
@@ -43,6 +47,10 @@ func LoadConfig() (Config, error) {
 		LogLevel:          getenvDefault("LOG_LEVEL", "info"),
 		DatabaseURL:       os.Getenv("DATABASE_URL"),
 		TokenBudgetDaily:  getenvInt("TOKEN_BUDGET_DAILY", 8192),
+		GoogleClientID:    os.Getenv("GOOGLE_CLIENT_ID"),
+		OwnerEmail:        os.Getenv("OWNER_EMAIL"),
+		GoogleAuthFake:    os.Getenv("GOOGLE_AUTH_FAKE") == "1",
+		SignupOpen:        os.Getenv("SIGNUP_OPEN") != "false",
 	}
 
 	required := []struct{ name, value string }{
@@ -54,6 +62,7 @@ func LoadConfig() (Config, error) {
 		{"PORT", cfg.Port},
 		{"JWT_SECRET", cfg.JWTSecret},
 		{"OPENROUTER_API_KEY", cfg.OpenRouterKey},
+		{"GOOGLE_CLIENT_ID", cfg.GoogleClientID},
 	}
 	for _, r := range required {
 		if r.value == "" {

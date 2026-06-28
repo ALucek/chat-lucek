@@ -45,9 +45,9 @@ func main() {
 
 	check := func(ctx context.Context) error { return Healthy(ctx, pool) }
 
-	auth := &Auth{pool: pool, secret: []byte(cfg.JWTSecret)}
+	auth := &Auth{pool: pool, secret: []byte(cfg.JWTSecret), verify: selectGoogleVerifier(cfg), signupOpen: cfg.SignupOpen}
 	llm := &openRouterClient{key: cfg.OpenRouterKey, model: cfg.Model, baseURL: cfg.OpenRouterBaseURL, http: newLLMHTTPClient()}
-	chat := &Chat{pool: pool, llm: llm, systemPrompt: cfg.SystemPrompt, tokenBudget: cfg.TokenBudgetDaily}
+	chat := &Chat{pool: pool, llm: llm, systemPrompt: cfg.SystemPrompt, tokenBudget: cfg.TokenBudgetDaily, ownerEmail: normalizeEmail(cfg.OwnerEmail)}
 
 	mux := newMux(check, auth, chat)
 
@@ -146,8 +146,7 @@ func newMux(check func(context.Context) error, auth *Auth, chat *Chat) *http.Ser
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /livez", liveHandler())
 	mux.HandleFunc("GET /readyz", readyHandler(check))
-	mux.Handle("POST /api/signup", limitIP(http.HandlerFunc(auth.Signup)))
-	mux.Handle("POST /api/login", limitIP(http.HandlerFunc(auth.Login)))
+	mux.Handle("POST /api/google", limitIP(http.HandlerFunc(auth.Google)))
 	mux.Handle("POST /api/refresh", limitIP(http.HandlerFunc(auth.Refresh)))
 	mux.HandleFunc("POST /api/logout", auth.Logout)
 	mux.Handle("GET /api/me", auth.Middleware(http.HandlerFunc(auth.Me)))
