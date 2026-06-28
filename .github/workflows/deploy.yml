@@ -1,0 +1,67 @@
+name: deploy
+on:
+  workflow_run:
+    workflows: [test]
+    types: [completed]
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    # Deploy only when tests passed on a push to main (never on PR / fork runs).
+    if: >
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'main'
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      IMAGE_TAG: ${{ github.event.workflow_run.head_sha }}
+      REGISTRY: ${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT }}/chat
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+      - uses: google-github-actions/auth@c200f3691d83b41bf9bbd8638997a462592937ed # v2
+        with:
+          workload_identity_provider: ${{ vars.WIF_PROVIDER }}
+          service_account: ${{ vars.DEPLOY_SA }}
+      - uses: google-github-actions/setup-gcloud@e427ad8a34f8676edf47cf7d7925499adf3eb74f # v2
+      - run: gcloud auth configure-docker ${{ vars.GCP_REGION }}-docker.pkg.dev --quiet
+      - name: Build and push api
+        run: |
+          docker build -t "$REGISTRY/api:$IMAGE_TAG" ./api
+          docker push "$REGISTRY/api:$IMAGE_TAG"
+      - name: Build and push web
+        run: |
+          docker build \
+            --build-arg NEXT_PUBLIC_API_URL="https://${{ vars.DOMAIN }}" \
+            --build-arg NEXT_PUBLIC_GOOGLE_CLIENT_ID="${{ vars.GOOGLE_CLIENT_ID }}" \
+            -t "$REGISTRY/web:$IMAGE_TAG" ./web
+          docker push "$REGISTRY/web:$IMAGE_TAG"
+      - name: Run migrations
+        run: |
+          gcloud run jobs update chat-migrate \
+            --image "$REGISTRY/api:$IMAGE_TAG" --region "${{ vars.GCP_REGION }}"
+          gcloud run jobs execute chat-migrate --region "${{ vars.GCP_REGION }}" --wait
+      - name: Deploy api
+        run: |
+          gcloud run services update chat-api \
+            --image "$REGISTRY/api:$IMAGE_TAG" --region "${{ vars.GCP_REGION }}"
+      - name: Deploy web
+        run: |
+          gcloud run services update chat-web \
+            --image "$REGISTRY/web:$IMAGE_TAG" --region "${{ vars.GCP_REGION }}"
+      - name: Smoke check
+        run: |
+          set -euo pipefail
+          web=$(curl -fsS -o /dev/null -w '%{http_code}' "https://${{ vars.DOMAIN }}")
+          test "$web" = "200" || { echo "web returned $web"; exit 1; }
+          api=$(curl -s -o /dev/null -w '%{http_code}' "https://${{ vars.DOMAIN }}/api/me")
+          test "$api" = "401" || { echo "api /api/me returned $api"; exit 1; }
