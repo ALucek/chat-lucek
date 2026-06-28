@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"net/http"
 	"time"
 )
@@ -52,7 +53,14 @@ func (a *Auth) Refresh(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Rotate: issue a fresh access + refresh token in the same family.
+	a.purgeExpiredRefreshTokens(r.Context())
 	a.issueTokens(w, r, userID, familyID, http.StatusOK)
+}
+
+// purgeExpiredRefreshTokens best-effort deletes refresh tokens past expiry.
+// Expired tokens are already unusable, so this bounds table growth safely.
+func (a *Auth) purgeExpiredRefreshTokens(ctx context.Context) {
+	_, _ = a.pool.Exec(ctx, `delete from refresh_tokens where expires_at < now()`)
 }
 
 func (a *Auth) Logout(w http.ResponseWriter, r *http.Request) {
