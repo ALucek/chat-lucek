@@ -11,6 +11,7 @@ func setAllEnv(t *testing.T) {
 	t.Setenv("PORT", "8080")
 	t.Setenv("JWT_SECRET", "test-secret-at-least-32-bytes-long-xx")
 	t.Setenv("OPENROUTER_API_KEY", "test-openrouter-key")
+	t.Setenv("GOOGLE_CLIENT_ID", "test-client-id")
 }
 
 func TestLoadConfig_HasJWTSecret(t *testing.T) {
@@ -82,6 +83,25 @@ func TestLoadConfig_RejectsShortJWTSecret(t *testing.T) {
 	t.Setenv("JWT_SECRET", "too-short")
 	if _, err := LoadConfig(); err == nil {
 		t.Fatal("expected an error for a short JWT_SECRET, got nil")
+	}
+}
+
+func TestLoadConfig_RequiresGoogleClientID(t *testing.T) {
+	setAllEnv(t)
+	t.Setenv("GOOGLE_CLIENT_ID", "")
+	if _, err := LoadConfig(); err == nil {
+		t.Fatal("expected an error for missing GOOGLE_CLIENT_ID, got nil")
+	}
+}
+
+func TestLoadConfig_OwnerAndFakeDefaults(t *testing.T) {
+	setAllEnv(t)
+	cfg, err := LoadConfig()
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if cfg.GoogleClientID != "test-client-id" || cfg.OwnerEmail != "" || cfg.GoogleAuthFake {
+		t.Fatalf("unexpected config: %+v", cfg)
 	}
 }
 

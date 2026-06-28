@@ -23,6 +23,7 @@ import (
 type Auth struct {
 	pool   *pgxpool.Pool
 	secret []byte
+	verify googleVerifier
 }
 
 type ctxKey string
