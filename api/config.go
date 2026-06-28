@@ -26,6 +26,7 @@ type Config struct {
 	GoogleClientID    string
 	OwnerEmail        string
 	GoogleAuthFake    bool
+	SignupOpen        bool
 }
 
 // LoadConfig reads the required settings from the environment.
@@ -49,6 +50,7 @@ func LoadConfig() (Config, error) {
 		GoogleClientID:    os.Getenv("GOOGLE_CLIENT_ID"),
 		OwnerEmail:        os.Getenv("OWNER_EMAIL"),
 		GoogleAuthFake:    os.Getenv("GOOGLE_AUTH_FAKE") == "1",
+		SignupOpen:        os.Getenv("SIGNUP_OPEN") != "false",
 	}
 
 	required := []struct{ name, value string }{

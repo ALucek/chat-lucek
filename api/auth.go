@@ -17,9 +17,10 @@ import (
 
 // Auth groups the auth handlers and middleware with their dependencies.
 type Auth struct {
-	pool   *pgxpool.Pool
-	secret []byte
-	verify googleVerifier
+	pool       *pgxpool.Pool
+	secret     []byte
+	verify     googleVerifier
+	signupOpen bool
 }
 
 type ctxKey string

@@ -70,3 +70,32 @@ func TestGoogle_RejectsBadToken(t *testing.T) {
 		t.Fatalf("want 401, got %d (%s)", rec.Code, rec.Body)
 	}
 }
+
+func TestGoogle_SignupsClosedRejectsNewUser(t *testing.T) {
+	resetDB(t)
+	auth := &Auth{pool: testPool, secret: testSecret, verify: fakeGoogleVerifier(), signupOpen: false}
+	chat := &Chat{pool: testPool, systemPrompt: testSystemPrompt, tokenBudget: testTokenBudget}
+	mux := newMux(func(ctx context.Context) error { return Healthy(ctx, testPool) }, auth, chat)
+
+	rec := do(t, mux, http.MethodPost, "/api/google", "", map[string]string{"id_token": "e2e:newbie@gmail.com"})
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("want 403 for a new user with signups closed, got %d (%s)", rec.Code, rec.Body)
+	}
+}
+
+func TestGoogle_SignupsClosedAllowsExistingUser(t *testing.T) {
+	resetDB(t)
+	if _, err := testPool.Exec(context.Background(),
+		`insert into users (google_sub, email) values ($1, $2)`,
+		"e2e:existing@gmail.com", "existing@gmail.com"); err != nil {
+		t.Fatalf("seed: %v", err)
+	}
+	auth := &Auth{pool: testPool, secret: testSecret, verify: fakeGoogleVerifier(), signupOpen: false}
+	chat := &Chat{pool: testPool, systemPrompt: testSystemPrompt, tokenBudget: testTokenBudget}
+	mux := newMux(func(ctx context.Context) error { return Healthy(ctx, testPool) }, auth, chat)
+
+	rec := do(t, mux, http.MethodPost, "/api/google", "", map[string]string{"id_token": "e2e:existing@gmail.com"})
+	if rec.Code != http.StatusOK {
+		t.Fatalf("existing user should sign in even when closed, got %d (%s)", rec.Code, rec.Body)
+	}
+}

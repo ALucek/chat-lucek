@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/jackc/pgx/v5"
 	"google.golang.org/api/idtoken"
 )
 
@@ -75,12 +76,25 @@ func (a *Auth) Google(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "invalid google token"})
 		return
 	}
+	email := normalizeEmail(claims.Email)
 	var userID int64
 	err = a.pool.QueryRow(r.Context(),
-		`insert into users (google_sub, email) values ($1, $2)
-		 on conflict (google_sub) do update set email = excluded.email
-		 returning id`, claims.Sub, normalizeEmail(claims.Email)).Scan(&userID)
-	if err != nil {
+		`select id from users where google_sub = $1`, claims.Sub).Scan(&userID)
+	switch {
+	case err == nil:
+		_, _ = a.pool.Exec(r.Context(), `update users set email = $2 where google_sub = $1`, claims.Sub, email)
+	case errors.Is(err, pgx.ErrNoRows):
+		if !a.signupOpen {
+			writeJSON(w, http.StatusForbidden, map[string]string{"error": "signups are closed"})
+			return
+		}
+		if err := a.pool.QueryRow(r.Context(),
+			`insert into users (google_sub, email) values ($1, $2) returning id`,
+			claims.Sub, email).Scan(&userID); err != nil {
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "could not create user"})
+			return
+		}
+	default:
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "could not create user"})
 		return
 	}
