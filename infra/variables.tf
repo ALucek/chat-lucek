@@ -24,3 +24,9 @@ variable "owner_email" {
   type        = string
   description = "Account granted the unlimited token budget."
 }
+
+variable "domain" {
+  type        = string
+  description = "Public domain served by the load balancer."
+  default     = "chat.lucek.ai"
+}
