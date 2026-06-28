@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"context"
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -14,8 +13,6 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
-	_ "github.com/jackc/pgx/v5/stdlib" // database/sql driver "pgx" for goose
-	"github.com/pressly/goose/v3"
 	"github.com/testcontainers/testcontainers-go"
 	tcpostgres "github.com/testcontainers/testcontainers-go/modules/postgres"
 	"github.com/testcontainers/testcontainers-go/wait"
@@ -51,7 +48,7 @@ func TestMain(m *testing.M) {
 		fmt.Fprintf(os.Stderr, "conn string: %v\n", err)
 		os.Exit(1)
 	}
-	if err := migrate(dsn); err != nil {
+	if err := runMigrations(dsn); err != nil {
 		fmt.Fprintf(os.Stderr, "migrate: %v\n", err)
 		os.Exit(1)
 	}
@@ -65,17 +62,6 @@ func TestMain(m *testing.M) {
 	testPool.Close()
 	_ = testcontainers.TerminateContainer(ctr)
 	os.Exit(code)
-}
-
-// migrate applies the goose migrations via a temporary database/sql handle.
-func migrate(dsn string) error {
-	db, err := sql.Open("pgx", dsn)
-	if err != nil {
-		return err
-	}
-	defer db.Close()
-	goose.SetDialect("postgres")
-	return goose.Up(db, "migrations")
 }
 
 // resetDB clears all app tables; call at the top of each integration test.

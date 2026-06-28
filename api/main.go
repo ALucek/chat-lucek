@@ -26,6 +26,15 @@ func newServer(addr string, h http.Handler) *http.Server {
 }
 
 func main() {
+	if len(os.Args) > 1 && os.Args[1] == "migrate" {
+		if err := runMigrations(migrateDSN()); err != nil {
+			slog.Error("migrate", "err", err)
+			os.Exit(1)
+		}
+		slog.Info("migrations applied")
+		return
+	}
+
 	cfg, err := LoadConfig()
 	if err != nil {
 		slog.Error("config", "err", err)
