@@ -4,6 +4,7 @@ import (
 	"net"
 	"net/http"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 )
@@ -107,8 +108,19 @@ func (l *limiter) middleware(key func(*http.Request) string) func(http.Handler) 
 	}
 }
 
-// clientIP is the host part of RemoteAddr
-func clientIP(r *http.Request) string {
+// clientIP returns the rate-limit key: the real client IP. Behind a trusted
+// proxy that is the second-from-right X-Forwarded-For entry; leading entries
+// are client-spoofable and ignored.
+func clientIP(r *http.Request, trustProxy bool) string {
+	if trustProxy {
+		if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
+			parts := strings.Split(xff, ",")
+			if len(parts) >= 2 {
+				return strings.TrimSpace(parts[len(parts)-2])
+			}
+			return strings.TrimSpace(parts[len(parts)-1])
+		}
+	}
 	host, _, err := net.SplitHostPort(r.RemoteAddr)
 	if err != nil {
 		return r.RemoteAddr
