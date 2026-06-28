@@ -49,6 +49,10 @@
     text-shadow: 0.4px 0 0 currentColor;
     letter-spacing: 0.02em;
   }
+  * {
+    /* no grey flash on tap */
+    -webkit-tap-highlight-color: transparent;
+  }
 }
 
 .markdown > :first-child {
@@ -124,6 +128,7 @@
   padding: 12px 14px;
   margin: 12px 0;
   overflow-x: auto;
+  max-width: 100%;
   line-height: 1.5;
 }
 .markdown pre code {
@@ -145,6 +150,10 @@
   border-collapse: collapse;
   margin: 12px 0;
   font-size: 13px;
+  /* wide tables scroll within themselves instead of stretching the page */
+  display: block;
+  overflow-x: auto;
+  max-width: 100%;
 }
 .markdown th {
   background: var(--color-hover);
