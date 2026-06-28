@@ -7,6 +7,7 @@ DB_DSN := postgres://$(DB_USER):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(DB_NAME)?
         web-install web-run web-build web-fmt web-fmt-check web-lint web-typecheck web-test web-audit e2e e2e-local \
         fmt lint typecheck test api-check web-check check \
 		scan-secrets scan-secrets-staged scan-images security \
+		tf-fmt tf-fmt-check tf-validate tf-lint tf-config-scan tf-check \
         hooks health
 
 # ── Database & migrations ──────────────────────────────────────────────
@@ -111,6 +112,27 @@ security: api-vuln api-sast web-audit scan-secrets
 scan-images:
 	trivy image --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 simple-ai-chatbot-api:local
 	trivy image --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 simple-ai-chatbot-web:local
+
+# ── Infra (Terraform) ────────────────────────────────────────────────────
+# Local use needs terraform + tflint + trivy on PATH.
+
+tf-fmt:
+	cd infra && terraform fmt -recursive
+
+tf-fmt-check:
+	cd infra && terraform fmt -check -recursive
+
+tf-validate:
+	@cd infra && { [ -d .terraform ] || terraform init -backend=false -input=false >/dev/null; } && terraform validate
+
+tf-lint:
+	@cd infra && tflint --init >/dev/null && tflint
+
+tf-config-scan:
+	trivy config infra --severity HIGH,CRITICAL --exit-code 1
+
+# Infra quality gate (no cloud creds): format + validate + lint.
+tf-check: tf-fmt-check tf-validate tf-lint
 
 # ── Containers / full stack ────────────────────────────────────────────
 

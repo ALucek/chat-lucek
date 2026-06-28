@@ -60,3 +60,23 @@ repos:
         entry: make scan-secrets-staged
         language: system
         pass_filenames: false
+      - id: tf-fmt-check
+        name: terraform fmt
+        entry: make tf-fmt-check
+        language: system
+        files: ^infra/.*\.tf$
+        pass_filenames: false
+      - id: tf-validate
+        name: terraform validate
+        entry: make tf-validate
+        language: system
+        files: ^infra/.*\.tf$
+        pass_filenames: false
+        stages: [pre-push]
+      - id: tf-lint
+        name: tflint
+        entry: make tf-lint
+        language: system
+        files: ^infra/.*\.tf$
+        pass_filenames: false
+        stages: [pre-push]
