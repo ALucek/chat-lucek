@@ -49,8 +49,15 @@ resource "google_cloud_run_v2_service" "web" {
     }
   }
 
+  # client/client_version stamped by gcloud deploys; service-level scaling
+  # is populated by Cloud Run. Both platform-managed, neither in this config.
   lifecycle {
-    ignore_changes = [template[0].containers[0].image]
+    ignore_changes = [
+      client,
+      client_version,
+      scaling,
+      template[0].containers[0].image,
+    ]
   }
 }
 
@@ -153,8 +160,16 @@ resource "google_cloud_run_v2_service" "api" {
     }
   }
 
+  # client/client_version stamped by gcloud deploys; scaling + cloudsql mount
+  # are populated by Cloud Run. All platform-managed, none in this config.
   lifecycle {
-    ignore_changes = [template[0].containers[0].image]
+    ignore_changes = [
+      client,
+      client_version,
+      scaling,
+      template[0].containers[0].image,
+      template[0].containers[0].volume_mounts,
+    ]
   }
 
   depends_on = [
@@ -214,8 +229,14 @@ resource "google_cloud_run_v2_job" "migrate" {
     }
   }
 
+  # client/client_version stamped by gcloud; cloudsql mount populated by Cloud Run.
   lifecycle {
-    ignore_changes = [template[0].template[0].containers[0].image]
+    ignore_changes = [
+      client,
+      client_version,
+      template[0].template[0].containers[0].image,
+      template[0].template[0].containers[0].volume_mounts,
+    ]
   }
 
   depends_on = [
