@@ -28,9 +28,10 @@ resource "google_project_iam_member" "api_sql" {
 }
 
 resource "google_cloud_run_v2_service" "web" {
-  name     = "chat-web"
-  location = var.region
-  ingress  = "INGRESS_TRAFFIC_ALL"
+  name                = "chat-web"
+  location            = var.region
+  ingress             = "INGRESS_TRAFFIC_ALL"
+  deletion_protection = false
 
   template {
     service_account = google_service_account.web.email
@@ -54,9 +55,10 @@ resource "google_cloud_run_v2_service" "web" {
 }
 
 resource "google_cloud_run_v2_service" "api" {
-  name     = "chat-api"
-  location = var.region
-  ingress  = "INGRESS_TRAFFIC_ALL"
+  name                = "chat-api"
+  location            = var.region
+  ingress             = "INGRESS_TRAFFIC_ALL"
+  deletion_protection = false
 
   template {
     service_account = google_service_account.api.email
