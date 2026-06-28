@@ -23,8 +23,7 @@ beforeEach(() => {
 });
 
 describe('AuthProvider', () => {
-  it('boots to authed when a refresh token exists', async () => {
-    vi.mocked(api.hasRefreshToken).mockReturnValue(true);
+  it('boots to authed when the refresh cookie is valid', async () => {
     vi.mocked(api.refreshAccess).mockResolvedValue('a1');
     vi.mocked(api.me).mockResolvedValue({ id: 1, email: 'a@b.co' });
 
@@ -40,8 +39,8 @@ describe('AuthProvider', () => {
     expect(screen.getByTestId('email')).toHaveTextContent('a@b.co');
   });
 
-  it('boots to anon when there is no refresh token', async () => {
-    vi.mocked(api.hasRefreshToken).mockReturnValue(false);
+  it('boots to anon when there is no refresh cookie', async () => {
+    vi.mocked(api.refreshAccess).mockResolvedValue(null);
     render(
       <AuthProvider>
         <Probe />
@@ -53,7 +52,7 @@ describe('AuthProvider', () => {
   });
 
   it('login sets the user', async () => {
-    vi.mocked(api.hasRefreshToken).mockReturnValue(false);
+    vi.mocked(api.refreshAccess).mockResolvedValue(null);
     vi.mocked(api.loginWithGoogle).mockResolvedValue();
     vi.mocked(api.me).mockResolvedValue({ id: 2, email: 'c@d.co' });
 
@@ -72,7 +71,6 @@ describe('AuthProvider', () => {
   });
 
   it('logout clears the user', async () => {
-    vi.mocked(api.hasRefreshToken).mockReturnValue(true);
     vi.mocked(api.refreshAccess).mockResolvedValue('a1');
     vi.mocked(api.me).mockResolvedValue({ id: 1, email: 'a@b.co' });
     vi.mocked(api.logout).mockResolvedValue();
@@ -92,7 +90,6 @@ describe('AuthProvider', () => {
   });
 
   it('redirects to anon when notified of a session expiry', async () => {
-    vi.mocked(api.hasRefreshToken).mockReturnValue(true);
     vi.mocked(api.refreshAccess).mockResolvedValue('a1');
     vi.mocked(api.me).mockResolvedValue({ id: 1, email: 'a@b.co' });
 

@@ -31,18 +31,18 @@ beforeEach(() => {
 });
 
 describe('api client', () => {
-  it('loginWithGoogle stores tokens and later calls send the Bearer header', async () => {
+  it('loginWithGoogle stores the access token; later calls send the Bearer header', async () => {
     const fetchMock = vi
       .fn()
-      .mockResolvedValueOnce(
-        jsonResponse(200, { access_token: 'a1', refresh_token: 'r1' }),
-      )
+      .mockResolvedValueOnce(jsonResponse(200, { access_token: 'a1' }))
       .mockResolvedValueOnce(jsonResponse(200, { id: 1, email: 'a@b.co' }));
     vi.stubGlobal('fetch', fetchMock);
 
     await loginWithGoogle('e2e:a@b.co');
-    expect(localStorage.getItem('refresh_token')).toBe('r1');
     expect(fetchMock.mock.calls[0][0]).toBe('http://localhost:8080/api/google');
+    expect((fetchMock.mock.calls[0][1] as RequestInit).credentials).toBe(
+      'include',
+    );
 
     await me();
     const headers = (fetchMock.mock.calls[1][1] as RequestInit)
@@ -50,44 +50,29 @@ describe('api client', () => {
     expect(headers['Authorization']).toBe('Bearer a1');
   });
 
-  it('refreshes once and retries the request on a 401', async () => {
-    localStorage.setItem('refresh_token', 'r1');
+  it('refreshes once and retries the request on a 401, sending no body', async () => {
     const fetchMock = vi
       .fn()
       .mockResolvedValueOnce(jsonResponse(401, { error: 'expired' })) // me()
-      .mockResolvedValueOnce(
-        jsonResponse(200, { access_token: 'a2', refresh_token: 'r2' }),
-      ) // refresh
+      .mockResolvedValueOnce(jsonResponse(200, { access_token: 'a2' })) // refresh
       .mockResolvedValueOnce(jsonResponse(200, { id: 1, email: 'a@b.co' })); // retry
     vi.stubGlobal('fetch', fetchMock);
 
     const user = await me();
     expect(user).toEqual({ id: 1, email: 'a@b.co' });
     expect(fetchMock).toHaveBeenCalledTimes(3);
-  });
-
-  it('persists the rotated refresh token after a refresh', async () => {
-    localStorage.setItem('refresh_token', 'r1');
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce(jsonResponse(401, { error: 'expired' })) // me()
-      .mockResolvedValueOnce(
-        jsonResponse(200, { access_token: 'a2', refresh_token: 'r2' }),
-      ) // refresh rotates
-      .mockResolvedValueOnce(jsonResponse(200, { id: 1, email: 'a@b.co' })); // retry
-    vi.stubGlobal('fetch', fetchMock);
-
-    await me();
-    expect(localStorage.getItem('refresh_token')).toBe('r2');
+    expect(fetchMock.mock.calls[1][0]).toBe(
+      'http://localhost:8080/api/refresh',
+    );
+    const refreshInit = fetchMock.mock.calls[1][1] as RequestInit;
+    expect(refreshInit.credentials).toBe('include');
+    expect(refreshInit.body).toBeUndefined();
   });
 
   it('shares a single refresh among concurrent callers', async () => {
-    localStorage.setItem('refresh_token', 'r1');
     const fetchMock = vi
       .fn()
-      .mockResolvedValue(
-        jsonResponse(200, { access_token: 'a2', refresh_token: 'r2' }),
-      );
+      .mockResolvedValue(jsonResponse(200, { access_token: 'a2' }));
     vi.stubGlobal('fetch', fetchMock);
 
     const [t1, t2] = await Promise.all([refreshAccess(), refreshAccess()]);
@@ -97,7 +82,6 @@ describe('api client', () => {
   });
 
   it('clears the session and throws when refresh fails', async () => {
-    localStorage.setItem('refresh_token', 'r1');
     const fetchMock = vi
       .fn()
       .mockResolvedValueOnce(jsonResponse(401, { error: 'expired' })) // me()
@@ -107,7 +91,6 @@ describe('api client', () => {
     vi.stubGlobal('fetch', fetchMock);
 
     await expect(me()).rejects.toBeInstanceOf(ApiError);
-    expect(localStorage.getItem('refresh_token')).toBeNull();
   });
 });
 
@@ -287,7 +270,6 @@ describe('sendMessage', () => {
   });
 
   it('refreshes once and retries on a 401 initial response', async () => {
-    localStorage.setItem('refresh_token', 'r1');
     const fetchMock = vi
       .fn()
       .mockResolvedValueOnce(jsonResponse(401, { error: 'expired' })) // first POST
@@ -331,7 +313,6 @@ it('swallows an AbortError without calling onError', async () => {
 });
 
 it('notifies onUnauthorized when a refresh fails', async () => {
-  localStorage.setItem('refresh_token', 'r1');
   const cb = vi.fn();
   setOnUnauthorized(cb);
   const fetchMock = vi

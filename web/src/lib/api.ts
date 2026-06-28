@@ -1,5 +1,4 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080';
-const REFRESH_KEY = 'refresh_token';
 
 let accessToken: string | null = null;
 let refreshing: Promise<string | null> | null = null;
@@ -20,21 +19,14 @@ export interface User {
 
 interface Tokens {
   access_token: string;
-  refresh_token: string;
-}
-
-export function hasRefreshToken(): boolean {
-  return localStorage.getItem(REFRESH_KEY) !== null;
 }
 
 function setSession(t: Tokens): void {
   accessToken = t.access_token;
-  localStorage.setItem(REFRESH_KEY, t.refresh_token);
 }
 
 export function clearSession(): void {
   accessToken = null;
-  localStorage.removeItem(REFRESH_KEY);
 }
 
 // refreshAccess exchanges the stored refresh token for a new access token.
@@ -56,12 +48,9 @@ export function setOnUnauthorized(fn: (() => void) | null): void {
 }
 
 async function doRefresh(): Promise<string | null> {
-  const refresh = localStorage.getItem(REFRESH_KEY);
-  if (!refresh) return null;
   const res = await fetch(`${API_URL}/api/refresh`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ refresh_token: refresh }),
+    credentials: 'include',
   });
   if (!res.ok) {
     clearSession();
@@ -91,9 +80,10 @@ async function request<T>(
     method: opts.method ?? 'GET',
     headers,
     body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
+    credentials: 'include',
   });
 
-  if (res.status === 401 && retry && hasRefreshToken()) {
+  if (res.status === 401 && retry) {
     const token = await refreshAccess();
     if (token) return request<T>(path, opts, false);
   }
@@ -125,11 +115,10 @@ export async function loginWithGoogle(idToken: string): Promise<void> {
 }
 
 export async function logout(): Promise<void> {
-  const refresh = localStorage.getItem(REFRESH_KEY);
   try {
-    await request<null>('/api/logout', {
+    await fetch(`${API_URL}/api/logout`, {
       method: 'POST',
-      body: { refresh_token: refresh },
+      credentials: 'include',
     });
   } finally {
     clearSession();
@@ -239,12 +228,13 @@ export async function sendMessage(
         ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
       },
       body: JSON.stringify({ content }),
+      credentials: 'include',
       signal,
     });
 
   try {
     let res = await send();
-    if (res.status === 401 && hasRefreshToken()) {
+    if (res.status === 401) {
       const token = await refreshAccess();
       if (token) res = await send();
     }

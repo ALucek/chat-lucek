@@ -18,16 +18,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<api.User | null>(null);
   const [status, setStatus] = useState<Status>('loading');
 
-  // Boot: restore the session from the refresh token, if present.
+  // Boot: try to restore the session from the refresh cookie.
   useEffect(() => {
     let active = true;
     (async () => {
-      if (!api.hasRefreshToken()) {
-        if (active) setStatus('anon');
-        return;
-      }
       try {
-        await api.refreshAccess();
+        const token = await api.refreshAccess();
+        if (!token) {
+          if (active) setStatus('anon');
+          return;
+        }
         const u = await api.me();
         if (active) {
           setUser(u);
