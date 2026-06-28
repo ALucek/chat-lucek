@@ -13,7 +13,7 @@ const mono = Share_Tech_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Łucek Chat',
+  title: 'Chat Łucek',
   description: 'A minimal multi-user streaming chatbot.',
 };
 
