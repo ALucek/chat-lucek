@@ -49,8 +49,14 @@ resource "google_cloud_run_v2_service" "web" {
     }
   }
 
+  # Fields written by gcloud/Cloud Run, not managed here.
   lifecycle {
-    ignore_changes = [template[0].containers[0].image]
+    ignore_changes = [
+      client,
+      client_version,
+      scaling,
+      template[0].containers[0].image,
+    ]
   }
 }
 
@@ -153,8 +159,15 @@ resource "google_cloud_run_v2_service" "api" {
     }
   }
 
+  # Fields written by gcloud/Cloud Run, not managed here.
   lifecycle {
-    ignore_changes = [template[0].containers[0].image]
+    ignore_changes = [
+      client,
+      client_version,
+      scaling,
+      template[0].containers[0].image,
+      template[0].containers[0].volume_mounts,
+    ]
   }
 
   depends_on = [
@@ -214,8 +227,14 @@ resource "google_cloud_run_v2_job" "migrate" {
     }
   }
 
+  # Fields written by gcloud/Cloud Run, not managed here.
   lifecycle {
-    ignore_changes = [template[0].template[0].containers[0].image]
+    ignore_changes = [
+      client,
+      client_version,
+      template[0].template[0].containers[0].image,
+      template[0].template[0].containers[0].volume_mounts,
+    ]
   }
 
   depends_on = [
