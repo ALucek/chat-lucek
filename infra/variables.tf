@@ -30,3 +30,9 @@ variable "domain" {
   description = "Public domain served by the load balancer."
   default     = "chat.lucek.ai"
 }
+
+variable "github_repo" {
+  type        = string
+  description = "GitHub repo (owner/name) allowed to deploy via WIF."
+  default     = "ALucek/chat-lucek"
+}
