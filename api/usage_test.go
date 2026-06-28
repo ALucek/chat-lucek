@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"testing"
 	"time"
@@ -118,5 +119,35 @@ func TestUsage_Endpoint_RequiresAuth(t *testing.T) {
 	rec := do(t, mux, http.MethodGet, "/api/usage", "", nil)
 	if rec.Code != http.StatusUnauthorized {
 		t.Fatalf("want 401, got %d", rec.Code)
+	}
+}
+
+func TestSend_OwnerBypassesBudget(t *testing.T) {
+	resetDB(t)
+	client := fakeOpenRouter(t, http.StatusOK, deltaFrame("hi"), "data: [DONE]\n\n")
+	auth := &Auth{pool: testPool, secret: testSecret, verify: fakeGoogleVerifier()}
+	chat := &Chat{pool: testPool, llm: client, systemPrompt: testSystemPrompt, tokenBudget: 1, ownerEmail: "owner@gmail.com"}
+	mux := newMux(func(ctx context.Context) error { return Healthy(ctx, testPool) }, auth, chat)
+
+	// Owner, already over budget → still allowed.
+	ownerTok, ownerID := signup(t, mux, "owner@gmail.com")
+	if err := recordUsage(context.Background(), testPool, ownerID, tokenUsage{Prompt: 50, Completion: 50}); err != nil {
+		t.Fatalf("seed owner usage: %v", err)
+	}
+	ownerConv := createConversation(t, mux, ownerTok)
+	if rec := do(t, mux, http.MethodPost, fmt.Sprintf("/api/conversations/%d/messages", ownerConv), ownerTok,
+		map[string]string{"content": "hi"}); rec.Code == http.StatusTooManyRequests {
+		t.Fatal("owner should bypass the daily budget, got 429")
+	}
+
+	// Non-owner, over budget → blocked.
+	otherTok, otherID := signup(t, mux, "other@gmail.com")
+	if err := recordUsage(context.Background(), testPool, otherID, tokenUsage{Prompt: 50, Completion: 50}); err != nil {
+		t.Fatalf("seed other usage: %v", err)
+	}
+	otherConv := createConversation(t, mux, otherTok)
+	if rec := do(t, mux, http.MethodPost, fmt.Sprintf("/api/conversations/%d/messages", otherConv), otherTok,
+		map[string]string{"content": "hi"}); rec.Code != http.StatusTooManyRequests {
+		t.Fatalf("non-owner over budget should be 429, got %d", rec.Code)
 	}
 }

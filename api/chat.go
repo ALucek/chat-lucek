@@ -19,6 +19,7 @@ type Chat struct {
 	llm          *openRouterClient
 	systemPrompt string
 	tokenBudget  int
+	ownerEmail   string
 }
 
 type conversation struct {
@@ -216,14 +217,23 @@ func (c *Chat) Send(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	used, err := usageSince(r.Context(), c.pool, userID, time.Now().Add(-24*time.Hour))
-	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "usage check failed"})
-		return
+	owner := false
+	if c.ownerEmail != "" {
+		var email string
+		if c.pool.QueryRow(r.Context(), `select email from users where id = $1`, userID).Scan(&email) == nil {
+			owner = email == c.ownerEmail
+		}
 	}
-	if used >= c.tokenBudget {
-		writeJSON(w, http.StatusTooManyRequests, map[string]string{"error": "daily token budget exceeded"})
-		return
+	if !owner {
+		used, err := usageSince(r.Context(), c.pool, userID, time.Now().Add(-24*time.Hour))
+		if err != nil {
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "usage check failed"})
+			return
+		}
+		if used >= c.tokenBudget {
+			writeJSON(w, http.StatusTooManyRequests, map[string]string{"error": "daily token budget exceeded"})
+			return
+		}
 	}
 
 	// Persist the user message first, so it survives a failed model call.
