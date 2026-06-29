@@ -32,6 +32,8 @@
 :root {
   /* Live viewport height; overridden at runtime by useViewportHeight. */
   --app-height: 100dvh;
+  /* iOS keyboard offset; overridden at runtime by useViewportHeight. */
+  --app-offset: 0px;
 }
 
 @layer base {
