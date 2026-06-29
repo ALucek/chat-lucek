@@ -1,4 +1,9 @@
-<!-- Title: use a conventional-commit subject, e.g. "feat(api): raise daily token budget". -->
+<!--
+Title format: type(scope): short imperative subject — e.g. "feat(api): raise daily token budget".
+  type:  feat | fix | chore | ci | build | docs | test | refactor
+  scope: the area touched, e.g. api, web, infra (optional — omit the parens if it spans many)
+  subject: lowercase, imperative, no trailing period
+-->
 
 ## Description
 
