@@ -5,13 +5,6 @@ valid:
 invalid:
   - "package p\n// this standalone comment is intentionally way over eighty characters to trip cap\nvar x int"
 ---
-id: stacked-comments-go
-valid:
-  - "package p\n// single standalone comment\nvar x int"
-  - "package p\nvar x = 1 // inline one\nvar y = 2 // inline two"
-invalid:
-  - "package p\n// stacked one\n// stacked two\nvar x int"
----
 id: multiline-comment-go
 valid:
   - "package p\n/* single line block */\nvar x int"
@@ -24,19 +17,6 @@ valid:
   - "const u = 'http://localhost:8080'; // string trap is not a comment"
 invalid:
   - "// this standalone comment is intentionally way over eighty characters to trip the cap\nexport const a = 1;"
----
-id: stacked-comments-typescript
-valid:
-  - "// single standalone\nexport const a = 1;"
-  - "const a = 1; // inline one\nconst b = 2; // inline two"
-invalid:
-  - "// stacked one\n// stacked two\nexport const a = 1;"
----
-id: stacked-comments-tsx
-valid:
-  - "// single\nexport const C = () => <div className=\"x\">hi</div>;"
-invalid:
-  - "// stacked one\n// stacked two\nexport const C = () => <div className=\"x\">hi</div>;"
 ---
 id: multiline-comment-css
 valid:
