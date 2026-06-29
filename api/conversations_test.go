@@ -9,7 +9,7 @@ import (
 	"testing"
 )
 
-// createConversation makes a conversation for the token's user and returns its id.
+// createConversation makes a conversation for the token's user; returns id.
 func createConversation(t *testing.T, mux http.Handler, token string) int64 {
 	t.Helper()
 	rec := do(t, mux, http.MethodPost, "/api/conversations", token, nil)

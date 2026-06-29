@@ -91,8 +91,7 @@ func (c *Chat) Messages(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Ownership pre-check: distinguishes "not yours / missing" (404) from
-	// "yours but empty" (200 []), which an empty result set alone cannot.
+	// Ownership pre-check: "not yours" (404) vs "yours but empty" (200 []).
 	var owned bool
 	if err := c.pool.QueryRow(r.Context(),
 		`select exists(select 1 from conversations where id = $1 and user_id = $2)`,
@@ -159,7 +158,7 @@ func (c *Chat) Rename(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// Delete removes a conversation (scoped to the caller); messages cascade. 204 on success.
+// Delete removes a conversation (caller-scoped); messages cascade. 204.
 func (c *Chat) Delete(w http.ResponseWriter, r *http.Request) {
 	userID, _ := userIDFromContext(r.Context())
 	id, err := conversationID(r)
@@ -318,7 +317,7 @@ func (c *Chat) Send(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// writeSSE writes one SSE frame; data is JSON-encoded so every frame is a JSON object.
+// writeSSE writes one SSE frame; data is JSON so each frame is a JSON object.
 func writeSSE(w http.ResponseWriter, event string, data any) {
 	payload, _ := json.Marshal(data)
 	fmt.Fprintf(w, "event: %s\ndata: %s\n\n", event, payload)

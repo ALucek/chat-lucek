@@ -11,8 +11,7 @@ import (
 	"time"
 )
 
-// fakeOpenRouter returns a client pointed at a server that responds with the given
-// status; on 200 it emits the raw SSE frames in order.
+// fakeOpenRouter returns a client hitting a server that emits the given frames.
 func fakeOpenRouter(t *testing.T, status int, frames ...string) *openRouterClient {
 	t.Helper()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

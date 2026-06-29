@@ -40,8 +40,7 @@ func mintAccessToken(secret []byte, userID int64, now time.Time) (string, error)
 	return jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString(secret)
 }
 
-// parseAccessToken verifies the token (signature + expiry) with the signing
-// algorithm pinned to HMAC, and returns the user id from the subject claim.
+// parseAccessToken verifies the token (HMAC-pinned) and returns the user id.
 func parseAccessToken(secret []byte, tokenStr string) (int64, error) {
 	claims := &jwt.RegisteredClaims{}
 	_, err := jwt.ParseWithClaims(tokenStr, claims, func(t *jwt.Token) (any, error) {
@@ -61,7 +60,7 @@ func parseAccessToken(secret []byte, tokenStr string) (int64, error) {
 	return userID, nil
 }
 
-// newRefreshToken returns a 32-byte cryptographically-random token, hex-encoded.
+// newRefreshToken returns a 32-byte crypto-random token, hex-encoded.
 func newRefreshToken() (string, error) {
 	b := make([]byte, 32)
 	if _, err := rand.Read(b); err != nil {

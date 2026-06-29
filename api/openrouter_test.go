@@ -108,7 +108,7 @@ func TestStream_ResponseHeaderTimeout(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	// Tiny ResponseHeaderTimeout so the test is fast; proves the deadline reaches stream().
+	// Tiny ResponseHeaderTimeout: fast, proves the deadline reaches stream().
 	client := &openRouterClient{
 		baseURL: srv.URL,
 		http:    &http.Client{Transport: &http.Transport{ResponseHeaderTimeout: 20 * time.Millisecond}},

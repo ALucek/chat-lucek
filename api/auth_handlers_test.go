@@ -9,7 +9,7 @@ import (
 	"testing"
 )
 
-// googleLogin signs in via POST /api/google and returns the issued refresh token from Set-Cookie.
+// googleLogin signs in via POST /api/google; returns the refresh cookie.
 func googleLogin(t *testing.T, mux http.Handler, email string) string {
 	t.Helper()
 	return refreshCookieOf(t, do(t, mux, http.MethodPost, "/api/google", "",
