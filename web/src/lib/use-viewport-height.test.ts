@@ -43,6 +43,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
   setVisualViewport(undefined);
   document.documentElement.style.removeProperty('--app-height');
+  document.documentElement.style.removeProperty('--app-offset');
 });
 
 function flushFrame() {
@@ -74,12 +75,15 @@ describe('useViewportHeight', () => {
     ).toBe('300px');
   });
 
-  it('adds offsetTop so the shell reaches the keyboard when iOS shifts the viewport', () => {
+  it('sets --app-height to the viewport height and --app-offset to offsetTop', () => {
     setVisualViewport(makeVisualViewport(400, 60));
     renderHook(() => useViewportHeight());
     expect(
       document.documentElement.style.getPropertyValue('--app-height'),
-    ).toBe('460px');
+    ).toBe('400px');
+    expect(
+      document.documentElement.style.getPropertyValue('--app-offset'),
+    ).toBe('60px');
   });
 
   it('removes its listeners on unmount', () => {
