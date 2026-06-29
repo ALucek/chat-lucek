@@ -104,11 +104,6 @@ export default function LoginPage() {
       <div className="flex flex-col items-center gap-6">
         <Wordmark />
         <div className="border-border bg-surface flex w-full max-w-sm flex-col items-center gap-4 rounded-[var(--radius)] border p-8">
-          {loading && (
-            <p className="text-subtle text-xs tracking-[0.16em] uppercase">
-              Signing in…
-            </p>
-          )}
           <button
             type="button"
             data-testid="google-signin"
@@ -117,7 +112,7 @@ export default function LoginPage() {
             className="border-border bg-surface text-fg hover:bg-surface-muted flex h-10 w-[280px] items-center justify-center gap-2.5 rounded-[var(--radius)] border text-sm transition-colors disabled:opacity-50"
           >
             <GoogleG className="h-4 w-4" />
-            Sign in with Google
+            {loading ? 'Signing in…' : 'Sign in with Google'}
           </button>
           {error && (
             <p role="alert" className="text-danger text-sm">
