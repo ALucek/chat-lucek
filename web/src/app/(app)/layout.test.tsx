@@ -126,7 +126,7 @@ describe('AppLayout guard', () => {
     expect(screen.getByLabelText('Toggle menu')).toBeInTheDocument();
   });
 
-  it('sizes the shell to the dynamic app-height var', () => {
+  it('sizes the shell to the dynamic viewport height', () => {
     vi.mocked(useAuth).mockReturnValue(authValue('authed'));
     render(
       <AppLayout>
@@ -134,10 +134,10 @@ describe('AppLayout guard', () => {
       </AppLayout>,
     );
     const shell = screen.getByTestId('app-shell');
-    expect(shell.className).toContain('h-[var(--app-height,100dvh)]');
+    expect(shell.className).toContain('h-dvh');
   });
 
-  it('sizes the drawer and backdrop to the visual viewport', () => {
+  it('sizes the drawer and backdrop to the viewport', () => {
     vi.mocked(useAuth).mockReturnValue(authValue('authed'));
     render(
       <AppLayout>
@@ -145,9 +145,7 @@ describe('AppLayout guard', () => {
       </AppLayout>,
     );
     const drawer = screen.getByText('sidebar').parentElement as HTMLElement;
-    expect(drawer.className).toContain('h-[var(--app-height,100dvh)]');
-    expect(screen.getByTestId('backdrop').className).toContain(
-      'h-[var(--app-height,100dvh)]',
-    );
+    expect(drawer.className).toContain('h-dvh');
+    expect(screen.getByTestId('backdrop').className).toContain('h-dvh');
   });
 });
