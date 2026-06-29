@@ -35,6 +35,9 @@
     color: var(--color-fg);
     background: var(--color-bg);
     line-height: 1.5;
+    /* no horizontal scroll or rubber-band overscroll */
+    overflow-x: hidden;
+    overscroll-behavior: none;
   }
   strong,
   b {
