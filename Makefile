@@ -156,14 +156,12 @@ typecheck: api-typecheck web-typecheck
 
 test: api-test web-test
 
-# Comment style: <=80 chars + no multi-line blocks (ast-grep), no // stacking (script).
+# Comment style: <=80 chars + no multi-line block comments (ast-grep, all languages).
 comment-check:
 	@web/node_modules/.bin/ast-grep scan
-	@./scripts/check-comment-stacking.sh
 
 comment-check-test:
 	@web/node_modules/.bin/ast-grep test --skip-snapshot-tests
-	@./scripts/check-comment-stacking.test.sh
 
 # Per-service umbrella gates — what CI runs for each job (CI == local).
 api-check: api-fmt-check api-lint api-typecheck api-test

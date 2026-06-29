@@ -1,4 +1,4 @@
-# Char-cap + multi-line block rules; // stacking lives in scripts/check-comment-stacking.sh.
+# Comment char-cap (<=80) + no multi-line block comments, across all languages.
 
 # ---- char cap (comment text > 80) ----
 id: comment-too-long-go
