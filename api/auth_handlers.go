@@ -10,8 +10,7 @@ const refreshTokenTTL = 30 * 24 * time.Hour
 
 const refreshCookieName = "refresh_token"
 
-// refreshCookie builds the refresh-token cookie. Path-scoped to /api and
-// SameSite=Strict so it rides only same-site requests to the auth endpoints.
+// refreshCookie builds the cookie: Path=/api, SameSite=Strict (auth only).
 func refreshCookie(value string, maxAge int) *http.Cookie {
 	return &http.Cookie{
 		Name:     refreshCookieName,
@@ -57,8 +56,7 @@ func (a *Auth) Refresh(w http.ResponseWriter, r *http.Request) {
 	a.issueTokens(w, r, userID, familyID, http.StatusOK)
 }
 
-// purgeExpiredRefreshTokens best-effort deletes refresh tokens past expiry.
-// Expired tokens are already unusable, so this bounds table growth safely.
+// purgeExpiredRefreshTokens best-effort deletes expired tokens to cap growth.
 func (a *Auth) purgeExpiredRefreshTokens(ctx context.Context) {
 	_, _ = a.pool.Exec(ctx, `delete from refresh_tokens where expires_at < now()`)
 }
@@ -87,7 +85,7 @@ func (a *Auth) Me(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{"id": userID, "email": email})
 }
 
-// issueTokens mints an access token, stores a new (hashed) refresh token, writes both.
+// issueTokens mints an access token + a hashed refresh token, writes both.
 func (a *Auth) issueTokens(w http.ResponseWriter, r *http.Request, userID int64, familyID string, status int) {
 	access, err := mintAccessToken(a.secret, userID, time.Now())
 	if err != nil {

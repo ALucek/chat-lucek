@@ -24,7 +24,7 @@ const (
 	llmResponseHeaderTimeout = 30 * time.Second
 )
 
-// openRouterClient talks to OpenRouter's OpenAI-compatible chat completions API.
+// openRouterClient talks to OpenRouter's OpenAI-compatible chat API.
 type openRouterClient struct {
 	key     string
 	model   string
@@ -38,9 +38,7 @@ type llmMessage struct {
 	Content string `json:"content"`
 }
 
-// stream POSTs msgs with stream:true and calls onText for each text delta. It
-// returns an error if the request fails, the status is not 200, or the scan
-// errors. ctx cancellation (client disconnect) aborts the upstream call.
+// stream POSTs msgs and calls onText per delta; ctx cancel aborts upstream.
 func (c *openRouterClient) stream(ctx context.Context, msgs []llmMessage, onText func(string)) (tokenUsage, error) {
 	var usage tokenUsage
 
@@ -71,8 +69,7 @@ func (c *openRouterClient) stream(ctx context.Context, msgs []llmMessage, onText
 		return usage, fmt.Errorf("openrouter: status %d", resp.StatusCode)
 	}
 
-	// OpenAI-style SSE: lines like `data: {json}`, ending with `data: [DONE]`.
-	// With include_usage the final chunk before [DONE] carries usage (and empty choices).
+	// OpenAI SSE (data: {json} ... data: [DONE]); usage rides the final chunk.
 	scanner := bufio.NewScanner(resp.Body)
 	scanner.Buffer(make([]byte, 0, 64*1024), 1024*1024) // allow long SSE lines
 	for scanner.Scan() {

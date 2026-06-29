@@ -91,7 +91,7 @@ func readyHandler(check func(context.Context) error) http.HandlerFunc {
 	}
 }
 
-// liveHandler reports 200 as long as the process is serving; no dependency checks.
+// liveHandler reports 200 while the process serves; no dependency checks.
 func liveHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, _ *http.Request) {
 		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
@@ -114,7 +114,7 @@ func withMaxBody(next http.Handler) http.Handler {
 	})
 }
 
-// withSecurityHeaders sets a baseline of security response headers on every response.
+// withSecurityHeaders sets baseline security headers on every response.
 func withSecurityHeaders(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		h := w.Header()

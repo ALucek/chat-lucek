@@ -25,8 +25,7 @@ var testSecret = []byte("test-secret-at-least-32-bytes-long-xx")
 const testSystemPrompt = "You are a helpful assistant."
 const testTokenBudget = 1_000_000
 
-// TestMain spins up one Postgres container for the whole package, applies the
-// migrations, then runs every test against it.
+// TestMain starts one Postgres container, migrates, then runs all tests.
 func TestMain(m *testing.M) {
 	ctx := context.Background()
 

@@ -16,8 +16,7 @@ const requestIDHeader = "X-Request-Id"
 // requestIDKey reuses the private ctxKey type from auth.go.
 const requestIDKey ctxKey = "requestID"
 
-// withRequestID reuses an inbound X-Request-Id or generates one, stores it in
-// the request context, and echoes it on the response.
+// withRequestID reuses or generates X-Request-Id, storing/echoing it.
 func withRequestID(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		id := r.Header.Get(requestIDHeader)
@@ -43,7 +42,7 @@ func newRequestID() string {
 	return hex.EncodeToString(b)
 }
 
-// responseWriter records the status code and bytes written while preserving http.Flusher
+// responseWriter records status + bytes written, preserving http.Flusher.
 type responseWriter struct {
 	http.ResponseWriter
 	status int
@@ -87,7 +86,7 @@ func (h contextHandler) WithGroup(name string) slog.Handler {
 	return contextHandler{h.Handler.WithGroup(name)}
 }
 
-// withRecover turns a handler panic into a logged 500 instead of a dropped connection.
+// withRecover turns a handler panic into a logged 500, not a dropped conn.
 func withRecover(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {

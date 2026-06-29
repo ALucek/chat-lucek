@@ -27,7 +27,7 @@ type googleClaims struct {
 // googleVerifier verifies a Google ID token and returns its claims.
 type googleVerifier func(ctx context.Context, idToken string) (googleClaims, error)
 
-// realGoogleVerifier validates the token against Google's keys with clientID as the audience.
+// realGoogleVerifier validates the token against Google's keys (aud=clientID).
 func realGoogleVerifier(clientID string) googleVerifier {
 	return func(ctx context.Context, idToken string) (googleClaims, error) {
 		p, err := idtoken.Validate(ctx, idToken, clientID)
@@ -56,7 +56,7 @@ func fakeGoogleVerifier() googleVerifier {
 	}
 }
 
-// selectGoogleVerifier returns the fake verifier when GOOGLE_AUTH_FAKE is set, else the real one.
+// selectGoogleVerifier: fake verifier when GOOGLE_AUTH_FAKE, else real.
 func selectGoogleVerifier(cfg Config) googleVerifier {
 	if cfg.GoogleAuthFake {
 		slog.Warn("GOOGLE_AUTH_FAKE enabled: accepting fake e2e tokens — never use in production")
@@ -110,7 +110,7 @@ func fakeGoogleExchanger() googleExchanger {
 	return func(_ context.Context, code string) (string, error) { return code, nil }
 }
 
-// selectGoogleExchanger returns the fake exchanger when GOOGLE_AUTH_FAKE is set, else the real one.
+// selectGoogleExchanger: fake exchanger when GOOGLE_AUTH_FAKE, else real.
 func selectGoogleExchanger(cfg Config) googleExchanger {
 	if cfg.GoogleAuthFake {
 		return fakeGoogleExchanger()
@@ -118,7 +118,7 @@ func selectGoogleExchanger(cfg Config) googleExchanger {
 	return realGoogleExchanger(cfg.GoogleClientID, cfg.GoogleClientSecret)
 }
 
-// Google exchanges an auth code, verifies the id token, upserts the user, and issues a session.
+// Google exchanges the code, verifies it, upserts the user, issues a session.
 func (a *Auth) Google(w http.ResponseWriter, r *http.Request) {
 	var body struct {
 		Code string `json:"code"`

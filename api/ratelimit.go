@@ -22,8 +22,7 @@ type bucket struct {
 	last   time.Time
 }
 
-// limiter is a per-key token-bucket rate limiter. The map is guarded by mu; a
-// background sweep evicts idle keys so it can't grow unbounded.
+// limiter is a per-key token-bucket rate limiter; a sweep evicts idle keys.
 type limiter struct {
 	mu      sync.Mutex
 	buckets map[string]*bucket
@@ -33,8 +32,7 @@ type limiter struct {
 	idleTTL time.Duration
 }
 
-// newLimiter builds a limiter allowing perMinute requests with the given burst,
-// and starts the eviction sweep.
+// newLimiter allows perMinute requests with burst, and starts the sweep.
 func newLimiter(perMinute, burst int) *limiter {
 	l := &limiter{
 		buckets: make(map[string]*bucket),
@@ -89,7 +87,7 @@ func (l *limiter) evict() {
 	}
 }
 
-// middleware rate-limits by the key the extractor returns; 429 + Retry-After on deny.
+// middleware rate-limits by the extractor's key; 429 + Retry-After on deny.
 func (l *limiter) middleware(key func(*http.Request) string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -108,9 +106,7 @@ func (l *limiter) middleware(key func(*http.Request) string) func(http.Handler) 
 	}
 }
 
-// clientIP returns the rate-limit key: the real client IP. Behind a trusted
-// proxy that is the second-from-right X-Forwarded-For entry; leading entries
-// are client-spoofable and ignored.
+// clientIP: real client IP; 2nd-from-right XFF behind a proxy (rest spoofable)
 func clientIP(r *http.Request, trustProxy bool) string {
 	if trustProxy {
 		if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
