@@ -32,7 +32,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <RemoveScroll>
             <div
               data-testid="app-shell"
-              className="bg-bg relative flex h-[var(--app-height,100dvh)]"
+              className="bg-bg fixed inset-x-0 top-0 flex h-[var(--app-height,100dvh)] translate-y-[var(--app-offset,0px)]"
             >
               {/* Desktop toggle: collapses the push column (md and up). */}
               <Button

@@ -10,11 +10,10 @@ export function useViewportHeight() {
 
     const update = () => {
       frame = 0;
-      // Add offsetTop so the shell reaches the keyboard when iOS shifts the viewport.
-      document.documentElement.style.setProperty(
-        '--app-height',
-        `${vv.height + vv.offsetTop}px`,
-      );
+      // Pin the shell to the visual viewport: its height, shifted by iOS's offset.
+      const root = document.documentElement.style;
+      root.setProperty('--app-height', `${vv.height}px`);
+      root.setProperty('--app-offset', `${vv.offsetTop}px`);
     };
     const schedule = () => {
       if (frame) return;
