@@ -99,6 +99,23 @@ func TestWithLogging_EmitsRequestLine(t *testing.T) {
 	}
 }
 
+func TestWithLogging_RecordsRoutePattern(t *testing.T) {
+	var buf bytes.Buffer
+	slog.SetDefault(slog.New(contextHandler{slog.NewJSONHandler(&buf, nil)}))
+
+	mux := http.NewServeMux()
+	mux.Handle("POST /api/conversations/{id}/messages",
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
+	h := withLogging(mux)
+
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/api/conversations/42/messages", nil))
+
+	if !strings.Contains(buf.String(), `"route":"POST /api/conversations/{id}/messages"`) {
+		t.Fatalf("expected route template in log, got %s", buf.String())
+	}
+}
+
 func TestWithLogging_HealthPathsAreDebug(t *testing.T) {
 	var buf bytes.Buffer
 	slog.SetDefault(slog.New(contextHandler{

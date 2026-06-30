@@ -156,16 +156,14 @@ resource "google_monitoring_alert_policy" "api_5xx" {
   notification_channels = [google_monitoring_notification_channel.email.id]
 }
 
-# Per-request latency distribution, excluding the SSE stream and probes.
+# Per-request latency distribution, excluding the SSE stream route.
 resource "google_logging_metric" "api_latency" {
   name = "chat_api_request_latency"
   filter = join(" ", [
     "resource.type=\"cloud_run_revision\"",
     "resource.labels.service_name=\"chat-api\"",
     "jsonPayload.msg=\"request\"",
-    "jsonPayload.path!=\"/api/chat\"",
-    "jsonPayload.path!=\"/readyz\"",
-    "jsonPayload.path!=\"/livez\"",
+    "jsonPayload.route!=\"POST /api/conversations/{id}/messages\"",
   ])
 
   metric_descriptor {
@@ -307,6 +305,39 @@ resource "google_monitoring_alert_policy" "openrouter_errors" {
       ])
       comparison      = "COMPARISON_GT"
       threshold_value = 2
+      duration        = "0s"
+
+      aggregations {
+        alignment_period     = "300s"
+        per_series_aligner   = "ALIGN_SUM"
+        cross_series_reducer = "REDUCE_SUM"
+      }
+
+      trigger {
+        count = 1
+      }
+    }
+  }
+
+  notification_channels = [google_monitoring_notification_channel.email.id]
+}
+
+# Spike in 429s at the LB: Cloud Armor edge denies + app rate limits.
+resource "google_monitoring_alert_policy" "lb_429" {
+  display_name = "LB 429 spike (rate-limited)"
+  combiner     = "OR"
+
+  conditions {
+    display_name = "429s > 30 / 5m"
+    condition_threshold {
+      filter = join(" AND ", [
+        "resource.type = \"https_lb_rule\"",
+        "resource.labels.url_map_name = \"chat-url-map\"",
+        "metric.type = \"loadbalancing.googleapis.com/https/request_count\"",
+        "metric.labels.response_code = \"429\"",
+      ])
+      comparison      = "COMPARISON_GT"
+      threshold_value = 30
       duration        = "0s"
 
       aggregations {
