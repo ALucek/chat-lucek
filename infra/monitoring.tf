@@ -66,6 +66,63 @@ resource "google_monitoring_alert_policy" "uptime" {
   notification_channels = [google_monitoring_notification_channel.email.id]
 }
 
+# Synthetic check: is the web frontend serving?
+resource "google_monitoring_uptime_check_config" "web" {
+  display_name = "chat web root"
+  timeout      = "10s"
+  period       = "60s"
+
+  http_check {
+    path         = "/"
+    port         = 443
+    use_ssl      = true
+    validate_ssl = true
+  }
+
+  monitored_resource {
+    type = "uptime_url"
+    labels = {
+      project_id = var.project_id
+      host       = var.domain
+    }
+  }
+
+  depends_on = [google_project_service.enabled]
+}
+
+# Fires when the web root stops responding (frontend down).
+resource "google_monitoring_alert_policy" "web_uptime" {
+  display_name = "Web down (root uptime failing)"
+  combiner     = "OR"
+
+  conditions {
+    display_name = "web root check failing"
+    condition_threshold {
+      filter = join(" AND ", [
+        "metric.type = \"monitoring.googleapis.com/uptime_check/check_passed\"",
+        "resource.type = \"uptime_url\"",
+        "metric.label.check_id = \"${google_monitoring_uptime_check_config.web.uptime_check_id}\"",
+      ])
+      comparison      = "COMPARISON_GT"
+      threshold_value = 1
+      duration        = "60s"
+
+      aggregations {
+        alignment_period     = "1200s"
+        per_series_aligner   = "ALIGN_NEXT_OLDER"
+        cross_series_reducer = "REDUCE_COUNT_FALSE"
+        group_by_fields      = ["resource.label.host"]
+      }
+
+      trigger {
+        count = 1
+      }
+    }
+  }
+
+  notification_channels = [google_monitoring_notification_channel.email.id]
+}
+
 # More than 5 server errors from chat-api within 5 minutes.
 resource "google_monitoring_alert_policy" "api_5xx" {
   display_name = "API 5xx errors"
