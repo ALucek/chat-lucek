@@ -2,8 +2,7 @@ package main
 
 import "net/http"
 
-// withOriginCheck rejects state-changing requests whose Origin, when present,
-// does not match allowedOrigin (CSRF defense-in-depth).
+// withOriginCheck blocks unsafe requests with a mismatched Origin (CSRF).
 func withOriginCheck(allowedOrigin string, h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
