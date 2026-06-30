@@ -115,6 +115,7 @@ func withLogging(next http.Handler) http.Handler {
 		attrs := []slog.Attr{
 			slog.String("method", r.Method),
 			slog.String("path", r.URL.Path),
+			slog.String("route", r.Pattern),
 			slog.Int("status", rw.status),
 			slog.Int("bytes", rw.bytes),
 			slog.Int64("duration_ms", time.Since(start).Milliseconds()),
