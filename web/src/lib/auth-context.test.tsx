@@ -104,8 +104,7 @@ describe('AuthProvider', () => {
 
     // Grab the handler AuthProvider registered and fire it (failed refresh).
     const handler = vi.mocked(api.setOnUnauthorized).mock.calls.at(-1)?.[0] as
-      | (() => void)
-      | undefined;
+      (() => void) | undefined;
     expect(handler).toBeTypeOf('function');
     act(() => handler!());
 
