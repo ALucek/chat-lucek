@@ -58,7 +58,7 @@ They run in two stages so commits stay fast and the slow checks gate the push:
 
 | Stage | Checks |
 | --- | --- |
-| **commit** | gofmt, go vet, Prettier, ESLint, comment style, gitleaks, `terraform fmt` |
+| **commit** | gofmt, go vet, Prettier, ESLint, comment style, gitleaks, `terraform fmt`, actionlint |
 | **push** | Go tests, Vitest, `go build`, `tsc`, `terraform validate`, tflint |
 
 ## Everyday commands
@@ -69,7 +69,7 @@ They run in two stages so commits stay fast and the slow checks gate the push:
 | `make lint` | Format-check, vet, ESLint, comment style |
 | `make typecheck` | `go build` and `tsc` |
 | `make test` | Go and Vitest unit tests |
-| `make check` | Full pre-merge gate (everything above + infra checks + e2e) |
+| `make check` | Full pre-merge gate (everything above + infra and workflow checks + e2e) |
 | `make db-reset` | Wipe, recreate, and migrate the local database |
 | `make db-psql` | Open a `psql` shell into the local database |
 | `make health` | Curl the API's `/readyz` |

@@ -25,7 +25,7 @@ cd web && pnpm exec playwright install chromium
 | Command | Runs |
 | --- | --- |
 | `make test` | The Go and web unit suites |
-| `make check` | The full pre-merge gate: format, lint, typecheck, all suites, infra checks, and e2e |
+| `make check` | The full pre-merge gate: format, lint, typecheck, all suites, infra and workflow checks, and e2e |
 
 ## CI
 
