@@ -67,3 +67,20 @@ resource "google_secret_manager_secret_iam_member" "deploy_jwt_version_adder" {
   role      = "roles/secretmanager.secretVersionAdder"
   member    = "serviceAccount:${google_service_account.deploy.email}"
 }
+
+# Least-privilege role to toggle the full-kill deny rule on the Armor policy.
+resource "google_project_iam_custom_role" "armor_rule_editor" {
+  role_id     = "armorRuleEditor"
+  title       = "Cloud Armor Rule Editor"
+  description = "Mutate rules on Cloud Armor security policies (full-kill toggle)."
+  permissions = [
+    "compute.securityPolicies.get",
+    "compute.securityPolicies.update",
+  ]
+}
+
+resource "google_project_iam_member" "deploy_armor" {
+  project = var.project_id
+  role    = google_project_iam_custom_role.armor_rule_editor.id
+  member  = "serviceAccount:${google_service_account.deploy.email}"
+}
