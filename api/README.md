@@ -1,7 +1,3 @@
-# api
-
-The Go backend for [chat-lucek](../)
-
 ## Setup
 
 Requires Go 1.26+ and Docker (for local Postgres). Run from the repo root:

@@ -1,7 +1,3 @@
-# infra
-
-The Terraform infrastructure for [chat-lucek](../) on GCP.
-
 ## Setup
 
 Requires Terraform 1.9+ and the gcloud CLI. Authenticate, configure, and initialize from `infra/`:

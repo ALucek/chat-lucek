@@ -1,7 +1,3 @@
-# web
-
-The Next.js client for [chat-lucek](../)
-
 ## Setup
 
 Requires Node 20+ and pnpm. It expects the [api](../api/) running on `:8080`. Run from the repo root:
