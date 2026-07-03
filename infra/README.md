@@ -25,3 +25,4 @@ Full first-time deployment (state bucket, secret values, DNS) lives in the [depl
 | `secrets.tf` | Secret Manager secrets |
 | `deploy.tf` | Workload Identity Federation + deploy service account for CI |
 | `monitoring.tf` | Uptime checks, alert policies, and log metrics |
+| `budget.tf` | Monthly billing budget alert |
