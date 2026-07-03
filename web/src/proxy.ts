@@ -3,7 +3,17 @@ import { buildCSP } from '@/lib/csp';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080';
 
+// Reachable even during maintenance: the page itself and its legal links.
+const MAINTENANCE_EXEMPT = new Set(['/maintenance', '/terms', '/privacy']);
+
 export function proxy(request: NextRequest) {
+  if (
+    process.env.MAINTENANCE_MODE === '1' &&
+    !MAINTENANCE_EXEMPT.has(request.nextUrl.pathname)
+  ) {
+    return NextResponse.rewrite(new URL('/maintenance', request.url));
+  }
+
   const dev = process.env.NODE_ENV !== 'production';
   const nonce = btoa(crypto.randomUUID());
   const csp = buildCSP(API_URL, dev, nonce);
