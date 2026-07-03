@@ -2,3 +2,4 @@ project_id       = "your-project-id"
 region           = "us-central1"
 google_client_id = "your-oauth-client-id"
 owner_email      = "your-email"
+# signup_open = false   # close new-user registration (default: true)

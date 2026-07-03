@@ -36,3 +36,9 @@ variable "github_repo" {
   description = "GitHub repo (owner/name) allowed to deploy via WIF."
   default     = "ALucek/chat-lucek"
 }
+
+variable "signup_open" {
+  type        = bool
+  description = "Whether new-user registration is allowed. Set false to close signups."
+  default     = true
+}
