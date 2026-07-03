@@ -1,0 +1,71 @@
+name: full-kill
+on:
+  workflow_dispatch:
+    inputs:
+      state:
+        description: Turn the edge kill on or off
+        type: choice
+        options: ['on', 'off']
+        required: true
+      confirm:
+        description: Type KILL to confirm denying all API traffic
+        type: string
+        required: true
+
+permissions:
+  contents: read
+  id-token: write # WIF auth to GCP
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  full-kill:
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      DOMAIN: ${{ vars.DOMAIN }}
+      STATE: ${{ inputs.state }}
+      CONFIRM: ${{ inputs.confirm }}
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - name: Check confirmation
+        run: |
+          set -euo pipefail
+          test "$CONFIRM" = "KILL" || { echo "confirm must be KILL"; exit 1; }
+      - uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
+        with:
+          workload_identity_provider: ${{ vars.WIF_PROVIDER }}
+          service_account: ${{ vars.DEPLOY_SA }}
+      - uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # v3.0.1
+
+      - name: Toggle edge deny
+        run: |
+          set -euo pipefail
+          if [ "$STATE" = "on" ]; then
+            gcloud compute security-policies rules create 1 \
+              --security-policy=chat-api-policy \
+              --action=deny-403 --src-ip-ranges='*'
+          else
+            # Idempotent: safe to run when no kill is active.
+            gcloud compute security-policies rules delete 1 \
+              --security-policy=chat-api-policy --quiet || true
+          fi
+
+      - name: Verify
+        run: |
+          set -euo pipefail
+          if [ "$STATE" = "on" ]; then want=403; else want=401; fi
+          for i in $(seq 1 18); do
+            root=$(curl -s -o /dev/null -w '%{http_code}' "https://$DOMAIN")
+            me=$(curl -s -o /dev/null -w '%{http_code}' "https://$DOMAIN/api/me")
+            echo "t=$((i * 10))s state=$STATE root=$root api/me=$me"
+            if [ "$root" = "200" ] && [ "$me" = "$want" ]; then
+              echo "verified"
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "did not converge to root=200 api/me=$want"
+          exit 1
