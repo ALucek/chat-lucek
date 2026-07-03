@@ -1,10 +1,10 @@
 # web
 
-The Next.js client for [chat-lucek](../README.md)
+The Next.js client for [chat-lucek](../)
 
 ## Setup
 
-Requires Node 20+ and pnpm. It expects the [api](../api/README.md) running on `:8080`. Run from the repo root:
+Requires Node 20+ and pnpm. It expects the [api](../api/) running on `:8080`. Run from the repo root:
 
 ```bash
 make web-install    # install dependencies

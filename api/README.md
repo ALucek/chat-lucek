@@ -1,6 +1,6 @@
 # api
 
-The Go backend for [chat-lucek](../README.md)
+The Go backend for [chat-lucek](../)
 
 ## Setup
 

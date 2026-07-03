@@ -1,6 +1,6 @@
 # infra
 
-The Terraform infrastructure for [chat-lucek](../README.md) on GCP.
+The Terraform infrastructure for [chat-lucek](../) on GCP.
 
 ## Setup
 
