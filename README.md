@@ -8,7 +8,7 @@
  \____|_| |_|\__,_|\__| |_____\__,_|\___\___|_|\_\
 ```
 
-A full-stack, multi-user streaming chatbot. Live at **[chat.lucek.ai](https://chat.lucek.ai)**
+An LLM chatbot, built, deployed and run end to end. Live at **[chat.lucek.ai](https://chat.lucek.ai)**
 
 ## Directory
 
