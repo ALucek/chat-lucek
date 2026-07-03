@@ -60,3 +60,10 @@ resource "google_service_account_iam_member" "deploy_actas_web" {
   role               = "roles/iam.serviceAccountUser"
   member             = "serviceAccount:${google_service_account.deploy.email}"
 }
+
+# Lets the rotate-jwt workflow add a new jwt-secret version.
+resource "google_secret_manager_secret_iam_member" "deploy_jwt_version_adder" {
+  secret_id = google_secret_manager_secret.app["jwt-secret"].secret_id
+  role      = "roles/secretmanager.secretVersionAdder"
+  member    = "serviceAccount:${google_service_account.deploy.email}"
+}
