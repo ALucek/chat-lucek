@@ -20,7 +20,7 @@ make tf-config-scan   # Trivy scan of the Terraform config
 | gitleaks | Committed secrets |
 | Trivy | Container images and Terraform config |
 
-CI runs these in [`security.yml`](../.github/workflows/security.yml) on every push, every pull request, and weekly. Dependabot opens weekly update PRs for Go modules, npm packages, GitHub Actions, and Docker base images.
+CI runs these in [security.yml](../.github/workflows/security.yml) on every push, every pull request, and weekly. Dependabot opens weekly update PRs for Go modules, npm packages, GitHub Actions, and Docker base images.
 
 ## Application
 

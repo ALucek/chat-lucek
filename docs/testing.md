@@ -29,4 +29,4 @@ cd web && pnpm exec playwright install chromium
 
 ## CI
 
-Every push and pull request runs [`test.yml`](../.github/workflows/test.yml). Its `api-test`, `web-test`, and `e2e` jobs run the same make targets as above, and passing them is required to merge.
+Every push and pull request runs [test.yml](../.github/workflows/test.yml). Its `api-test`, `web-test`, and `e2e` jobs run the same make targets as above, and passing them is required to merge.

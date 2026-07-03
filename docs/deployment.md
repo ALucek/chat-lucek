@@ -4,7 +4,7 @@ The infrastructure is Terraform-managed on GCP, and GitHub Actions builds and sh
 
 ## Pipeline
 
-Every push to `main` runs [`test.yml`](../.github/workflows/test.yml); on success, [`deploy.yml`](../.github/workflows/deploy.yml) deploys only the services that changed. It authenticates to GCP with Workload Identity Federation, so no service account keys are stored.
+Every push to `main` runs [test.yml](../.github/workflows/test.yml); on success, [deploy.yml](../.github/workflows/deploy.yml) deploys only the services that changed. It authenticates to GCP with Workload Identity Federation, so no service account keys are stored.
 
 ```mermaid
 flowchart TB
