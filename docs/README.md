@@ -7,4 +7,5 @@ Guides for understanding, running, and operating chat-lucek.
 - [Testing](testing.md) — the test suites and CI gates
 - [Deployment](deployment.md) — the CI/CD pipeline and setup runbook
 - [Monitoring](monitoring.md) — uptime checks and alerts
+- [Runbooks](runbooks/) — operate and recover the live site
 - [Security](security.md) — the security posture and scanning
