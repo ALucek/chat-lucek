@@ -10,7 +10,7 @@
 
 A full-stack, multi-user streaming chatbot. Live at **[chat.lucek.ai](https://chat.lucek.ai)**
 
-## Documentation
+## Directory
 
 - [web/](web/) — Next.js Client
 - [api/](api/) — Go Backend
