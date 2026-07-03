@@ -3,3 +3,4 @@ region           = "us-central1"
 google_client_id = "your-oauth-client-id"
 owner_email      = "your-email"
 # signup_open = false   # close new-user registration (default: true)
+billing_account  = "XXXXXX-XXXXXX-XXXXXX"

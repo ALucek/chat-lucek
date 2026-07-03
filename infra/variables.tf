@@ -42,3 +42,14 @@ variable "signup_open" {
   description = "Whether new-user registration is allowed. Set false to close signups."
   default     = true
 }
+
+variable "billing_account" {
+  type        = string
+  description = "Billing account ID the project is linked to, for the budget."
+}
+
+variable "budget_amount" {
+  type        = number
+  description = "Monthly budget in USD; thresholds alert as spend crosses it."
+  default     = 20
+}
