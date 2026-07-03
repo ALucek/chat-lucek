@@ -14,6 +14,7 @@ What to do to operate and recover chat-lucek. Most levers are one-click GitHub A
 | Cloud SQL CPU >80% | Check for slow queries or a connection storm; consider a larger tier. |
 | OpenRouter errors | Provider down, key dead, or out of credits. Check OpenRouter status and the key. |
 | LB 429 spike | Abuse. Climb the [escalation ladder](abuse.md). |
+| Budget threshold | Check Cloud Billing for the source of the spend; if it is abuse, [respond](abuse.md). |
 
 ## Runbooks
 
