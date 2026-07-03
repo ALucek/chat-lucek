@@ -52,7 +52,7 @@ From `infra/`, fill in the two gitignored files from their examples:
 
 ```bash
 cp backend.hcl.example backend.hcl          # bucket = "<project-id>-tfstate"
-cp infra.tfvars.example terraform.tfvars     # project_id, google_client_id, owner_email
+cp infra.tfvars.example terraform.tfvars     # project_id, google_client_id, owner_email, billing_account
 terraform init -backend-config=backend.hcl
 ```
 
