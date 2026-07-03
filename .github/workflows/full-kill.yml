@@ -56,16 +56,23 @@ jobs:
       - name: Verify
         run: |
           set -euo pipefail
+          # Armor propagates over minutes and flaps mid-rollout; poll + streak.
           if [ "$STATE" = "on" ]; then want=403; else want=401; fi
-          for i in $(seq 1 18); do
+          streak=0
+          for i in $(seq 1 30); do
             root=$(curl -s -o /dev/null -w '%{http_code}' "https://$DOMAIN")
             me=$(curl -s -o /dev/null -w '%{http_code}' "https://$DOMAIN/api/me")
-            echo "t=$((i * 10))s state=$STATE root=$root api/me=$me"
             if [ "$root" = "200" ] && [ "$me" = "$want" ]; then
+              streak=$((streak + 1))
+            else
+              streak=0
+            fi
+            echo "t=$((i * 15))s state=$STATE root=$root api/me=$me streak=$streak"
+            if [ "$streak" -ge 3 ]; then
               echo "verified"
               exit 0
             fi
-            sleep 10
+            sleep 15
           done
           echo "did not converge to root=200 api/me=$want"
           exit 1
