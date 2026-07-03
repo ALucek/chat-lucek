@@ -8,7 +8,7 @@ on:
         options: [api, web, both]
         required: true
       revision:
-        description: Revision name to roll back to (blank = the revision serving before the current one)
+        description: Revision to roll back to (blank = previous serving revision; "latest" = resume auto-routing)
         type: string
         required: false
 
@@ -52,31 +52,39 @@ jobs:
           for svc in "${targets[@]}"; do
             echo "::group::$svc"
 
-            # Newest-first list of revisions.
-            mapfile -t revs < <(gcloud run revisions list \
-              --service="$svc" --region="$REGION" \
-              --sort-by='~metadata.creationTimestamp' \
-              --format='value(metadata.name)')
-            echo "revisions (newest first): ${revs[*]}"
-
             serving=$(gcloud run services describe "$svc" --region="$REGION" \
               --format='value(status.traffic[].revisionName)')
             echo "currently serving: $serving"
 
-            if [ -n "$REVISION" ]; then
-              target="$REVISION"
+            if [ "$REVISION" = "latest" ]; then
+              # Resume auto-routing so future deploys serve again.
+              echo "restoring latest-revision routing for $svc"
+              gcloud run services update-traffic "$svc" --region="$REGION" --to-latest
             else
-              if [ "${#revs[@]}" -lt 2 ]; then
-                echo "no previous revision to roll back to for $svc; pass an explicit revision"
-                exit 1
-              fi
-              # Default: second-newest = the revision serving before the last deploy.
-              target="${revs[1]}"
-            fi
-            echo "rolling $svc to: $target"
+              # Newest-first list of revisions.
+              mapfile -t revs < <(gcloud run revisions list \
+                --service="$svc" --region="$REGION" \
+                --sort-by='~metadata.creationTimestamp' \
+                --format='value(metadata.name)')
+              echo "revisions (newest first): ${revs[*]}"
 
-            gcloud run services update-traffic "$svc" --region="$REGION" \
-              --to-revisions="$target=100"
+              if [ -n "$REVISION" ]; then
+                target="$REVISION"
+              else
+                if [ "${#revs[@]}" -lt 2 ]; then
+                  echo "no previous revision to roll back to for $svc; pass an explicit revision"
+                  exit 1
+                fi
+                # Default: second-newest = the revision serving before the last deploy.
+                target="${revs[1]}"
+              fi
+              echo "rolling $svc to: $target"
+
+              gcloud run services update-traffic "$svc" --region="$REGION" \
+                --to-revisions="$target=100"
+              # Pinning disables auto-routing; resume with revision=latest.
+              echo "note: $svc traffic is pinned; run rollback with revision=latest to resume auto-routing"
+            fi
 
             now=$(gcloud run services describe "$svc" --region="$REGION" \
               --format='value(status.traffic[].revisionName)')
