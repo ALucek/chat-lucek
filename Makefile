@@ -5,7 +5,7 @@ DB_DSN := postgres://$(DB_USER):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(DB_NAME)?
 .PHONY: db-up db-down db-psql migrate-up migrate-down migrate-status migrate-create db-delete db-reset docker-build stack-up stack-down\
         api-run api-fmt api-fmt-check api-lint api-typecheck api-test api-vuln api-sast \
         web-install web-run web-build web-fmt web-fmt-check web-lint web-typecheck web-test web-audit e2e e2e-local \
-        fmt lint typecheck test api-check web-check check comment-check comment-check-test \
+        fmt lint typecheck test api-check web-check actions-check check comment-check comment-check-test \
 		scan-secrets scan-secrets-staged scan-images security \
 		tf-fmt tf-fmt-check tf-validate tf-lint tf-config-scan tf-check \
         hooks health
@@ -163,12 +163,16 @@ comment-check:
 comment-check-test:
 	@web/node_modules/.bin/ast-grep test --skip-snapshot-tests
 
+# Lints all GitHub Actions workflows (plus shellcheck on run: blocks).
+actions-check:
+	@cd api && go tool actionlint
+
 # Per-service umbrella gates — what CI runs for each job (CI == local).
 api-check: api-fmt-check api-lint api-typecheck api-test
 web-check: web-fmt-check web-lint web-typecheck web-test web-build
 
 # Full local gate: everything that must pass before merge.
-check: api-check web-check tf-check comment-check comment-check-test e2e-local
+check: api-check web-check tf-check actions-check comment-check comment-check-test e2e-local
 
 # ── Dev tooling ────────────────────────────────────────────────────────
 
