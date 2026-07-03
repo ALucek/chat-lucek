@@ -22,6 +22,10 @@ Two HTTPS checks run every 60 seconds:
 | OpenRouter errors | more than 2 upstream errors in 5 minutes |
 | LB 429 spike | more than 30 rate-limited responses in 5 minutes |
 
+## Billing budget
+
+A monthly budget (default $20) emails the owner as spend crosses 50%, 90%, 100%, and 150%, plus a forecast warning, so a cost spike surfaces early. It is notify-only; [full-kill](runbooks/full-kill.md) is the response. Defined in [infra/budget.tf](../infra/budget.tf).
+
 When an alert fires, the [runbooks](runbooks/) say what to do.
 
 All checks and policies are defined in [infra/monitoring.tf](../infra/monitoring.tf) and route to the owner email channel. View their live status in the Cloud Monitoring console.
