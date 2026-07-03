@@ -9,13 +9,14 @@ make web-run        # dev server on :3000
 
 ## Pages
 
-| Path       | Page                |
-| ---------- | ------------------- |
-| `/login`   | Sign in with Google |
-| `/`        | New chat            |
-| `/c/{id}`  | A conversation      |
-| `/privacy` | Privacy policy      |
-| `/terms`   | Terms of service    |
+| Path           | Page                |
+| -------------- | ------------------- |
+| `/login`       | Sign in with Google |
+| `/`            | New chat            |
+| `/c/{id}`      | A conversation      |
+| `/privacy`     | Privacy policy      |
+| `/terms`       | Terms of service    |
+| `/maintenance` | Maintenance page    |
 
 ## Structure
 
