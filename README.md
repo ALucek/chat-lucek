@@ -12,10 +12,10 @@ A full-stack, multi-user streaming chatbot. Live at **[chat.lucek.ai](https://ch
 
 ## Documentation
 
-- [web/](web/README.md) — Next.js Client
-- [api/](api/README.md) — Go Backend
-- [infra/](infra/README.md) — Terraform Infrastructure on GCP
-- [docs/](docs/README.md) — Operational Documentation
+- [web/](web/) — Next.js Client
+- [api/](api/) — Go Backend
+- [infra/](infra/) — Terraform Infrastructure on GCP
+- [docs/](docs/) — Operational Documentation
 
 ## License
 
