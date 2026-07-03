@@ -1,0 +1,91 @@
+name: rollback
+on:
+  workflow_dispatch:
+    inputs:
+      service:
+        description: Which service to roll back
+        type: choice
+        options: [api, web, both]
+        required: true
+      revision:
+        description: Revision name to roll back to (blank = the revision serving before the current one)
+        type: string
+        required: false
+
+permissions:
+  contents: read
+  id-token: write # WIF auth to GCP
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  rollback:
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      REGION: ${{ vars.GCP_REGION }}
+      DOMAIN: ${{ vars.DOMAIN }}
+      SERVICE: ${{ inputs.service }}
+      REVISION: ${{ inputs.revision }}
+    steps:
+      - uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
+        with:
+          workload_identity_provider: ${{ vars.WIF_PROVIDER }}
+          service_account: ${{ vars.DEPLOY_SA }}
+      - uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # v3.0.1
+
+      - name: Shift traffic
+        run: |
+          set -euo pipefail
+
+          case "$SERVICE" in
+            api)  targets=("chat-api") ;;
+            web)  targets=("chat-web") ;;
+            both) targets=("chat-api" "chat-web") ;;
+            *) echo "unknown service: $SERVICE"; exit 1 ;;
+          esac
+
+          for svc in "${targets[@]}"; do
+            echo "::group::$svc"
+
+            # Newest-first list of revisions.
+            mapfile -t revs < <(gcloud run revisions list \
+              --service="$svc" --region="$REGION" \
+              --sort-by='~metadata.creationTimestamp' \
+              --format='value(metadata.name)')
+            echo "revisions (newest first): ${revs[*]}"
+
+            serving=$(gcloud run services describe "$svc" --region="$REGION" \
+              --format='value(status.traffic[].revisionName)')
+            echo "currently serving: $serving"
+
+            if [ -n "$REVISION" ]; then
+              target="$REVISION"
+            else
+              if [ "${#revs[@]}" -lt 2 ]; then
+                echo "no previous revision to roll back to for $svc; pass an explicit revision"
+                exit 1
+              fi
+              # Default: second-newest = the revision serving before the last deploy.
+              target="${revs[1]}"
+            fi
+            echo "rolling $svc to: $target"
+
+            gcloud run services update-traffic "$svc" --region="$REGION" \
+              --to-revisions="$target=100"
+
+            now=$(gcloud run services describe "$svc" --region="$REGION" \
+              --format='value(status.traffic[].revisionName)')
+            echo "now serving: $now"
+            echo "::endgroup::"
+          done
+
+      - name: Smoke check
+        run: |
+          set -euo pipefail
+          web=$(curl -fsS -o /dev/null -w '%{http_code}' "https://$DOMAIN")
+          test "$web" = "200" || { echo "web returned $web"; exit 1; }
+          api=$(curl -s -o /dev/null -w '%{http_code}' "https://$DOMAIN/api/me")
+          test "$api" = "401" || { echo "api /api/me returned $api"; exit 1; }
