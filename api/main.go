@@ -60,7 +60,7 @@ func main() {
 
 	mux := newMux(check, auth, chat)
 
-	handler := withRequestID(withLogging(withRecover(withSecurityHeaders(withCORS(cfg.AllowedOrigin, withOriginCheck(cfg.AllowedOrigin, withMaxBody(mux)))))))
+	handler := withRequestID(withLogging(withRecover(withSecurityHeaders(withCORS(cfg.AllowedOrigin, withOriginCheck(cfg.AllowedOrigin, withMaxBody(withMaintenance(cfg.Maintenance, mux))))))))
 	server := newServer(":"+cfg.Port, handler)
 
 	go func() {

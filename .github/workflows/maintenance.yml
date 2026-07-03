@@ -1,0 +1,62 @@
+name: maintenance
+on:
+  workflow_dispatch:
+    inputs:
+      state:
+        description: Turn maintenance mode on or off
+        type: choice
+        options: ['on', 'off']
+        required: true
+
+permissions:
+  contents: read
+  id-token: write # WIF auth to GCP
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  maintenance:
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      REGION: ${{ vars.GCP_REGION }}
+      DOMAIN: ${{ vars.DOMAIN }}
+      STATE: ${{ inputs.state }}
+    steps:
+      # Give auth a non-empty workspace to write its credentials file into.
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
+        with:
+          workload_identity_provider: ${{ vars.WIF_PROVIDER }}
+          service_account: ${{ vars.DEPLOY_SA }}
+      - uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # v3.0.1
+
+      - name: Toggle maintenance
+        run: |
+          set -euo pipefail
+          for svc in chat-web chat-api; do
+            if [ "$STATE" = "on" ]; then
+              gcloud run services update "$svc" --region="$REGION" \
+                --update-env-vars MAINTENANCE_MODE=1
+            else
+              gcloud run services update "$svc" --region="$REGION" \
+                --remove-env-vars MAINTENANCE_MODE
+            fi
+          done
+
+      - name: Verify
+        run: |
+          set -euo pipefail
+          root=$(curl -s -o /dev/null -w '%{http_code}' "https://$DOMAIN")
+          ready=$(curl -s -o /dev/null -w '%{http_code}' "https://$DOMAIN/readyz")
+          me=$(curl -s -o /dev/null -w '%{http_code}' "https://$DOMAIN/api/me")
+          echo "state=$STATE root=$root readyz=$ready api/me=$me"
+          test "$root" = "200" || { echo "web root $root (want 200)"; exit 1; }
+          if [ "$STATE" = "on" ]; then
+            test "$ready" = "200" || { echo "readyz $ready (want 200)"; exit 1; }
+            test "$me" = "503" || { echo "api/me $me (want 503)"; exit 1; }
+          else
+            test "$me" = "401" || { echo "api/me $me (want 401)"; exit 1; }
+          fi

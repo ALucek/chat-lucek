@@ -29,6 +29,7 @@ type Config struct {
 	OwnerEmail         string
 	GoogleAuthFake     bool
 	SignupOpen         bool
+	Maintenance        bool
 }
 
 // LoadConfig reads the required settings from the environment.
@@ -54,6 +55,7 @@ func LoadConfig() (Config, error) {
 		OwnerEmail:         os.Getenv("OWNER_EMAIL"),
 		GoogleAuthFake:     os.Getenv("GOOGLE_AUTH_FAKE") == "1",
 		SignupOpen:         os.Getenv("SIGNUP_OPEN") == "true",
+		Maintenance:        os.Getenv("MAINTENANCE_MODE") == "1",
 	}
 
 	required := []struct{ name, value string }{
