@@ -1,6 +1,6 @@
 # Architecture
 
-chat-lucek runs as two Cloud Run services behind a single domain. A Global HTTPS load balancer routes by path: API traffic goes to the Go service, everything else to the Next.js frontend. The API is the only service that reaches the database, the LLM provider, and secrets.
+chat-lucek runs as three Cloud Run services. A Global HTTPS load balancer fronts two of them, routing by path: API traffic to the Go service, everything else to the Next.js frontend. The third, the agent, is internal and reached only by the API. The API owns the database and secrets; the agent owns the LLM provider and web search.
 
 ```mermaid
 flowchart LR
@@ -8,31 +8,36 @@ flowchart LR
     LB -->|"/api/*, /readyz"| API["api<br/>(Go, Cloud Run)"]
     LB -->|everything else| WEB["web<br/>(Next.js, Cloud Run)"]
     API --> DB[("Cloud SQL<br/>Postgres")]
-    API -->|SSE stream| LLM["OpenRouter"]
+    API -->|SSE run stream| AGENT["agent<br/>(Python, Cloud Run)"]
+    AGENT -->|completions| LLM["OpenRouter"]
+    AGENT -->|web search| TAVILY["Tavily"]
     API -.->|reads secrets| SM["Secret Manager"]
 ```
 
 ## Components
 
 - **web** serves the Next.js App Router UI. It holds no data of its own; every dynamic action calls the API.
-- **api** owns all state and integrations: authentication, conversation storage, and the streaming chat endpoint.
+- **api** owns all state and auth: sign-in, conversation storage, and the chat endpoint, which runs the agent and relays its stream to the browser.
+- **agent** is a LangGraph agent (web search plus subagents) behind one streaming `/run` endpoint. It runs the model loop and emits its run as an ordered event stream.
 - **Cloud SQL** is the single Postgres instance backing the API.
-- **OpenRouter** is the upstream LLM provider, consumed as a raw SSE stream.
+- **OpenRouter** is the upstream LLM provider, and **Tavily** backs the agent's web search.
 
 ## Streaming a reply
 
-The API verifies ownership, persists the user message, streams tokens straight from OpenRouter to the browser, and saves the full reply once the stream closes.
+The API verifies ownership, persists the user message, opens a run on the agent, relays the agent's event stream to the browser, and saves the reply and its run trace once the stream closes.
 
 ```mermaid
 sequenceDiagram
     participant B as Browser
     participant A as api
     participant P as Postgres
+    participant G as agent
     participant O as OpenRouter
     B->>A: POST /api/conversations/{id}/messages
     A->>P: verify ownership, save user message
-    A->>O: open streaming completion
-    O-->>A: token deltas (SSE)
-    A-->>B: token deltas (SSE)
-    A->>P: save assistant message
+    A->>G: POST /run (message history)
+    G->>O: run the agent loop
+    G-->>A: run events (SSE)
+    A-->>B: run events (SSE)
+    A->>P: save assistant message + trace
 ```
