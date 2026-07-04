@@ -1,7 +1,7 @@
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 
 from src.config import AgentConfig
-from src.utils import MAX_HISTORY_MESSAGES, build_chat_model, build_messages
+from src.utils import build_chat_model, build_messages
 
 
 def test_build_chat_model_applies_overrides(monkeypatch):
@@ -14,26 +14,18 @@ def test_prepends_system_prompt():
     out = build_messages("SYS", [HumanMessage(content="hi")])
     assert isinstance(out[0], SystemMessage)
     assert out[0].content == "SYS"
-    assert out[-1].content == "hi"
+    assert out[1:] == [HumanMessage(content="hi")]
 
 
-def test_short_history_kept_intact():
-    history = [
-        HumanMessage(content="a"),
-        AIMessage(content="b"),
-        HumanMessage(content="c"),
-    ]
-    out = build_messages("SYS", history)
-    assert [m.content for m in out] == ["SYS", "a", "b", "c"]
-
-
-def test_long_history_trimmed_to_last_n_and_starts_on_human():
-    history = []
-    for i in range(20):
+def test_preserves_full_working_state_without_trimming():
+    # The agent must keep its whole scratchpad: trimming mid-run drops the
+    # original task and breaks tool-call/result pairs. Windowing is the
+    # gateway's job, not the agent's.
+    history: list = []
+    for i in range(30):
         history.append(HumanMessage(content=f"h{i}"))
         history.append(AIMessage(content=f"a{i}"))
     out = build_messages("SYS", history)
     assert isinstance(out[0], SystemMessage)
-    assert len(out) <= MAX_HISTORY_MESSAGES + 1  # system + trimmed window
-    assert isinstance(out[1], HumanMessage)  # window starts on a human turn
-    assert out[-1].content == "a19"  # most recent kept
+    assert out[1:] == history  # nothing dropped
+    assert out[1].content == "h0"  # original first turn retained
