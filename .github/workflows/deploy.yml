@@ -22,6 +22,7 @@ jobs:
     outputs:
       api: ${{ steps.diff.outputs.api }}
       web: ${{ steps.diff.outputs.web }}
+      agent: ${{ steps.diff.outputs.agent }}
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
@@ -35,14 +36,17 @@ jobs:
           echo "$changed"
           api=false
           web=false
+          agent=false
           if grep -qE '^api/' <<<"$changed"; then api=true; fi
           if grep -qE '^web/' <<<"$changed"; then web=true; fi
+          if grep -qE '^agent/' <<<"$changed"; then agent=true; fi
           echo "api=$api" >> "$GITHUB_OUTPUT"
           echo "web=$web" >> "$GITHUB_OUTPUT"
+          echo "agent=$agent" >> "$GITHUB_OUTPUT"
 
   deploy:
     needs: changes
-    if: needs.changes.outputs.api == 'true' || needs.changes.outputs.web == 'true'
+    if: needs.changes.outputs.api == 'true' || needs.changes.outputs.web == 'true' || needs.changes.outputs.agent == 'true'
     runs-on: ubuntu-latest
     environment: production
     permissions:
@@ -81,12 +85,25 @@ jobs:
           docker push "$REGISTRY/web:$IMAGE_TAG"
           digest=$(docker inspect --format='{{index .RepoDigests 0}}' "$REGISTRY/web:$IMAGE_TAG" | cut -d@ -f2)
           echo "digest=$digest" >> "$GITHUB_OUTPUT"
+      - name: Build and push agent
+        id: build_agent
+        if: needs.changes.outputs.agent == 'true'
+        run: |
+          docker build -t "$REGISTRY/agent:$IMAGE_TAG" ./agent
+          docker push "$REGISTRY/agent:$IMAGE_TAG"
+          digest=$(docker inspect --format='{{index .RepoDigests 0}}' "$REGISTRY/agent:$IMAGE_TAG" | cut -d@ -f2)
+          echo "digest=$digest" >> "$GITHUB_OUTPUT"
       - name: Run migrations
         if: needs.changes.outputs.api == 'true'
         run: |
           gcloud run jobs update chat-migrate \
             --image "$REGISTRY/api:$IMAGE_TAG" --region "${{ vars.GCP_REGION }}"
           gcloud run jobs execute chat-migrate --region "${{ vars.GCP_REGION }}" --wait
+      - name: Deploy agent
+        if: needs.changes.outputs.agent == 'true'
+        run: |
+          gcloud run services update chat-agent \
+            --image "$REGISTRY/agent:$IMAGE_TAG" --region "${{ vars.GCP_REGION }}"
       - name: Deploy api
         if: needs.changes.outputs.api == 'true'
         run: |
@@ -149,3 +166,25 @@ jobs:
           subject-name: ${{ env.REGISTRY }}/web
           subject-digest: ${{ steps.build_web.outputs.digest }}
           sbom-path: web.sbom.spdx.json
+
+      - name: Generate agent SBOM
+        if: needs.changes.outputs.agent == 'true'
+        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
+        with:
+          image: ${{ env.REGISTRY }}/agent:${{ env.IMAGE_TAG }}
+          format: spdx-json
+          output-file: agent.sbom.spdx.json
+          artifact-name: agent-sbom.spdx.json
+      - name: Attest agent provenance
+        if: needs.changes.outputs.agent == 'true'
+        uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4.1.1
+        with:
+          subject-name: ${{ env.REGISTRY }}/agent
+          subject-digest: ${{ steps.build_agent.outputs.digest }}
+      - name: Attest agent SBOM
+        if: needs.changes.outputs.agent == 'true'
+        uses: actions/attest-sbom@4651f806c01d8637787e274ac3bdf724ef169f34 # v3
+        with:
+          subject-name: ${{ env.REGISTRY }}/agent
+          subject-digest: ${{ steps.build_agent.outputs.digest }}
+          sbom-path: agent.sbom.spdx.json

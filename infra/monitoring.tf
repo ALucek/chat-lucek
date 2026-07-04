@@ -275,14 +275,13 @@ resource "google_monitoring_alert_policy" "sql_cpu" {
   notification_channels = [google_monitoring_notification_channel.email.id]
 }
 
-# Counts ERROR logs from chat-api whose err mentions the OpenRouter upstream.
-resource "google_logging_metric" "openrouter_errors" {
-  name = "chat_api_openrouter_errors"
+# Counts ERROR logs from the agent service (upstream and run failures).
+resource "google_logging_metric" "agent_errors" {
+  name = "chat_agent_errors"
   filter = join(" ", [
     "resource.type=\"cloud_run_revision\"",
-    "resource.labels.service_name=\"chat-api\"",
+    "resource.labels.service_name=\"chat-agent\"",
     "severity=ERROR",
-    "jsonPayload.err:\"openrouter:\"",
   ])
 
   metric_descriptor {
@@ -291,20 +290,53 @@ resource "google_logging_metric" "openrouter_errors" {
   }
 }
 
-# Fires when more than 2 OpenRouter errors (3+) occur within 5 minutes.
-resource "google_monitoring_alert_policy" "openrouter_errors" {
-  display_name = "OpenRouter upstream errors"
+# Fires when more than 2 agent errors (3+) occur within 5 minutes.
+resource "google_monitoring_alert_policy" "agent_errors" {
+  display_name = "Agent errors"
   combiner     = "OR"
 
   conditions {
-    display_name = "openrouter errors > 2 / 5m"
+    display_name = "agent errors > 2 / 5m"
     condition_threshold {
       filter = join(" AND ", [
         "resource.type = \"cloud_run_revision\"",
-        "metric.type = \"logging.googleapis.com/user/${google_logging_metric.openrouter_errors.name}\"",
+        "metric.type = \"logging.googleapis.com/user/${google_logging_metric.agent_errors.name}\"",
       ])
       comparison      = "COMPARISON_GT"
       threshold_value = 2
+      duration        = "0s"
+
+      aggregations {
+        alignment_period     = "300s"
+        per_series_aligner   = "ALIGN_SUM"
+        cross_series_reducer = "REDUCE_SUM"
+      }
+
+      trigger {
+        count = 1
+      }
+    }
+  }
+
+  notification_channels = [google_monitoring_notification_channel.email.id]
+}
+
+# Fires when the agent returns more than 5 5xx responses within 5 minutes.
+resource "google_monitoring_alert_policy" "agent_5xx" {
+  display_name = "Agent 5xx"
+  combiner     = "OR"
+
+  conditions {
+    display_name = "agent 5xx > 5 / 5m"
+    condition_threshold {
+      filter = join(" AND ", [
+        "resource.type = \"cloud_run_revision\"",
+        "resource.labels.service_name = \"chat-agent\"",
+        "metric.type = \"run.googleapis.com/request_count\"",
+        "metric.labels.response_code_class = \"5xx\"",
+      ])
+      comparison      = "COMPARISON_GT"
+      threshold_value = 5
       duration        = "0s"
 
       aggregations {
