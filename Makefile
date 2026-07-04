@@ -5,6 +5,7 @@ DB_DSN := postgres://$(DB_USER):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(DB_NAME)?
 .PHONY: db-up db-down db-psql migrate-up migrate-down migrate-status migrate-create db-delete db-reset docker-build stack-up stack-down\
         api-run api-fmt api-fmt-check api-lint api-typecheck api-test api-vuln api-sast \
         web-install web-run web-build web-fmt web-fmt-check web-lint web-typecheck web-test web-audit e2e e2e-local \
+        agent-install agent-run agent-fmt agent-fmt-check agent-lint agent-test agent-vuln agent-sast agent-check \
         fmt lint typecheck test api-check web-check actions-check check comment-check comment-check-test \
 		scan-secrets scan-secrets-staged scan-images security \
 		tf-fmt tf-fmt-check tf-validate tf-lint tf-config-scan tf-check \
@@ -98,6 +99,32 @@ e2e:
 
 e2e-local: db-up migrate-up e2e
 
+# ── Agent (Python) ───────────────────────────────────────────────────────
+
+agent-install:
+	cd agent && uv sync
+
+agent-run:
+	cd agent && uv run uvicorn src.server:app --port 8081
+
+agent-fmt:
+	cd agent && uv run ruff format .
+
+agent-fmt-check:
+	cd agent && uv run ruff format --check .
+
+agent-lint:
+	cd agent && uv run ruff check .
+
+agent-test:
+	cd agent && uv run pytest
+
+agent-vuln:
+	cd agent && uv run pip-audit
+
+agent-sast:
+	cd agent && uv run bandit -q -r src
+
 # ── Security scanning ────────────────────────────────────────────────────
 
 scan-secrets:
@@ -107,7 +134,7 @@ scan-secrets-staged:
 	gitleaks git --staged --config .gitleaks.toml --no-banner --redact
 
 # Fast static scans (no Docker) — what the CI `security` job runs.
-security: api-vuln api-sast web-audit scan-secrets
+security: api-vuln api-sast web-audit agent-vuln agent-sast scan-secrets
 
 scan-images:
 	trivy image --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 simple-ai-chatbot-api:local
@@ -148,13 +175,13 @@ stack-down:
 
 # ── Quality gates (aggregates) ─────────────────────────────────────────
 
-fmt: api-fmt web-fmt
+fmt: api-fmt web-fmt agent-fmt
 
-lint: api-fmt-check api-lint web-fmt-check web-lint comment-check
+lint: api-fmt-check api-lint web-fmt-check web-lint agent-fmt-check agent-lint comment-check
 
 typecheck: api-typecheck web-typecheck
 
-test: api-test web-test
+test: api-test web-test agent-test
 
 # Comment style: <=80 chars + no multi-line block comments (ast-grep, all languages).
 comment-check:
@@ -170,9 +197,10 @@ actions-check:
 # Per-service umbrella gates — what CI runs for each job (CI == local).
 api-check: api-fmt-check api-lint api-typecheck api-test
 web-check: web-fmt-check web-lint web-typecheck web-test web-build
+agent-check: agent-fmt-check agent-lint agent-test
 
 # Full local gate: everything that must pass before merge.
-check: api-check web-check tf-check actions-check comment-check comment-check-test e2e-local
+check: api-check web-check agent-check tf-check actions-check comment-check comment-check-test e2e-local
 
 # ── Dev tooling ────────────────────────────────────────────────────────
 
