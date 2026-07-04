@@ -37,8 +37,12 @@ class AgentConfig(BaseModel):
 
     model_config = ConfigDict(extra="ignore")
 
-    agent: RoleConfig = Field(default_factory=RoleConfig, description="Overrides for the top-level agent.")
-    subagent: RoleConfig = Field(default_factory=RoleConfig, description="Overrides for the subagent.")
+    agent: RoleConfig = Field(
+        default_factory=RoleConfig, description="Overrides for the top-level agent."
+    )
+    subagent: RoleConfig = Field(
+        default_factory=RoleConfig, description="Overrides for the subagent."
+    )
     max_searches: int = Field(
         default_factory=lambda: get_settings().max_searches,
         description="Hard limit on the number of web searches per subagent run.",
