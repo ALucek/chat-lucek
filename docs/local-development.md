@@ -54,14 +54,14 @@ make web-run        # web on :3000    (separate terminal)
 
 Open <http://localhost:3000>.
 
-To run web, api, and db in containers instead:
+To run the whole stack in containers instead:
 
 ```bash
-make stack-up       # build and run web, api, and db
+make stack-up       # build and run web, api, agent, and db
 make stack-down
 ```
 
-Chat still needs the agent, run separately with `make agent-run`.
+The containerized agent reads its keys from `agent/.env`.
 
 ## Git hooks
 

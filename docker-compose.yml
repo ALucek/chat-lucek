@@ -26,7 +26,7 @@ services:
       DB_NAME: ${DB_NAME}
       PORT: ${PORT:-8080}
       JWT_SECRET: ${JWT_SECRET}
-      AGENT_URL: ${AGENT_URL:-}
+      AGENT_URL: ${AGENT_URL:-http://agent:8080}
       ALLOWED_ORIGIN: ${ALLOWED_ORIGIN}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
@@ -37,6 +37,17 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      agent:
+        condition: service_started
+  agent:
+    profiles: [full]
+    build: ./agent
+    image: simple-ai-chatbot-agent:local
+    env_file:
+      - path: agent/.env
+        required: false
+    ports:
+      - "8081:8080"
   web:
     profiles: [full]
     build:

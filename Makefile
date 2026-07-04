@@ -139,6 +139,7 @@ security: api-vuln api-sast web-audit agent-vuln agent-sast scan-secrets
 scan-images:
 	trivy image --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 simple-ai-chatbot-api:local
 	trivy image --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 simple-ai-chatbot-web:local
+	trivy image --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 simple-ai-chatbot-agent:local
 
 # ── Infra (Terraform) ────────────────────────────────────────────────────
 # Local use needs terraform + tflint + trivy on PATH.
