@@ -9,7 +9,7 @@ export function ReasoningRow({ node }: { node: TreeNode }) {
   const [open, setOpen] = useState(false);
   const text = node.text ?? '';
   return (
-    <div className="flex flex-col gap-1">
+    <div className="flex flex-col gap-1.5">
       <RowHeader
         label="thinking"
         detail={text}

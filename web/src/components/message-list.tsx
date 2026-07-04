@@ -9,7 +9,9 @@ import { NodeRow } from './turn/node-row';
 function AssistantMessage({ m }: { m: ChatMessage }) {
   if (m.nodes && m.nodes.length > 0) {
     const tree = buildTree(m.nodes);
-    const lastTextId = [...tree].reverse().find((n) => n.type === 'text')?.id;
+    // Caret marks the live edge: only when the run's last node is text.
+    const last = tree[tree.length - 1];
+    const caretId = last?.type === 'text' ? last.id : undefined;
     return (
       <div className="border-border bg-surface-muted flex w-full flex-col gap-2.5 rounded-[var(--radius)] border px-4 py-3">
         {tree.map((n) => (
@@ -17,7 +19,7 @@ function AssistantMessage({ m }: { m: ChatMessage }) {
             key={n.id}
             node={n}
             turnStreaming={m.streaming}
-            caret={m.streaming && n.id === lastTextId}
+            caret={m.streaming && n.id === caretId}
           />
         ))}
       </div>

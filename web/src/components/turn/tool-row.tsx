@@ -24,7 +24,7 @@ export function ToolRow({
   const output = stringify(node.output);
   const body = output || stringify(node.input);
   return (
-    <div className="flex flex-col gap-1">
+    <div className="flex flex-col gap-1.5">
       <RowHeader
         label={toolLabel(node.name ?? '')}
         detail={inputDetail(node.input)}

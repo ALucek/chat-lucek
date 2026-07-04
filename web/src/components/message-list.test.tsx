@@ -165,4 +165,40 @@ describe('MessageList timeline', () => {
     );
     expect(container.querySelector('.caret-blink')).not.toBeNull();
   });
+
+  it('drops the caret from a preamble once a tool follows it', () => {
+    const nodes: RunNode[] = [
+      { id: 'p', parent_id: null, type: 'text', text: 'let me look' },
+      {
+        id: 'SA',
+        parent_id: null,
+        type: 'tool',
+        name: 'run_subagent',
+        input: { task: 'dig' },
+      },
+      {
+        id: 's1',
+        parent_id: 'SA',
+        type: 'tool',
+        name: 'internet_search',
+        input: { query: 'q' },
+      },
+    ];
+    const { container } = render(
+      <MessageList
+        messages={[
+          {
+            id: 1,
+            role: 'assistant',
+            content: '',
+            created_at: '',
+            streaming: true,
+            nodes,
+          },
+        ]}
+      />,
+    );
+    // last node is the subagent, so the preamble text has no live caret
+    expect(container.querySelector('.caret-blink')).toBeNull();
+  });
 });

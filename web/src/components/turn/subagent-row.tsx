@@ -20,7 +20,7 @@ export function SubagentRow({
   const [open, setOpen] = useState(false);
   const task = inputDetail(node.input);
   return (
-    <div className="flex flex-col gap-1">
+    <div className="flex flex-col gap-1.5">
       <RowHeader
         label={toolLabel(node.name ?? '')}
         detail={task}
