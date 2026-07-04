@@ -27,11 +27,23 @@ repos:
         language: system
         files: ^web/
         pass_filenames: false
+      - id: agent-fmt-check
+        name: ruff format
+        entry: make agent-fmt-check
+        language: system
+        files: ^agent/.*\.py$
+        pass_filenames: false
+      - id: agent-lint
+        name: ruff check
+        entry: make agent-lint
+        language: system
+        files: ^agent/.*\.py$
+        pass_filenames: false
       - id: comment-check
         name: comment style (ast-grep)
         entry: make comment-check
         language: system
-        files: \.(go|ts|tsx|js|jsx|mjs|cjs|css)$
+        files: \.(go|ts|tsx|js|jsx|mjs|cjs|css|py)$
         pass_filenames: false
       - id: actions-check
         name: actionlint
@@ -51,6 +63,13 @@ repos:
         entry: make web-test
         language: system
         files: ^web/
+        pass_filenames: false
+        stages: [pre-push]
+      - id: agent-test
+        name: pytest
+        entry: make agent-test
+        language: system
+        files: ^agent/
         pass_filenames: false
         stages: [pre-push]
       - id: api-typecheck

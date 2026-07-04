@@ -54,6 +54,17 @@ rule:
     - { kind: comment, regex: '^.{81,}$' }
     - not: { regex: 'https?://' }
     - not: { regex: 'lint-ignore-comment' }
+---
+id: comment-too-long-python
+language: python
+severity: error
+message: comment too long (>80) — keep it one short line
+rule:
+  all:
+    - { kind: comment, regex: '^.{81,}$' }
+    - not: { regex: 'https?://' }
+    - not: { regex: 'lint-ignore-comment' }
+    - not: { regex: '^# ?(type:|noqa|ruff:|pragma:|pyright:|fmt:|isort:)' }
 # ---- multi-line block comments ----
 ---
 id: multiline-comment-go
