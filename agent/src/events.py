@@ -1,74 +1,95 @@
 from typing import Any
 
-TOP_LEVEL_NODE = "agent"
-STATUS_KINDS = {
-    "run_subagent": "research",
-    "internet_search": "search",
-    "set_todos": "plan",
-}
 
-
-def _detail(name: str, tool_input: dict[str, Any]) -> str:
-    if name == "run_subagent":
-        return str(tool_input.get("task", ""))
-    if name == "internet_search":
-        return str(tool_input.get("query", ""))
-    return ""
+def _serialize_output(out: Any) -> Any:
+    content = getattr(out, "content", None)
+    if content is not None:
+        return content
+    if isinstance(out, (str, int, float, bool, list, dict)) or out is None:
+        return out
+    return str(out)
 
 
 class Translator:
-    """Maps LangGraph astream_events to our SSE event dicts; tallies usage."""
+    """Translates astream_events v2 into ordered node/delta/node_end frames."""
 
     def __init__(self) -> None:
-        self._input = 0
-        self._output = 0
-        self._total = 0
-        self._reasoning = 0
+        self._open_tools: set[str] = set()
+        self._started: set[str] = set()
+        self._input = self._output = self._total = self._reasoning = 0
 
     def handle(self, event: dict[str, Any]) -> list[dict[str, Any]]:
         etype = event.get("event")
         if etype == "on_chat_model_stream":
             return self._on_stream(event)
-        if etype in ("on_tool_start", "on_tool_end"):
-            return self._on_tool(event)
+        if etype == "on_tool_start":
+            return self._on_tool_start(event)
+        if etype == "on_tool_end":
+            return self._on_tool_end(event)
         if etype == "on_chat_model_end":
             self._accumulate(event)
         return []
 
+    def _parent_id(self, event: dict[str, Any]) -> str | None:
+        for pid in reversed(event.get("parent_ids") or []):
+            if str(pid) in self._open_tools:
+                return str(pid)
+        return None
+
+    def _text_frames(
+        self, node_id: str, parent: str | None, ntype: str, text: str
+    ) -> list[dict[str, Any]]:
+        if node_id not in self._started:
+            self._started.add(node_id)
+            return [
+                {
+                    "event": "node",
+                    "data": {"id": node_id, "parent_id": parent, "type": ntype},
+                },
+                {"event": "delta", "data": {"id": node_id, "text": text}},
+            ]
+        return [{"event": "delta", "data": {"id": node_id, "text": text}}]
+
     def _on_stream(self, event: dict[str, Any]) -> list[dict[str, Any]]:
-        if (event.get("metadata") or {}).get("langgraph_node") != TOP_LEVEL_NODE:
-            return []
         chunk = (event.get("data") or {}).get("chunk")
+        parent = self._parent_id(event)
+        rid = str(event.get("run_id"))
         out: list[dict[str, Any]] = []
         reasoning = (getattr(chunk, "additional_kwargs", {}) or {}).get(
             "reasoning_content"
         )
         if reasoning:
-            out.append({"event": "reasoning", "data": {"text": reasoning}})
-        if getattr(chunk, "content", ""):
-            out.append({"event": "token", "data": {"text": chunk.content}})
+            out += self._text_frames(f"{rid}:reasoning", parent, "reasoning", reasoning)
+        content = getattr(chunk, "content", "")
+        if content:
+            out += self._text_frames(f"{rid}:text", parent, "text", content)
         return out
 
-    def _on_tool(self, event: dict[str, Any]) -> list[dict[str, Any]]:
-        kind = STATUS_KINDS.get(event.get("name", ""))
-        if kind is None:
-            return []
-        state = "start" if event.get("event") == "on_tool_start" else "end"
-        detail = ""
-        if state == "start":
-            detail = _detail(
-                event["name"], (event.get("data") or {}).get("input") or {}
-            )
+    def _on_tool_start(self, event: dict[str, Any]) -> list[dict[str, Any]]:
+        rid = str(event.get("run_id"))
+        parent = self._parent_id(event)
+        self._open_tools.add(rid)
+        self._started.add(rid)
+        inp = (event.get("data") or {}).get("input") or {}
         return [
             {
-                "event": "status",
+                "event": "node",
                 "data": {
-                    "id": str(event.get("run_id")),
-                    "kind": kind,
-                    "detail": detail,
-                    "state": state,
+                    "id": rid,
+                    "parent_id": parent,
+                    "type": "tool",
+                    "name": event.get("name", ""),
+                    "input": inp,
                 },
             }
+        ]
+
+    def _on_tool_end(self, event: dict[str, Any]) -> list[dict[str, Any]]:
+        rid = str(event.get("run_id"))
+        self._open_tools.discard(rid)
+        out = (event.get("data") or {}).get("output")
+        return [
+            {"event": "node_end", "data": {"id": rid, "output": _serialize_output(out)}}
         ]
 
     def _accumulate(self, event: dict[str, Any]) -> None:
