@@ -4,25 +4,32 @@ import { ToolRow } from './tool-row';
 import { SubagentRow } from './subagent-row';
 import { TextBlock } from './text-block';
 
-// NodeRow dispatches a node to its row (tool with children = subagent).
+// NodeRow dispatches a node to its row (tool with children = subagent). A tool
+// with no output while the turn streams is still running.
 export function NodeRow({
   node,
-  streaming,
+  turnStreaming,
+  caret,
   nested,
 }: {
   node: TreeNode;
-  streaming?: boolean;
+  turnStreaming?: boolean;
+  caret?: boolean;
   nested?: boolean;
 }) {
   if (node.type === 'reasoning') return <ReasoningRow node={node} />;
   if (node.type === 'text')
-    return <TextBlock node={node} nested={nested} streaming={streaming} />;
+    return <TextBlock node={node} nested={nested} streaming={caret} />;
+  const active = !!turnStreaming && node.output === undefined;
   if (node.children.length > 0)
     return (
       <SubagentRow
         node={node}
-        renderChild={(c) => <NodeRow key={c.id} node={c} nested />}
+        active={active}
+        renderChild={(c) => (
+          <NodeRow key={c.id} node={c} turnStreaming={turnStreaming} nested />
+        )}
       />
     );
-  return <ToolRow node={node} />;
+  return <ToolRow node={node} active={active} />;
 }

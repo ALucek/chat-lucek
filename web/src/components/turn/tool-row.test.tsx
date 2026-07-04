@@ -28,4 +28,11 @@ describe('ToolRow', () => {
     expect(screen.getByText('output')).toBeInTheDocument();
     expect(screen.getByText(/"query": "cats"/)).toBeInTheDocument();
   });
+
+  it('shows an in-progress dot only when active', () => {
+    const { container, rerender } = render(<ToolRow node={node} />);
+    expect(container.querySelector('.animate-pulse')).toBeNull();
+    rerender(<ToolRow node={node} active />);
+    expect(container.querySelector('.animate-pulse')).not.toBeNull();
+  });
 });

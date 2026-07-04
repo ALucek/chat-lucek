@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import type { TreeNode } from '@/lib/run-log';
 import { toolLabel, inputDetail } from '@/lib/run-log';
+import { Tag, Dot } from './parts';
 
 // stringify renders a tool value for the drill-down.
 function stringify(v: unknown): string {
@@ -11,7 +12,13 @@ function stringify(v: unknown): string {
 }
 
 // ToolRow is a leaf tool: one line that expands to raw input/output.
-export function ToolRow({ node }: { node: TreeNode }) {
+export function ToolRow({
+  node,
+  active,
+}: {
+  node: TreeNode;
+  active?: boolean;
+}) {
   const [open, setOpen] = useState(false);
   return (
     <div className="flex flex-col gap-0.5">
@@ -21,10 +28,11 @@ export function ToolRow({ node }: { node: TreeNode }) {
         onClick={() => setOpen((o) => !o)}
         className="flex w-full items-center gap-2 text-left"
       >
-        <span className="text-subtle shrink-0 text-[10px] tracking-[0.14em] uppercase">
-          {toolLabel(node.name ?? '')}
-        </span>
-        <span className="text-subtle min-w-0 flex-1 truncate text-xs">
+        {active && <Dot />}
+        <Tag>{toolLabel(node.name ?? '')}</Tag>
+        <span
+          className={`text-subtle min-w-0 flex-1 text-xs ${open ? 'break-words whitespace-normal' : 'truncate'}`}
+        >
           {inputDetail(node.input)}
         </span>
         <span className="text-subtle ml-auto shrink-0 text-[11px]">

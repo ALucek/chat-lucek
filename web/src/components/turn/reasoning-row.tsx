@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import type { TreeNode } from '@/lib/run-log';
+import { Tag } from './parts';
 
 // ReasoningRow is a dimmed one-line thought that expands to the full text.
 export function ReasoningRow({ node }: { node: TreeNode }) {
@@ -14,9 +15,7 @@ export function ReasoningRow({ node }: { node: TreeNode }) {
         onClick={() => setOpen((o) => !o)}
         className="flex w-full items-center gap-2 text-left"
       >
-        <span className="text-subtle shrink-0 text-[10px] tracking-[0.14em] uppercase">
-          thinking
-        </span>
+        <Tag>thinking</Tag>
         {!open && (
           <span className="text-subtle min-w-0 flex-1 truncate text-xs">
             {node.text}

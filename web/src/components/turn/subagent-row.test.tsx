@@ -34,4 +34,14 @@ describe('SubagentRow', () => {
     await userEvent.click(screen.getByRole('button'));
     expect(screen.getByText('child:c1')).toBeInTheDocument();
   });
+
+  it('shows an in-progress dot when active', () => {
+    const noop = () => null;
+    const { container, rerender } = render(
+      <SubagentRow node={node} renderChild={noop} />,
+    );
+    expect(container.querySelector('.animate-pulse')).toBeNull();
+    rerender(<SubagentRow node={node} active renderChild={noop} />);
+    expect(container.querySelector('.animate-pulse')).not.toBeNull();
+  });
 });

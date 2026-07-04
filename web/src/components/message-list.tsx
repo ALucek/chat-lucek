@@ -16,7 +16,8 @@ function AssistantMessage({ m }: { m: ChatMessage }) {
           <NodeRow
             key={n.id}
             node={n}
-            streaming={m.streaming && n.id === lastTextId}
+            turnStreaming={m.streaming}
+            caret={m.streaming && n.id === lastTextId}
           />
         ))}
       </div>

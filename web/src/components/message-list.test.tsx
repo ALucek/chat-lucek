@@ -110,6 +110,41 @@ describe('MessageList timeline', () => {
     expect(screen.queryByText('search')).toBeNull();
   });
 
+  it('marks an in-flight subagent as running while the turn streams', () => {
+    const nodes: RunNode[] = [
+      {
+        id: 'SA',
+        parent_id: null,
+        type: 'tool',
+        name: 'run_subagent',
+        input: { task: 'go' },
+      },
+      {
+        id: 's1',
+        parent_id: 'SA',
+        type: 'tool',
+        name: 'internet_search',
+        input: { query: 'q' },
+      },
+    ];
+    const { container } = render(
+      <MessageList
+        messages={[
+          {
+            id: 1,
+            role: 'assistant',
+            content: '',
+            created_at: '',
+            streaming: true,
+            nodes,
+          },
+        ]}
+      />,
+    );
+    // subagent has no output yet + turn is streaming -> a running dot shows
+    expect(container.querySelector('.animate-pulse')).not.toBeNull();
+  });
+
   it('shows a streaming caret on the last answer node', () => {
     const nodes: RunNode[] = [
       { id: 'a', parent_id: null, type: 'text', text: 'partial' },
