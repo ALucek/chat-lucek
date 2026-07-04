@@ -23,7 +23,8 @@ class _FakeAgent:
     async def astream_events(self, inp, version="v2", config=None):
         yield {
             "event": "on_chat_model_stream",
-            "metadata": {"langgraph_node": "agent"},
+            "run_id": "r1",
+            "parent_ids": ["root", "n"],
             "data": {"chunk": AIMessageChunk(content="Hello")},
         }
         yield {
@@ -74,15 +75,16 @@ async def test_healthz(app):
         assert r.json() == {"status": "ok"}
 
 
-async def test_run_streams_token_usage_end(app):
+async def test_run_streams_node_usage_end(app):
     transport = httpx.ASGITransport(app=app)
     async with httpx.AsyncClient(transport=transport, base_url="http://t") as c:
         r = await c.post("/run", json={"messages": [{"role": "user", "content": "hi"}]})
         assert r.status_code == 200
         events = _parse_sse(r.text)
-        assert [e for e, _ in events] == ["token", "usage", "end"]
-        assert events[0][1] == {"text": "Hello"}
-        assert events[1][1]["total"] == 5
+        assert [e for e, _ in events] == ["node", "delta", "usage", "end"]
+        assert events[0][1] == {"id": "r1:text", "parent_id": None, "type": "text"}
+        assert events[1][1] == {"id": "r1:text", "text": "Hello"}
+        assert events[2][1]["total"] == 5
 
 
 async def test_run_emits_error_then_end_on_failure(raising_app):
@@ -107,5 +109,5 @@ def test_to_lc_messages_maps_roles():
 def test_sse_framing():
     from src import server
 
-    out = server._sse({"event": "token", "data": {"text": "hi"}})
-    assert out == 'event: token\ndata: {"text": "hi"}\n\n'
+    out = server._sse({"event": "delta", "data": {"id": "r1:text", "text": "hi"}})
+    assert out == 'event: delta\ndata: {"id": "r1:text", "text": "hi"}\n\n'
