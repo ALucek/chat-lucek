@@ -29,13 +29,28 @@ test('sign in with Google, send a message, stream a reply, persist on reload', a
   await expect(page).toHaveURL(/\/c\/\d+$/);
   await expect(page.getByText('Hello from the stub.')).toBeVisible();
 
+  // The run timeline renders: a reasoning step and a folded subagent.
+  await expect(page.getByText('thinking')).toBeVisible();
+  const subagent = page.getByRole('button').filter({ hasText: 'subagent' });
+  await expect(subagent).toBeVisible();
+
+  // The subagent is folded: its nested search + summary appear only on expand.
+  await expect(page.getByText('search', { exact: true })).toHaveCount(0);
+  await subagent.click();
+  await expect(page.getByText('search', { exact: true })).toBeVisible();
+  await expect(page.getByText('subagent summary')).toBeVisible();
+
   // The first message names the conversation (first five words) in the sidebar.
   await expect(
     page.getByRole('link', { name: 'Tell me a joke about' }),
   ).toBeVisible();
 
-  // Reload — the persisted history (real DB) is still there.
+  // Reload — the persisted trace rehydrates the timeline (real DB).
   await page.reload();
   await expect(page.getByText(message)).toBeVisible();
   await expect(page.getByText('Hello from the stub.')).toBeVisible();
+  await expect(page.getByText('thinking')).toBeVisible();
+  await expect(
+    page.getByRole('button').filter({ hasText: 'subagent' }),
+  ).toBeVisible();
 });
