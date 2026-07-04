@@ -44,9 +44,9 @@ describe('UsageMeter', () => {
     expect(container.firstChild).toBeNull();
   });
 
-  it('shows the token tooltip with commas', () => {
-    mockUsage(3851, 8192);
+  it('shows the runs-today tooltip', () => {
+    mockUsage(3, 20);
     render(<UsageMeter />);
-    expect(screen.getByTitle('3,851 / 8,192 tokens')).toBeInTheDocument();
+    expect(screen.getByTitle('3 / 20 runs today')).toBeInTheDocument();
   });
 });
