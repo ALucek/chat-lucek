@@ -9,11 +9,22 @@ import {
   useRef,
   useState,
 } from 'react';
-import { type Message, getMessages, sendMessage, ApiError } from './api';
+import {
+  type Message,
+  type RunNode,
+  getMessages,
+  sendMessage,
+  ApiError,
+} from './api';
 import { useConversationsContext } from './conversations-context';
 import { useUsage } from './usage-context';
 
-export type ChatMessage = Message & { streaming?: boolean };
+export type ChatMessage = Message & { streaming?: boolean; nodes?: RunNode[] };
+
+// hydrate lifts a persisted v2 trace into the live node list for rendering.
+function hydrate(m: Message): ChatMessage {
+  return m.trace && m.trace.version === 2 ? { ...m, nodes: m.trace.nodes } : m;
+}
 
 interface ConvState {
   messages: ChatMessage[];
@@ -79,7 +90,7 @@ export function MessagesProvider({ children }: { children: React.ReactNode }) {
       getMessages(id)
         .then((m) =>
           patch(id, () => ({
-            messages: m,
+            messages: m.map(hydrate),
             loading: false,
             error: null,
             notFound: false,
@@ -126,11 +137,43 @@ export function MessagesProvider({ children }: { children: React.ReactNode }) {
         id,
         content,
         {
-          onDelta: (text) =>
+          onNode: (node) =>
             patch(id, (s) => ({
               ...s,
               messages: s.messages.map((m) =>
-                m.id === assistantId ? { ...m, content: m.content + text } : m,
+                m.id === assistantId
+                  ? { ...m, nodes: [...(m.nodes ?? []), node] }
+                  : m,
+              ),
+            })),
+          onDelta: (nodeId, text) =>
+            patch(id, (s) => ({
+              ...s,
+              messages: s.messages.map((m) =>
+                m.id === assistantId
+                  ? {
+                      ...m,
+                      nodes: (m.nodes ?? []).map((n) =>
+                        n.id === nodeId
+                          ? { ...n, text: (n.text ?? '') + text }
+                          : n,
+                      ),
+                    }
+                  : m,
+              ),
+            })),
+          onNodeEnd: (nodeId, output) =>
+            patch(id, (s) => ({
+              ...s,
+              messages: s.messages.map((m) =>
+                m.id === assistantId
+                  ? {
+                      ...m,
+                      nodes: (m.nodes ?? []).map((n) =>
+                        n.id === nodeId ? { ...n, output } : n,
+                      ),
+                    }
+                  : m,
               ),
             })),
           onDone: (messageId) => {

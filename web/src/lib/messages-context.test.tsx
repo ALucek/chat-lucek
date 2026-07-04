@@ -90,12 +90,13 @@ describe('useMessages (store)', () => {
     );
   });
 
-  it('send appends optimistic user + assistant and streams deltas to done', async () => {
+  it('send appends optimistic user + assistant and streams nodes to done', async () => {
     vi.mocked(api.getMessages).mockResolvedValue([]);
     vi.mocked(api.sendMessage).mockImplementation(
       async (_id, _content, h: StreamHandlers) => {
-        h.onDelta('Hel');
-        h.onDelta('lo');
+        h.onNode({ id: 'a:text', parent_id: null, type: 'text' });
+        h.onDelta('a:text', 'Hel');
+        h.onDelta('a:text', 'lo');
         h.onDone(42);
       },
     );
@@ -107,16 +108,19 @@ describe('useMessages (store)', () => {
     await act(async () => {
       await result.current.send('hi');
     });
-    expect(result.current.messages).toEqual([
-      { id: -1, role: 'user', content: 'hi', created_at: '' },
-      {
-        id: 42,
-        role: 'assistant',
-        content: 'Hello',
-        created_at: '',
-        streaming: false,
-      },
-    ]);
+    const [user, assistant] = result.current.messages;
+    expect(user).toEqual({
+      id: -1,
+      role: 'user',
+      content: 'hi',
+      created_at: '',
+    });
+    expect(assistant).toMatchObject({
+      id: 42,
+      role: 'assistant',
+      streaming: false,
+      nodes: [{ id: 'a:text', parent_id: null, type: 'text', text: 'Hello' }],
+    });
     expect(result.current.sending).toBe(false);
   });
 
@@ -219,11 +223,11 @@ describe('useMessages (store)', () => {
     }
     function Probe() {
       const { messages } = useMessages(1);
-      return (
-        <div data-testid="probe">
-          {messages.map((m) => m.content).join('|')}
-        </div>
-      );
+      const text = messages
+        .flatMap((m) => m.nodes ?? [])
+        .map((n) => n.text ?? '')
+        .join('');
+      return <div data-testid="probe">{text}</div>;
     }
     function Harness() {
       const [mounted, setMounted] = useState(true);
@@ -239,23 +243,24 @@ describe('useMessages (store)', () => {
 
     render(<Harness />);
     await userEvent.click(screen.getByText('start'));
-    await waitFor(() =>
-      expect(screen.getByTestId('probe')).toHaveTextContent('hi|'),
-    );
+    await waitFor(() => expect(captured).not.toBeNull());
 
-    act(() => captured!.onDelta('par'));
+    act(() =>
+      captured!.onNode({ id: 'a:text', parent_id: null, type: 'text' }),
+    );
+    act(() => captured!.onDelta('a:text', 'par'));
     await waitFor(() =>
-      expect(screen.getByTestId('probe')).toHaveTextContent('hi|par'),
+      expect(screen.getByTestId('probe')).toHaveTextContent('par'),
     );
 
     await userEvent.click(screen.getByText('unmount')); // "navigate away"
     expect(screen.queryByTestId('probe')).toBeNull();
 
     // stream keeps updating the store while the consumer is unmounted
-    act(() => captured!.onDelta('tial'));
+    act(() => captured!.onDelta('a:text', 'tial'));
     act(() => captured!.onDone(9));
 
     await userEvent.click(screen.getByText('remount')); // "navigate back"
-    expect(screen.getByTestId('probe')).toHaveTextContent('hi|partial');
+    expect(screen.getByTestId('probe')).toHaveTextContent('partial');
   });
 });

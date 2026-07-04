@@ -220,24 +220,28 @@ function streamResponse(status: number, frames: string[]): Response {
 }
 
 describe('sendMessage', () => {
-  it('dispatches delta/title and resolves on done', async () => {
+  it('dispatches node/delta/title and resolves on done', async () => {
     const fetchMock = vi
       .fn()
       .mockResolvedValue(
         streamResponse(200, [
-          'event: delta\ndata: {"text":"Hel"}\n\n',
-          'event: delta\ndata: {"text":"lo"}\n\n',
+          'event: node\ndata: {"id":"a:text","parent_id":null,"type":"text"}\n\n',
+          'event: delta\ndata: {"id":"a:text","text":"Hel"}\n\n',
+          'event: delta\ndata: {"id":"a:text","text":"lo"}\n\n',
           'event: done\ndata: {"message_id":42}\n\n',
           'event: title\ndata: {"title":"Hi there"}\n\n',
         ]),
       );
     vi.stubGlobal('fetch', fetchMock);
 
-    const deltas: string[] = [];
+    const nodeIds: string[] = [];
+    const deltas: [string, string][] = [];
     let doneId = 0;
     let title = '';
     await sendMessage(7, 'hello', {
-      onDelta: (t) => deltas.push(t),
+      onNode: (n) => nodeIds.push(n.id),
+      onDelta: (id, t) => deltas.push([id, t]),
+      onNodeEnd: () => {},
       onDone: (id) => {
         doneId = id;
       },
@@ -247,7 +251,11 @@ describe('sendMessage', () => {
       onError: () => {},
     });
 
-    expect(deltas).toEqual(['Hel', 'lo']);
+    expect(nodeIds).toEqual(['a:text']);
+    expect(deltas).toEqual([
+      ['a:text', 'Hel'],
+      ['a:text', 'lo'],
+    ]);
     expect(doneId).toBe(42);
     expect(title).toBe('Hi there');
     const [url, init] = fetchMock.mock.calls[0];
@@ -268,7 +276,9 @@ describe('sendMessage', () => {
 
     let err = '';
     await sendMessage(7, 'hello', {
+      onNode: () => {},
       onDelta: () => {},
+      onNodeEnd: () => {},
       onDone: () => {},
       onTitle: () => {},
       onError: (m) => {
@@ -290,7 +300,9 @@ describe('sendMessage', () => {
 
     let doneId = 0;
     await sendMessage(7, 'hello', {
+      onNode: () => {},
       onDelta: () => {},
+      onNodeEnd: () => {},
       onDone: (id) => {
         doneId = id;
       },
@@ -314,7 +326,14 @@ it('swallows an AbortError without calling onError', async () => {
     sendMessage(
       7,
       'hi',
-      { onDelta: () => {}, onDone: () => {}, onTitle: () => {}, onError },
+      {
+        onNode: () => {},
+        onDelta: () => {},
+        onNodeEnd: () => {},
+        onDone: () => {},
+        onTitle: () => {},
+        onError,
+      },
       ac.signal,
     ),
   ).resolves.toBeUndefined();
