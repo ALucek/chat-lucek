@@ -23,6 +23,7 @@ const (
 type agentClient struct {
 	baseURL string
 	http    *http.Client
+	token   func(context.Context) (string, error) // nil = no auth (local http)
 }
 
 // llmMessage is one conversation turn sent to the agent.
@@ -60,6 +61,13 @@ func (c *agentClient) run(ctx context.Context, msgs []llmMessage, h runHandlers)
 		return usage, err
 	}
 	req.Header.Set("Content-Type", "application/json")
+	if c.token != nil {
+		tok, err := c.token(ctx)
+		if err != nil {
+			return usage, err
+		}
+		req.Header.Set("Authorization", "Bearer "+tok)
+	}
 
 	resp, err := c.http.Do(req)
 	if err != nil {

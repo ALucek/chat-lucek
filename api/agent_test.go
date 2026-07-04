@@ -78,3 +78,41 @@ func TestAgentRun_BadStatus(t *testing.T) {
 		t.Fatal("want error on non-200 status")
 	}
 }
+
+func TestAgentRun_AttachesBearerWhenTokenSet(t *testing.T) {
+	var gotAuth string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotAuth = r.Header.Get("Authorization")
+		w.Header().Set("Content-Type", "text/event-stream")
+		fmt.Fprint(w, endFrame)
+	}))
+	defer srv.Close()
+	c := &agentClient{
+		baseURL: srv.URL,
+		http:    srv.Client(),
+		token:   func(context.Context) (string, error) { return "tok123", nil },
+	}
+	if _, err := c.run(context.Background(), nil, runHandlers{}); err != nil {
+		t.Fatalf("run: %v", err)
+	}
+	if gotAuth != "Bearer tok123" {
+		t.Fatalf("auth header = %q", gotAuth)
+	}
+}
+
+func TestAgentRun_NoHeaderWhenTokenNil(t *testing.T) {
+	var gotAuth string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotAuth = r.Header.Get("Authorization")
+		w.Header().Set("Content-Type", "text/event-stream")
+		fmt.Fprint(w, endFrame)
+	}))
+	defer srv.Close()
+	c := &agentClient{baseURL: srv.URL, http: srv.Client()}
+	if _, err := c.run(context.Background(), nil, runHandlers{}); err != nil {
+		t.Fatalf("run: %v", err)
+	}
+	if gotAuth != "" {
+		t.Fatalf("unexpected auth header %q", gotAuth)
+	}
+}
