@@ -16,14 +16,11 @@ type Config struct {
 	DBName             string
 	Port               string
 	JWTSecret          string
-	OpenRouterKey      string
-	Model              string
-	SystemPrompt       string
+	AgentURL           string
 	AllowedOrigin      string
-	OpenRouterBaseURL  string
 	DatabaseURL        string
 	LogLevel           string
-	TokenBudgetDaily   int
+	RunsBudgetDaily    int
 	GoogleClientID     string
 	GoogleClientSecret string
 	OwnerEmail         string
@@ -42,14 +39,11 @@ func LoadConfig() (Config, error) {
 		DBName:             os.Getenv("DB_NAME"),
 		Port:               os.Getenv("PORT"),
 		JWTSecret:          os.Getenv("JWT_SECRET"),
-		OpenRouterKey:      os.Getenv("OPENROUTER_API_KEY"),
-		Model:              getenvDefault("OPENROUTER_MODEL", "openrouter/free"),
-		SystemPrompt:       getenvDefault("SYSTEM_PROMPT", "You are a helpful assistant."),
+		AgentURL:           getenvDefault("AGENT_URL", "http://localhost:8081"),
 		AllowedOrigin:      getenvDefault("ALLOWED_ORIGIN", "http://localhost:3000"),
-		OpenRouterBaseURL:  getenvDefault("OPENROUTER_BASE_URL", openRouterURL),
 		LogLevel:           getenvDefault("LOG_LEVEL", "info"),
 		DatabaseURL:        os.Getenv("DATABASE_URL"),
-		TokenBudgetDaily:   getenvInt("TOKEN_BUDGET_DAILY", 128000),
+		RunsBudgetDaily:    getenvInt("RUNS_BUDGET_DAILY", 20),
 		GoogleClientID:     os.Getenv("GOOGLE_CLIENT_ID"),
 		GoogleClientSecret: os.Getenv("GOOGLE_CLIENT_SECRET"),
 		OwnerEmail:         os.Getenv("OWNER_EMAIL"),
@@ -66,7 +60,6 @@ func LoadConfig() (Config, error) {
 		{"DB_NAME", cfg.DBName},
 		{"PORT", cfg.Port},
 		{"JWT_SECRET", cfg.JWTSecret},
-		{"OPENROUTER_API_KEY", cfg.OpenRouterKey},
 		{"GOOGLE_CLIENT_ID", cfg.GoogleClientID},
 	}
 	for _, r := range required {

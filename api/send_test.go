@@ -8,11 +8,10 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
-	"time"
 )
 
-// fakeOpenRouter returns a client hitting a server that emits the given frames.
-func fakeOpenRouter(t *testing.T, status int, frames ...string) *openRouterClient {
+// fakeAgent returns a client hitting a server that emits the given SSE frames.
+func fakeAgent(t *testing.T, status int, frames ...string) *agentClient {
 	t.Helper()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if status != http.StatusOK {
@@ -25,18 +24,26 @@ func fakeOpenRouter(t *testing.T, status int, frames ...string) *openRouterClien
 		}
 	}))
 	t.Cleanup(srv.Close)
-	return &openRouterClient{key: "test", model: "test", baseURL: srv.URL, http: srv.Client()}
+	return &agentClient{baseURL: srv.URL, http: srv.Client()}
 }
 
-// deltaFrame builds one OpenAI-style content delta SSE frame.
-func deltaFrame(text string) string {
-	return fmt.Sprintf("data: {\"choices\":[{\"delta\":{\"content\":%q}}]}\n\n", text)
+// tokenFrame builds one answer-delta SSE frame.
+func tokenFrame(text string) string {
+	return fmt.Sprintf("event: token\ndata: {\"text\":%q}\n\n", text)
 }
+
+// usageFrame builds the aggregate-usage SSE frame.
+func usageFrame(input, output int) string {
+	return fmt.Sprintf(
+		"event: usage\ndata: {\"input\":%d,\"output\":%d,\"total\":%d,\"reasoning\":0}\n\n",
+		input, output, input+output)
+}
+
+const endFrame = "event: end\ndata: {}\n\n"
 
 func TestSend_StreamsAndPersists(t *testing.T) {
 	resetDB(t)
-	client := fakeOpenRouter(t, http.StatusOK,
-		deltaFrame("Hello"), deltaFrame(" there"), "data: [DONE]\n\n")
+	client := fakeAgent(t, http.StatusOK, tokenFrame("Hello"), tokenFrame(" there"), endFrame)
 	mux := newTestMux(client)
 	ta, _ := signup(t, mux, "a@x.com")
 	cid := createConversation(t, mux, ta)
@@ -77,7 +84,7 @@ func TestSend_StreamsAndPersists(t *testing.T) {
 
 func TestSend_BumpsUpdatedAt(t *testing.T) {
 	resetDB(t)
-	client := fakeOpenRouter(t, http.StatusOK, deltaFrame("hi"), "data: [DONE]\n\n")
+	client := fakeAgent(t, http.StatusOK, tokenFrame("hi"), endFrame)
 	mux := newTestMux(client)
 	ta, _ := signup(t, mux, "a@x.com")
 	first := createConversation(t, mux, ta)
@@ -98,7 +105,7 @@ func TestSend_BumpsUpdatedAt(t *testing.T) {
 
 func TestSend_NotOwner(t *testing.T) {
 	resetDB(t)
-	client := fakeOpenRouter(t, http.StatusOK, deltaFrame("hi"), "data: [DONE]\n\n")
+	client := fakeAgent(t, http.StatusOK, tokenFrame("hi"), endFrame)
 	mux := newTestMux(client)
 	ta, _ := signup(t, mux, "a@x.com")
 	tb, _ := signup(t, mux, "b@x.com")
@@ -112,7 +119,7 @@ func TestSend_NotOwner(t *testing.T) {
 
 func TestSend_EmptyContent(t *testing.T) {
 	resetDB(t)
-	mux := newTestMux(fakeOpenRouter(t, http.StatusOK))
+	mux := newTestMux(fakeAgent(t, http.StatusOK))
 	ta, _ := signup(t, mux, "a@x.com")
 	cid := createConversation(t, mux, ta)
 	rec := do(t, mux, http.MethodPost, fmt.Sprintf("/api/conversations/%d/messages", cid), ta,
@@ -124,7 +131,7 @@ func TestSend_EmptyContent(t *testing.T) {
 
 func TestSend_BadID(t *testing.T) {
 	resetDB(t)
-	mux := newTestMux(fakeOpenRouter(t, http.StatusOK))
+	mux := newTestMux(fakeAgent(t, http.StatusOK))
 	ta, _ := signup(t, mux, "a@x.com")
 	rec := do(t, mux, http.MethodPost, "/api/conversations/abc/messages", ta,
 		map[string]string{"content": "hi"})
@@ -135,7 +142,7 @@ func TestSend_BadID(t *testing.T) {
 
 func TestSend_UpstreamError(t *testing.T) {
 	resetDB(t)
-	client := fakeOpenRouter(t, http.StatusInternalServerError)
+	client := fakeAgent(t, http.StatusInternalServerError)
 	mux := newTestMux(client)
 	ta, _ := signup(t, mux, "a@x.com")
 	cid := createConversation(t, mux, ta)
@@ -162,10 +169,7 @@ func TestSend_UpstreamError(t *testing.T) {
 
 func TestSend_RecordsUsage(t *testing.T) {
 	resetDB(t)
-	client := fakeOpenRouter(t, http.StatusOK,
-		deltaFrame("hi"),
-		"data: {\"choices\":[],\"usage\":{\"prompt_tokens\":4,\"completion_tokens\":6}}\n\n",
-		"data: [DONE]\n\n")
+	client := fakeAgent(t, http.StatusOK, tokenFrame("hi"), usageFrame(4, 6), endFrame)
 	mux := newTestMux(client)
 	ta, uid := signup(t, mux, "a@x.com")
 	cid := createConversation(t, mux, ta)
@@ -176,24 +180,27 @@ func TestSend_RecordsUsage(t *testing.T) {
 		t.Fatalf("want 200, got %d", rec.Code)
 	}
 
-	total, err := usageSince(context.Background(), testPool, uid, time.Now().Add(-24*time.Hour))
+	var total int
+	err := testPool.QueryRow(context.Background(),
+		`select coalesce(sum(prompt_tokens + completion_tokens), 0) from token_usage where user_id=$1`,
+		uid).Scan(&total)
 	if err != nil {
-		t.Fatalf("usageSince: %v", err)
+		t.Fatalf("usage query: %v", err)
 	}
 	if total != 10 {
 		t.Fatalf("want recorded usage 10, got %d", total)
 	}
 }
 
-func TestSend_OverTokenBudget(t *testing.T) {
+func TestSend_OverRunBudget(t *testing.T) {
 	resetDB(t)
-	client := fakeOpenRouter(t, http.StatusOK, deltaFrame("hi"), "data: [DONE]\n\n")
-	mux := newTestMuxBudget(client, 10)
+	client := fakeAgent(t, http.StatusOK, tokenFrame("hi"), endFrame)
+	mux := newTestMuxBudget(client, 1)
 	ta, uid := signup(t, mux, "a@x.com")
 	cid := createConversation(t, mux, ta)
 
-	// Seed usage at/over the budget.
-	if err := recordUsage(context.Background(), testPool, uid, tokenUsage{Prompt: 15, Completion: 10}); err != nil {
+	// Seed one run (one usage row) to reach the budget of 1.
+	if err := recordUsage(context.Background(), testPool, uid, tokenUsage{Prompt: 1, Completion: 1}); err != nil {
 		t.Fatalf("seed usage: %v", err)
 	}
 
@@ -206,7 +213,7 @@ func TestSend_OverTokenBudget(t *testing.T) {
 
 func TestSend_MessageTooLong(t *testing.T) {
 	resetDB(t)
-	mux := newTestMux(fakeOpenRouter(t, http.StatusOK))
+	mux := newTestMux(fakeAgent(t, http.StatusOK))
 	ta, _ := signup(t, mux, "a@x.com")
 	cid := createConversation(t, mux, ta)
 

@@ -55,8 +55,8 @@ func main() {
 	check := func(ctx context.Context) error { return Healthy(ctx, pool) }
 
 	auth := &Auth{pool: pool, secret: []byte(cfg.JWTSecret), verify: selectGoogleVerifier(cfg), exchange: selectGoogleExchanger(cfg), signupOpen: cfg.SignupOpen}
-	llm := &openRouterClient{key: cfg.OpenRouterKey, model: cfg.Model, baseURL: cfg.OpenRouterBaseURL, http: newLLMHTTPClient()}
-	chat := &Chat{pool: pool, llm: llm, systemPrompt: cfg.SystemPrompt, tokenBudget: cfg.TokenBudgetDaily, ownerEmail: normalizeEmail(cfg.OwnerEmail)}
+	agent := &agentClient{baseURL: cfg.AgentURL, http: newAgentHTTPClient()}
+	chat := &Chat{pool: pool, agent: agent, runsBudget: cfg.RunsBudgetDaily, ownerEmail: normalizeEmail(cfg.OwnerEmail)}
 
 	mux := newMux(check, auth, chat)
 

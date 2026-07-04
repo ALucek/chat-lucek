@@ -15,11 +15,10 @@ import (
 
 // Chat holds the conversation/message handlers and their dependencies.
 type Chat struct {
-	pool         *pgxpool.Pool
-	llm          *openRouterClient
-	systemPrompt string
-	tokenBudget  int
-	ownerEmail   string
+	pool       *pgxpool.Pool
+	agent      *agentClient
+	runsBudget int
+	ownerEmail string
 }
 
 type conversation struct {
@@ -224,13 +223,13 @@ func (c *Chat) Send(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if !owner {
-		used, err := usageSince(r.Context(), c.pool, userID, time.Now().Add(-24*time.Hour))
+		used, err := runsSince(r.Context(), c.pool, userID, time.Now().Add(-24*time.Hour))
 		if err != nil {
 			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "usage check failed"})
 			return
 		}
-		if used >= c.tokenBudget {
-			writeJSON(w, http.StatusTooManyRequests, map[string]string{"error": "daily token budget exceeded"})
+		if used >= c.runsBudget {
+			writeJSON(w, http.StatusTooManyRequests, map[string]string{"error": "daily run limit exceeded"})
 			return
 		}
 	}
@@ -243,8 +242,8 @@ func (c *Chat) Send(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Build the request: system prompt + full history (includes the new message).
-	msgs := []llmMessage{{Role: "system", Content: c.systemPrompt}}
+	// Build the request from full history; the agent owns the system prompt.
+	msgs := []llmMessage{}
 	rows, err := c.pool.Query(r.Context(),
 		`select role, content from messages where conversation_id = $1 order by id`, id)
 	if err != nil {
@@ -262,7 +261,7 @@ func (c *Chat) Send(w http.ResponseWriter, r *http.Request) {
 	}
 	rows.Close() // free the pooled connection before the (long) stream
 
-	firstMessage := len(msgs) == 2 // system prompt + the just-inserted user message
+	firstMessage := len(msgs) == 1 // just the inserted user message
 
 	// Commit to the stream: from here, failures are reported as SSE events.
 	flusher, ok := w.(http.Flusher)
@@ -276,10 +275,20 @@ func (c *Chat) Send(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 
 	var reply strings.Builder
-	usage, err := c.llm.stream(r.Context(), msgs, func(text string) {
-		reply.WriteString(text)
-		writeSSE(w, "delta", map[string]string{"text": text})
-		flusher.Flush()
+	usage, err := c.agent.run(r.Context(), msgs, runHandlers{
+		onToken: func(text string) {
+			reply.WriteString(text)
+			writeSSE(w, "delta", map[string]string{"text": text})
+			flusher.Flush()
+		},
+		onReasoning: func(text string) {
+			writeSSE(w, "reasoning", map[string]string{"text": text})
+			flusher.Flush()
+		},
+		onStatus: func(s statusEvent) {
+			writeSSE(w, "status", s)
+			flusher.Flush()
+		},
 	})
 	if err != nil {
 		slog.ErrorContext(r.Context(), "stream", "err", err)
