@@ -1,0 +1,30 @@
+[project]
+name = "lc-deep-agent"
+version = "0.1.0"
+description = "Simple Deep Research Agent Implementation Using LangGraph"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "langchain-tavily>=0.2.18",
+    "langgraph>=1.2.7",
+    "langgraph-cli[inmem]>=0.4.30",
+    "pydantic>=2.13.4",
+    "langgraph-api>=0.10.0",
+    "langchain-openrouter>=0.2.5",
+    "fastapi>=0.139.0",
+    "uvicorn[standard]>=0.50.0",
+    "pydantic-settings>=2.14.2",
+    "python-dotenv>=1.2.2",
+]
+
+[dependency-groups]
+dev = [
+    "httpx>=0.28.1",
+    "pytest>=9.1.1",
+    "pytest-asyncio>=1.4.0",
+    "ruff>=0.15.20",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
