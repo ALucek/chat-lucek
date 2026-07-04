@@ -36,16 +36,31 @@ type message struct {
 	Trace     json.RawMessage `json:"trace,omitempty"`
 }
 
-// traceActivity is one tool action captured for the "what happened" panel.
-type traceActivity struct {
-	Kind   string `json:"kind"`
-	Detail string `json:"detail"`
+// traceNode is one node in a run's event log (persisted and streamed).
+type traceNode struct {
+	ID       string          `json:"id"`
+	ParentID *string         `json:"parent_id"`
+	Type     string          `json:"type"`
+	Name     string          `json:"name,omitempty"`
+	Input    json.RawMessage `json:"input,omitempty"`
+	Output   json.RawMessage `json:"output,omitempty"`
+	Text     string          `json:"text,omitempty"`
 }
 
-// messageTrace is the persisted reasoning + activity log for a reply.
+// messageTrace is a run's ordered event log persisted on a reply.
 type messageTrace struct {
-	Reasoning  string          `json:"reasoning"`
-	Activities []traceActivity `json:"activities"`
+	Version int         `json:"version"`
+	Nodes   []traceNode `json:"nodes"`
+}
+
+// nonTrivial reports whether a run has anything beyond top-level answer text.
+func nonTrivial(nodes []*traceNode) bool {
+	for _, n := range nodes {
+		if !(n.Type == "text" && n.ParentID == nil) {
+			return true
+		}
+	}
+	return false
 }
 
 const maxMessageChars = 8000
@@ -287,24 +302,32 @@ func (c *Chat) Send(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("X-Accel-Buffering", "no")
 	w.WriteHeader(http.StatusOK)
 
-	var reply, reasoning strings.Builder
-	activities := []traceActivity{}
+	var reply strings.Builder
+	nodes := []*traceNode{}
+	byID := map[string]*traceNode{}
 	usage, err := c.agent.run(r.Context(), msgs, runHandlers{
-		onToken: func(text string) {
-			reply.WriteString(text)
-			writeSSE(w, "delta", map[string]string{"text": text})
+		onNode: func(f nodeFrame) {
+			n := &traceNode{ID: f.ID, ParentID: f.ParentID, Type: f.Type, Name: f.Name, Input: f.Input}
+			nodes = append(nodes, n)
+			byID[f.ID] = n
+			writeSSE(w, "node", f)
 			flusher.Flush()
 		},
-		onReasoning: func(text string) {
-			reasoning.WriteString(text)
-			writeSSE(w, "reasoning", map[string]string{"text": text})
-			flusher.Flush()
-		},
-		onStatus: func(s statusEvent) {
-			if s.State == "start" {
-				activities = append(activities, traceActivity{Kind: s.Kind, Detail: s.Detail})
+		onDelta: func(id, text string) {
+			if n := byID[id]; n != nil {
+				n.Text += text
+				if n.Type == "text" && n.ParentID == nil {
+					reply.WriteString(text)
+				}
 			}
-			writeSSE(w, "status", s)
+			writeSSE(w, "delta", map[string]string{"id": id, "text": text})
+			flusher.Flush()
+		},
+		onNodeEnd: func(id string, output json.RawMessage) {
+			if n := byID[id]; n != nil {
+				n.Output = output
+			}
+			writeSSE(w, "node_end", map[string]any{"id": id, "output": output})
 			flusher.Flush()
 		},
 	})
@@ -317,8 +340,12 @@ func (c *Chat) Send(w http.ResponseWriter, r *http.Request) {
 
 	// Persist the complete reply and bump activity time.
 	var traceJSON []byte
-	if reasoning.Len() > 0 || len(activities) > 0 {
-		traceJSON, _ = json.Marshal(messageTrace{Reasoning: reasoning.String(), Activities: activities})
+	if nonTrivial(nodes) {
+		flat := make([]traceNode, len(nodes))
+		for i, n := range nodes {
+			flat[i] = *n
+		}
+		traceJSON, _ = json.Marshal(messageTrace{Version: 2, Nodes: flat})
 	}
 	var msgID int64
 	if err := c.pool.QueryRow(r.Context(),

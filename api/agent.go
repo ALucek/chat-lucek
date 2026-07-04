@@ -31,19 +31,20 @@ type llmMessage struct {
 	Content string `json:"content"`
 }
 
-// statusEvent is a tool-activity lifecycle event from the agent.
-type statusEvent struct {
-	ID     string `json:"id"`
-	Kind   string `json:"kind"`
-	Detail string `json:"detail"`
-	State  string `json:"state"`
+// nodeFrame is a node announced by the agent's event log.
+type nodeFrame struct {
+	ID       string          `json:"id"`
+	ParentID *string         `json:"parent_id"`
+	Type     string          `json:"type"`
+	Name     string          `json:"name,omitempty"`
+	Input    json.RawMessage `json:"input,omitempty"`
 }
 
-// runHandlers receives the agent's streamed events.
+// runHandlers receives the agent's streamed node frames.
 type runHandlers struct {
-	onToken     func(string)
-	onReasoning func(string)
-	onStatus    func(statusEvent)
+	onNode    func(nodeFrame)
+	onDelta   func(id, text string)
+	onNodeEnd func(id string, output json.RawMessage)
 }
 
 // run POSTs history to /run, streams events, and returns aggregate usage.
@@ -90,24 +91,26 @@ func (c *agentClient) run(ctx context.Context, msgs []llmMessage, h runHandlers)
 // dispatchEvent handles one SSE frame; an "error" event returns a run error.
 func dispatchEvent(event, data string, usage *tokenUsage, h runHandlers) error {
 	switch event {
-	case "token":
+	case "node":
+		var n nodeFrame
+		if json.Unmarshal([]byte(data), &n) == nil && h.onNode != nil {
+			h.onNode(n)
+		}
+	case "delta":
 		var d struct {
+			ID   string `json:"id"`
 			Text string `json:"text"`
 		}
-		if json.Unmarshal([]byte(data), &d) == nil && h.onToken != nil {
-			h.onToken(d.Text)
+		if json.Unmarshal([]byte(data), &d) == nil && h.onDelta != nil {
+			h.onDelta(d.ID, d.Text)
 		}
-	case "reasoning":
+	case "node_end":
 		var d struct {
-			Text string `json:"text"`
+			ID     string          `json:"id"`
+			Output json.RawMessage `json:"output"`
 		}
-		if json.Unmarshal([]byte(data), &d) == nil && h.onReasoning != nil {
-			h.onReasoning(d.Text)
-		}
-	case "status":
-		var s statusEvent
-		if json.Unmarshal([]byte(data), &s) == nil && h.onStatus != nil {
-			h.onStatus(s)
+		if json.Unmarshal([]byte(data), &d) == nil && h.onNodeEnd != nil {
+			h.onNodeEnd(d.ID, d.Output)
 		}
 	case "usage":
 		var u struct {

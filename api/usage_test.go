@@ -124,7 +124,7 @@ func TestUsage_Endpoint_RequiresAuth(t *testing.T) {
 
 func TestSend_OwnerBypassesBudget(t *testing.T) {
 	resetDB(t)
-	client := fakeAgent(t, http.StatusOK, tokenFrame("hi"), endFrame)
+	client := fakeAgent(t, http.StatusOK, textFrames("a", "hi"), endFrame)
 	auth := &Auth{pool: testPool, secret: testSecret, verify: fakeGoogleVerifier(), exchange: fakeGoogleExchanger()}
 	chat := &Chat{pool: testPool, agent: client, runsBudget: 1, ownerEmail: "owner@gmail.com"}
 	mux := newMux(func(ctx context.Context) error { return Healthy(ctx, testPool) }, auth, chat)

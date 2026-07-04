@@ -8,7 +8,7 @@ import (
 
 func TestRateLimit_ChatPerUser(t *testing.T) {
 	resetDB(t)
-	client := fakeAgent(t, http.StatusOK, tokenFrame("hi"), endFrame)
+	client := fakeAgent(t, http.StatusOK, textFrames("a", "hi"), endFrame)
 	mux := newTestMux(client)
 	ta, _ := signup(t, mux, "a@x.com")
 	cid := createConversation(t, mux, ta)

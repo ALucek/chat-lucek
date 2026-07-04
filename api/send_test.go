@@ -27,9 +27,35 @@ func fakeAgent(t *testing.T, status int, frames ...string) *agentClient {
 	return &agentClient{baseURL: srv.URL, http: srv.Client()}
 }
 
-// tokenFrame builds one answer-delta SSE frame.
-func tokenFrame(text string) string {
-	return fmt.Sprintf("event: token\ndata: {\"text\":%q}\n\n", text)
+// nodeStartFrame builds a `node` SSE frame; empty parent means top-level.
+func nodeStartFrame(id, parent, typ, name, input string) string {
+	p := "null"
+	if parent != "" {
+		p = fmt.Sprintf("%q", parent)
+	}
+	extra := ""
+	if name != "" {
+		extra += fmt.Sprintf(`,"name":%q`, name)
+	}
+	if input != "" {
+		extra += fmt.Sprintf(`,"input":%s`, input)
+	}
+	return fmt.Sprintf("event: node\ndata: {\"id\":%q,\"parent_id\":%s,\"type\":%q%s}\n\n", id, p, typ, extra)
+}
+
+// deltaFrame builds a `delta` SSE frame appending text to a node.
+func deltaFrame(id, text string) string {
+	return fmt.Sprintf("event: delta\ndata: {\"id\":%q,\"text\":%q}\n\n", id, text)
+}
+
+// nodeEndFrame builds a `node_end` SSE frame carrying a tool's output.
+func nodeEndFrame(id, output string) string {
+	return fmt.Sprintf("event: node_end\ndata: {\"id\":%q,\"output\":%s}\n\n", id, output)
+}
+
+// textFrames opens a top-level text node and streams one delta into it.
+func textFrames(id, text string) string {
+	return nodeStartFrame(id, "", "text", "", "") + deltaFrame(id, text)
 }
 
 // usageFrame builds the aggregate-usage SSE frame.
@@ -41,21 +67,11 @@ func usageFrame(input, output int) string {
 
 const endFrame = "event: end\ndata: {}\n\n"
 
-// reasoningFrame builds one reasoning-delta SSE frame.
-func reasoningFrame(text string) string {
-	return fmt.Sprintf("event: reasoning\ndata: {\"text\":%q}\n\n", text)
-}
-
-// statusFrame builds one tool-activity SSE frame.
-func statusFrame(id, kind, detail, state string) string {
-	return fmt.Sprintf(
-		"event: status\ndata: {\"id\":%q,\"kind\":%q,\"detail\":%q,\"state\":%q}\n\n",
-		id, kind, detail, state)
-}
-
 func TestSend_StreamsAndPersists(t *testing.T) {
 	resetDB(t)
-	client := fakeAgent(t, http.StatusOK, tokenFrame("Hello"), tokenFrame(" there"), endFrame)
+	client := fakeAgent(t, http.StatusOK,
+		nodeStartFrame("a:text", "", "text", "", ""),
+		deltaFrame("a:text", "Hello"), deltaFrame("a:text", " there"), endFrame)
 	mux := newTestMux(client)
 	ta, _ := signup(t, mux, "a@x.com")
 	cid := createConversation(t, mux, ta)
@@ -69,8 +85,11 @@ func TestSend_StreamsAndPersists(t *testing.T) {
 		t.Fatalf("want X-Accel-Buffering: no, got %q", got)
 	}
 	body := rec.Body.String()
-	if !strings.Contains(body, "event: delta") || !strings.Contains(body, `"text":"Hello"`) {
-		t.Fatalf("missing delta frames: %s", body)
+	if !strings.Contains(body, "event: node") || !strings.Contains(body, "event: delta") {
+		t.Fatalf("missing node/delta frames: %s", body)
+	}
+	if !strings.Contains(body, `"text":"Hello"`) {
+		t.Fatalf("missing delta text: %s", body)
 	}
 	if !strings.Contains(body, "event: done") {
 		t.Fatalf("missing done event: %s", body)
@@ -96,7 +115,7 @@ func TestSend_StreamsAndPersists(t *testing.T) {
 
 func TestSend_BumpsUpdatedAt(t *testing.T) {
 	resetDB(t)
-	client := fakeAgent(t, http.StatusOK, tokenFrame("hi"), endFrame)
+	client := fakeAgent(t, http.StatusOK, textFrames("a", "hi"), endFrame)
 	mux := newTestMux(client)
 	ta, _ := signup(t, mux, "a@x.com")
 	first := createConversation(t, mux, ta)
@@ -117,7 +136,7 @@ func TestSend_BumpsUpdatedAt(t *testing.T) {
 
 func TestSend_NotOwner(t *testing.T) {
 	resetDB(t)
-	client := fakeAgent(t, http.StatusOK, tokenFrame("hi"), endFrame)
+	client := fakeAgent(t, http.StatusOK, textFrames("a", "hi"), endFrame)
 	mux := newTestMux(client)
 	ta, _ := signup(t, mux, "a@x.com")
 	tb, _ := signup(t, mux, "b@x.com")
@@ -181,7 +200,7 @@ func TestSend_UpstreamError(t *testing.T) {
 
 func TestSend_RecordsUsage(t *testing.T) {
 	resetDB(t)
-	client := fakeAgent(t, http.StatusOK, tokenFrame("hi"), usageFrame(4, 6), endFrame)
+	client := fakeAgent(t, http.StatusOK, textFrames("a", "hi"), usageFrame(4, 6), endFrame)
 	mux := newTestMux(client)
 	ta, uid := signup(t, mux, "a@x.com")
 	cid := createConversation(t, mux, ta)
@@ -206,7 +225,7 @@ func TestSend_RecordsUsage(t *testing.T) {
 
 func TestSend_OverRunBudget(t *testing.T) {
 	resetDB(t)
-	client := fakeAgent(t, http.StatusOK, tokenFrame("hi"), endFrame)
+	client := fakeAgent(t, http.StatusOK, textFrames("a", "hi"), endFrame)
 	mux := newTestMuxBudget(client, 1)
 	ta, uid := signup(t, mux, "a@x.com")
 	cid := createConversation(t, mux, ta)
@@ -257,43 +276,65 @@ func assistantTrace(t *testing.T, mux http.Handler, token string, cid int64) jso
 	return nil
 }
 
-func TestSend_PersistsTrace(t *testing.T) {
+func TestSend_PersistsNodeTrace(t *testing.T) {
 	resetDB(t)
 	client := fakeAgent(t, http.StatusOK,
-		reasoningFrame("thinking"),
-		statusFrame("r1", "research", "find X", "start"),
-		statusFrame("s1", "search", "query X", "start"),
-		statusFrame("s1", "search", "", "end"),
-		tokenFrame("Answer"), endFrame)
+		nodeStartFrame("r1:reasoning", "", "reasoning", "", ""), deltaFrame("r1:reasoning", "thinking"),
+		nodeStartFrame("SA", "", "tool", "run_subagent", `{"task":"research"}`),
+		nodeStartFrame("s1", "SA", "tool", "internet_search", `{"query":"q"}`),
+		nodeEndFrame("s1", `{"results":[]}`),
+		nodeStartFrame("m:text", "SA", "text", "", ""), deltaFrame("m:text", "sub summary"),
+		nodeEndFrame("SA", `"done"`),
+		nodeStartFrame("a:text", "", "text", "", ""), deltaFrame("a:text", "Answer"),
+		endFrame)
 	mux := newTestMux(client)
 	ta, _ := signup(t, mux, "a@x.com")
 	cid := createConversation(t, mux, ta)
 	do(t, mux, http.MethodPost, fmt.Sprintf("/api/conversations/%d/messages", cid), ta,
 		map[string]string{"content": "hi"})
 
-	raw := assistantTrace(t, mux, ta, cid)
-	if len(raw) == 0 {
-		t.Fatal("assistant message missing trace")
+	// content is the top-level answer text only.
+	var content string
+	if err := testPool.QueryRow(context.Background(),
+		`select content from messages where conversation_id=$1 and role='assistant'`, cid).Scan(&content); err != nil {
+		t.Fatalf("content query: %v", err)
 	}
+	if content != "Answer" {
+		t.Fatalf("content: %q", content)
+	}
+
 	var trace messageTrace
-	if err := json.Unmarshal(raw, &trace); err != nil {
+	if err := json.Unmarshal(assistantTrace(t, mux, ta, cid), &trace); err != nil {
 		t.Fatalf("decode trace: %v", err)
 	}
-	if trace.Reasoning != "thinking" {
-		t.Fatalf("reasoning: %q", trace.Reasoning)
+	if trace.Version != 2 {
+		t.Fatalf("version: %d", trace.Version)
 	}
-	// Only start events are logged: research start + search start = 2.
-	if len(trace.Activities) != 2 {
-		t.Fatalf("activities: %+v", trace.Activities)
+	// the search nests under the subagent
+	var s1 *traceNode
+	for i := range trace.Nodes {
+		if trace.Nodes[i].ID == "s1" {
+			s1 = &trace.Nodes[i]
+		}
 	}
-	if trace.Activities[0].Kind != "research" || trace.Activities[1].Detail != "query X" {
-		t.Fatalf("activities: %+v", trace.Activities)
+	if s1 == nil || s1.ParentID == nil || *s1.ParentID != "SA" {
+		t.Fatalf("s1 nesting: %+v", s1)
+	}
+	// the subagent emitted a nested text node
+	var hasSubText bool
+	for _, n := range trace.Nodes {
+		if n.ID == "m:text" && n.ParentID != nil && *n.ParentID == "SA" && n.Text == "sub summary" {
+			hasSubText = true
+		}
+	}
+	if !hasSubText {
+		t.Fatalf("missing subagent text node: %+v", trace.Nodes)
 	}
 }
 
 func TestSend_NoTraceForPlainAnswer(t *testing.T) {
 	resetDB(t)
-	client := fakeAgent(t, http.StatusOK, tokenFrame("hi"), endFrame)
+	client := fakeAgent(t, http.StatusOK, textFrames("a", "hi"), endFrame)
 	mux := newTestMux(client)
 	ta, _ := signup(t, mux, "a@x.com")
 	cid := createConversation(t, mux, ta)
