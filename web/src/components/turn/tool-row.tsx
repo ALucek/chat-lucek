@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import type { TreeNode } from '@/lib/run-log';
 import { toolLabel, inputDetail } from '@/lib/run-log';
-import { Tag, Dot } from './parts';
+import { RowHeader } from './parts';
 
 // stringify renders a tool value for the drill-down.
 function stringify(v: unknown): string {
@@ -21,26 +21,16 @@ export function ToolRow({
 }) {
   const [open, setOpen] = useState(false);
   return (
-    <div className="flex flex-col gap-0.5">
-      <button
-        type="button"
-        aria-expanded={open}
-        onClick={() => setOpen((o) => !o)}
-        className="flex w-full items-center gap-2 text-left"
-      >
-        {active && <Dot />}
-        <Tag>{toolLabel(node.name ?? '')}</Tag>
-        <span
-          className={`text-subtle min-w-0 flex-1 text-xs ${open ? 'break-words whitespace-normal' : 'truncate'}`}
-        >
-          {inputDetail(node.input)}
-        </span>
-        <span className="text-subtle ml-auto shrink-0 text-[11px]">
-          {open ? '▾' : '▸'}
-        </span>
-      </button>
+    <div className="flex flex-col gap-1">
+      <RowHeader
+        label={toolLabel(node.name ?? '')}
+        detail={inputDetail(node.input)}
+        open={open}
+        onToggle={() => setOpen((o) => !o)}
+        active={active}
+      />
       {open && (
-        <div className="border-border bg-bg text-muted mt-1 overflow-x-auto rounded-[var(--radius)] border p-2 text-xs">
+        <div className="border-border bg-bg text-muted overflow-x-auto rounded-[var(--radius)] border p-2 text-xs">
           <div className="text-subtle text-[10px] tracking-[0.1em] uppercase">
             input
           </div>

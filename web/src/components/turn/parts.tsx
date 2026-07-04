@@ -14,7 +14,42 @@ export function Dot() {
   return (
     <span
       aria-hidden="true"
-      className="bg-fg-strong h-1.5 w-1.5 shrink-0 animate-pulse rounded-full"
+      className="bg-fg-strong mt-1 h-1.5 w-1.5 shrink-0 animate-pulse rounded-full"
     />
+  );
+}
+
+// RowHeader is the shared step line: dot, tag, wrapping detail, and caret.
+export function RowHeader({
+  label,
+  detail,
+  open,
+  onToggle,
+  active,
+}: {
+  label: string;
+  detail: string;
+  open: boolean;
+  onToggle: () => void;
+  active?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      aria-expanded={open}
+      onClick={onToggle}
+      className="flex w-full items-start gap-2 text-left"
+    >
+      {active && <Dot />}
+      <Tag>{label}</Tag>
+      <span
+        className={`text-subtle min-w-0 flex-1 text-xs ${open ? 'break-words whitespace-pre-wrap' : 'truncate'}`}
+      >
+        {detail}
+      </span>
+      <span className="text-subtle ml-auto shrink-0 text-[11px]">
+        {open ? '▾' : '▸'}
+      </span>
+    </button>
   );
 }
