@@ -35,7 +35,7 @@ describe('SubagentRow', () => {
     expect(screen.getByText('child:c1')).toBeInTheDocument();
   });
 
-  it('shows an in-progress dot when active', () => {
+  it('flashes the chip when active', () => {
     const noop = () => null;
     const { container, rerender } = render(
       <SubagentRow node={node} renderChild={noop} />,

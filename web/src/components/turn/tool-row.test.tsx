@@ -20,16 +20,14 @@ describe('ToolRow', () => {
     expect(screen.getByText('cats')).toBeInTheDocument();
   });
 
-  it('reveals raw input/output only when expanded', async () => {
+  it('reveals the result in a drawer when expanded', async () => {
     render(<ToolRow node={node} />);
-    expect(screen.queryByText('input')).toBeNull();
+    expect(screen.queryByText(/"results": 3/)).toBeNull();
     await userEvent.click(screen.getByRole('button'));
-    expect(screen.getByText('input')).toBeInTheDocument();
-    expect(screen.getByText('output')).toBeInTheDocument();
-    expect(screen.getByText(/"query": "cats"/)).toBeInTheDocument();
+    expect(screen.getByText(/"results": 3/)).toBeInTheDocument();
   });
 
-  it('shows an in-progress dot only when active', () => {
+  it('flashes the chip only when active', () => {
     const { container, rerender } = render(<ToolRow node={node} />);
     expect(container.querySelector('.animate-pulse')).toBeNull();
     rerender(<ToolRow node={node} active />);

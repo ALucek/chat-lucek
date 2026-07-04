@@ -3,15 +3,16 @@
 import { useState } from 'react';
 import type { TreeNode } from '@/lib/run-log';
 import { toolLabel, inputDetail } from '@/lib/run-log';
-import { RowHeader } from './parts';
+import { RowHeader, Block } from './parts';
 
-// stringify renders a tool value for the drill-down.
+// stringify renders a tool value for the drawer.
 function stringify(v: unknown): string {
   if (v == null) return '';
   return typeof v === 'string' ? v : JSON.stringify(v, null, 2);
 }
 
-// ToolRow is a leaf tool: one line that expands to raw input/output.
+// ToolRow is a leaf tool: the header carries the input digest, so the drawer
+// shows the result (falling back to the full input while it runs).
 export function ToolRow({
   node,
   active,
@@ -20,6 +21,8 @@ export function ToolRow({
   active?: boolean;
 }) {
   const [open, setOpen] = useState(false);
+  const output = stringify(node.output);
+  const body = output || stringify(node.input);
   return (
     <div className="flex flex-col gap-1">
       <RowHeader
@@ -28,26 +31,14 @@ export function ToolRow({
         open={open}
         onToggle={() => setOpen((o) => !o)}
         active={active}
+        hasMore={output !== ''}
       />
       {open && (
-        <div className="border-border bg-bg text-muted overflow-x-auto rounded-[var(--radius)] border p-2 text-xs">
-          <div className="text-subtle text-[10px] tracking-[0.1em] uppercase">
-            input
-          </div>
-          <pre className="break-words whitespace-pre-wrap">
-            {stringify(node.input)}
+        <Block>
+          <pre className="text-muted text-xs break-words whitespace-pre-wrap">
+            {body}
           </pre>
-          {node.output !== undefined && (
-            <>
-              <div className="text-subtle mt-2 text-[10px] tracking-[0.1em] uppercase">
-                output
-              </div>
-              <pre className="break-words whitespace-pre-wrap">
-                {stringify(node.output)}
-              </pre>
-            </>
-          )}
-        </div>
+        </Block>
       )}
     </div>
   );

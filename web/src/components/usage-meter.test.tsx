@@ -44,9 +44,9 @@ describe('UsageMeter', () => {
     expect(container.firstChild).toBeNull();
   });
 
-  it('shows the runs-today tooltip', () => {
+  it('shows the runs tooltip', () => {
     mockUsage(3, 20);
     render(<UsageMeter />);
-    expect(screen.getByTitle('3 / 20 runs today')).toBeInTheDocument();
+    expect(screen.getByTitle('3 / 20 runs')).toBeInTheDocument();
   });
 });

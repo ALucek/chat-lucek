@@ -4,9 +4,10 @@ import { useState } from 'react';
 import type { ReactNode } from 'react';
 import type { TreeNode } from '@/lib/run-log';
 import { toolLabel, inputDetail } from '@/lib/run-log';
-import { RowHeader } from './parts';
+import { RowHeader, Block } from './parts';
 
-// SubagentRow is a container tool: collapsed, expands to a boxed subtree.
+// SubagentRow is a container tool: expands to a drawer with its task and its
+// nested steps.
 export function SubagentRow({
   node,
   active,
@@ -17,19 +18,26 @@ export function SubagentRow({
   renderChild: (n: TreeNode) => ReactNode;
 }) {
   const [open, setOpen] = useState(false);
+  const task = inputDetail(node.input);
   return (
     <div className="flex flex-col gap-1">
       <RowHeader
         label={toolLabel(node.name ?? '')}
-        detail={inputDetail(node.input)}
+        detail={task}
         open={open}
         onToggle={() => setOpen((o) => !o)}
         active={active}
+        hasMore={node.children.length > 0 || task !== ''}
       />
       {open && (
-        <div className="border-border bg-bg flex max-h-72 flex-col gap-2 overflow-y-auto rounded-[var(--radius)] border p-2.5">
+        <Block>
+          {task !== '' && (
+            <div className="text-subtle text-xs break-words whitespace-pre-wrap">
+              {task}
+            </div>
+          )}
           {node.children.map((c) => renderChild(c))}
-        </div>
+        </Block>
       )}
     </div>
   );
