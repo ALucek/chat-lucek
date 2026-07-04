@@ -40,9 +40,11 @@ jobs:
           if grep -qE '^api/' <<<"$changed"; then api=true; fi
           if grep -qE '^web/' <<<"$changed"; then web=true; fi
           if grep -qE '^agent/' <<<"$changed"; then agent=true; fi
-          echo "api=$api" >> "$GITHUB_OUTPUT"
-          echo "web=$web" >> "$GITHUB_OUTPUT"
-          echo "agent=$agent" >> "$GITHUB_OUTPUT"
+          {
+            echo "api=$api"
+            echo "web=$web"
+            echo "agent=$agent"
+          } >> "$GITHUB_OUTPUT"
 
   deploy:
     needs: changes
