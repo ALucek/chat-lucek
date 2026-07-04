@@ -53,3 +53,21 @@ variable "budget_amount" {
   description = "Monthly budget in USD; thresholds alert as spend crosses it."
   default     = 20
 }
+
+variable "agent_default_model" {
+  type        = string
+  description = "Default model the agent uses, overridable per run."
+  default     = "deepseek/deepseek-v4-flash"
+}
+
+variable "agent_max_searches" {
+  type        = number
+  description = "Max web searches per agent run."
+  default     = 5
+}
+
+variable "langsmith_project" {
+  type        = string
+  description = "LangSmith project the agent traces into."
+  default     = "simple-deep-research"
+}
