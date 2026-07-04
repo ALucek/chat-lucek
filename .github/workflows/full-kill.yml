@@ -44,6 +44,9 @@ jobs:
         run: |
           set -euo pipefail
           if [ "$STATE" = "on" ]; then
+            # Idempotent: drop any existing rule 1, then create the deny.
+            gcloud compute security-policies rules delete 1 \
+              --security-policy=chat-api-policy --quiet || true
             gcloud compute security-policies rules create 1 \
               --security-policy=chat-api-policy \
               --action=deny-403 --src-ip-ranges='*'
