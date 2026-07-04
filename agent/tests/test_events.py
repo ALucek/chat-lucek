@@ -77,6 +77,16 @@ def test_status_research_with_task_and_parallel():
     ]
 
 
+def test_status_plan_for_set_todos():
+    out = Translator().handle(_tool("set_todos", "start", "p1", {"todos": []}))
+    assert out == [
+        {
+            "event": "status",
+            "data": {"id": "p1", "kind": "plan", "detail": "", "state": "start"},
+        }
+    ]
+
+
 def test_unknown_tool_ignored():
     assert Translator().handle(_tool("mystery", "start", "x", {})) == []
 

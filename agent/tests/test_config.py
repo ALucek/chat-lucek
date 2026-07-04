@@ -1,5 +1,12 @@
+import pytest
+
 from src.config import AgentConfig, build_run_config, get_settings
 from src.utils import build_chat_model
+
+
+def test_chat_kwargs_rejects_unknown_role():
+    with pytest.raises(ValueError, match="Unknown role"):
+        AgentConfig().chat_kwargs("nonsense")
 
 
 def test_settings_defaults(monkeypatch):
