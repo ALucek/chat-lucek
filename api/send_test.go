@@ -41,6 +41,18 @@ func usageFrame(input, output int) string {
 
 const endFrame = "event: end\ndata: {}\n\n"
 
+// reasoningFrame builds one reasoning-delta SSE frame.
+func reasoningFrame(text string) string {
+	return fmt.Sprintf("event: reasoning\ndata: {\"text\":%q}\n\n", text)
+}
+
+// statusFrame builds one tool-activity SSE frame.
+func statusFrame(id, kind, detail, state string) string {
+	return fmt.Sprintf(
+		"event: status\ndata: {\"id\":%q,\"kind\":%q,\"detail\":%q,\"state\":%q}\n\n",
+		id, kind, detail, state)
+}
+
 func TestSend_StreamsAndPersists(t *testing.T) {
 	resetDB(t)
 	client := fakeAgent(t, http.StatusOK, tokenFrame("Hello"), tokenFrame(" there"), endFrame)
@@ -222,5 +234,73 @@ func TestSend_MessageTooLong(t *testing.T) {
 		map[string]string{"content": long})
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("want 400, got %d", rec.Code)
+	}
+}
+
+// assistantTrace returns the conversation's assistant-message trace.
+func assistantTrace(t *testing.T, mux http.Handler, token string, cid int64) json.RawMessage {
+	t.Helper()
+	var msgs []struct {
+		Role  string          `json:"role"`
+		Trace json.RawMessage `json:"trace"`
+	}
+	body := do(t, mux, http.MethodGet, fmt.Sprintf("/api/conversations/%d/messages", cid), token, nil).Body.Bytes()
+	if err := json.Unmarshal(body, &msgs); err != nil {
+		t.Fatalf("decode messages: %v", err)
+	}
+	for _, m := range msgs {
+		if m.Role == "assistant" {
+			return m.Trace
+		}
+	}
+	t.Fatal("no assistant message found")
+	return nil
+}
+
+func TestSend_PersistsTrace(t *testing.T) {
+	resetDB(t)
+	client := fakeAgent(t, http.StatusOK,
+		reasoningFrame("thinking"),
+		statusFrame("r1", "research", "find X", "start"),
+		statusFrame("s1", "search", "query X", "start"),
+		statusFrame("s1", "search", "", "end"),
+		tokenFrame("Answer"), endFrame)
+	mux := newTestMux(client)
+	ta, _ := signup(t, mux, "a@x.com")
+	cid := createConversation(t, mux, ta)
+	do(t, mux, http.MethodPost, fmt.Sprintf("/api/conversations/%d/messages", cid), ta,
+		map[string]string{"content": "hi"})
+
+	raw := assistantTrace(t, mux, ta, cid)
+	if len(raw) == 0 {
+		t.Fatal("assistant message missing trace")
+	}
+	var trace messageTrace
+	if err := json.Unmarshal(raw, &trace); err != nil {
+		t.Fatalf("decode trace: %v", err)
+	}
+	if trace.Reasoning != "thinking" {
+		t.Fatalf("reasoning: %q", trace.Reasoning)
+	}
+	// Only start events are logged: research start + search start = 2.
+	if len(trace.Activities) != 2 {
+		t.Fatalf("activities: %+v", trace.Activities)
+	}
+	if trace.Activities[0].Kind != "research" || trace.Activities[1].Detail != "query X" {
+		t.Fatalf("activities: %+v", trace.Activities)
+	}
+}
+
+func TestSend_NoTraceForPlainAnswer(t *testing.T) {
+	resetDB(t)
+	client := fakeAgent(t, http.StatusOK, tokenFrame("hi"), endFrame)
+	mux := newTestMux(client)
+	ta, _ := signup(t, mux, "a@x.com")
+	cid := createConversation(t, mux, ta)
+	do(t, mux, http.MethodPost, fmt.Sprintf("/api/conversations/%d/messages", cid), ta,
+		map[string]string{"content": "hi"})
+
+	if raw := assistantTrace(t, mux, ta, cid); len(raw) != 0 {
+		t.Fatalf("plain answer should have no trace, got %s", raw)
 	}
 }

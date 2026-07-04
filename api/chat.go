@@ -29,10 +29,23 @@ type conversation struct {
 }
 
 type message struct {
-	ID        int64     `json:"id"`
-	Role      string    `json:"role"`
-	Content   string    `json:"content"`
-	CreatedAt time.Time `json:"created_at"`
+	ID        int64           `json:"id"`
+	Role      string          `json:"role"`
+	Content   string          `json:"content"`
+	CreatedAt time.Time       `json:"created_at"`
+	Trace     json.RawMessage `json:"trace,omitempty"`
+}
+
+// traceActivity is one tool action captured for the "what happened" panel.
+type traceActivity struct {
+	Kind   string `json:"kind"`
+	Detail string `json:"detail"`
+}
+
+// messageTrace is the persisted reasoning + activity log for a reply.
+type messageTrace struct {
+	Reasoning  string          `json:"reasoning"`
+	Activities []traceActivity `json:"activities"`
 }
 
 const maxMessageChars = 8000
@@ -104,7 +117,7 @@ func (c *Chat) Messages(w http.ResponseWriter, r *http.Request) {
 	}
 
 	rows, err := c.pool.Query(r.Context(),
-		`select id, role, content, created_at from messages
+		`select id, role, content, created_at, trace from messages
 		 where conversation_id = $1 order by id`, id)
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "could not load messages"})
@@ -115,7 +128,7 @@ func (c *Chat) Messages(w http.ResponseWriter, r *http.Request) {
 	msgs := []message{}
 	for rows.Next() {
 		var m message
-		if err := rows.Scan(&m.ID, &m.Role, &m.Content, &m.CreatedAt); err != nil {
+		if err := rows.Scan(&m.ID, &m.Role, &m.Content, &m.CreatedAt, &m.Trace); err != nil {
 			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "scan failed"})
 			return
 		}
@@ -274,7 +287,8 @@ func (c *Chat) Send(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("X-Accel-Buffering", "no")
 	w.WriteHeader(http.StatusOK)
 
-	var reply strings.Builder
+	var reply, reasoning strings.Builder
+	activities := []traceActivity{}
 	usage, err := c.agent.run(r.Context(), msgs, runHandlers{
 		onToken: func(text string) {
 			reply.WriteString(text)
@@ -282,10 +296,14 @@ func (c *Chat) Send(w http.ResponseWriter, r *http.Request) {
 			flusher.Flush()
 		},
 		onReasoning: func(text string) {
+			reasoning.WriteString(text)
 			writeSSE(w, "reasoning", map[string]string{"text": text})
 			flusher.Flush()
 		},
 		onStatus: func(s statusEvent) {
+			if s.State == "start" {
+				activities = append(activities, traceActivity{Kind: s.Kind, Detail: s.Detail})
+			}
 			writeSSE(w, "status", s)
 			flusher.Flush()
 		},
@@ -298,10 +316,14 @@ func (c *Chat) Send(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Persist the complete reply and bump activity time.
+	var traceJSON []byte
+	if reasoning.Len() > 0 || len(activities) > 0 {
+		traceJSON, _ = json.Marshal(messageTrace{Reasoning: reasoning.String(), Activities: activities})
+	}
 	var msgID int64
 	if err := c.pool.QueryRow(r.Context(),
-		`insert into messages (conversation_id, role, content) values ($1, 'assistant', $2) returning id`,
-		id, reply.String()).Scan(&msgID); err != nil {
+		`insert into messages (conversation_id, role, content, trace) values ($1, 'assistant', $2, $3) returning id`,
+		id, reply.String(), traceJSON).Scan(&msgID); err != nil {
 		slog.ErrorContext(r.Context(), "save reply", "err", err)
 		writeSSE(w, "error", map[string]string{"error": "could not save reply"})
 		flusher.Flush()
