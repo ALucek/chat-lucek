@@ -1,6 +1,48 @@
 import ReactMarkdown from 'react-markdown';
 import { remarkPlugins, rehypePlugins } from '@/lib/markdown';
 import type { ChatMessage } from '@/lib/messages-context';
+import { buildTree } from '@/lib/run-log';
+import { NodeRow } from './turn/node-row';
+
+// AssistantMessage renders the inline run timeline, or plain content when a
+// reply has no node log (older or trivial replies).
+function AssistantMessage({ m }: { m: ChatMessage }) {
+  if (m.nodes && m.nodes.length > 0) {
+    const tree = buildTree(m.nodes);
+    const lastTextId = [...tree].reverse().find((n) => n.type === 'text')?.id;
+    return (
+      <div className="border-border bg-surface-muted flex w-full flex-col gap-2.5 rounded-[var(--radius)] border px-4 py-3">
+        {tree.map((n) => (
+          <NodeRow
+            key={n.id}
+            node={n}
+            streaming={m.streaming && n.id === lastTextId}
+          />
+        ))}
+      </div>
+    );
+  }
+  return (
+    <div className="markdown text-fg max-w-full min-w-0 text-sm break-words">
+      <ReactMarkdown
+        remarkPlugins={remarkPlugins}
+        rehypePlugins={rehypePlugins}
+        components={{
+          a: (props) => (
+            <a {...props} target="_blank" rel="noopener noreferrer" />
+          ),
+        }}
+      >
+        {m.content}
+      </ReactMarkdown>
+      {m.streaming && (
+        <span className="caret-blink" aria-hidden="true">
+          ▍
+        </span>
+      )}
+    </div>
+  );
+}
 
 export function MessageList({ messages }: { messages: ChatMessage[] }) {
   return (
@@ -28,24 +70,7 @@ export function MessageList({ messages }: { messages: ChatMessage[] }) {
                 {m.content}
               </span>
             ) : (
-              <div className="markdown text-fg max-w-full min-w-0 text-sm break-words">
-                <ReactMarkdown
-                  remarkPlugins={remarkPlugins}
-                  rehypePlugins={rehypePlugins}
-                  components={{
-                    a: (props) => (
-                      <a {...props} target="_blank" rel="noopener noreferrer" />
-                    ),
-                  }}
-                >
-                  {m.content}
-                </ReactMarkdown>
-                {m.streaming && (
-                  <span className="caret-blink" aria-hidden="true">
-                    ▍
-                  </span>
-                )}
-              </div>
+              <AssistantMessage m={m} />
             )}
           </li>
         );
