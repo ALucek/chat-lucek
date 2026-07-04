@@ -5,3 +5,4 @@ __pycache__
 .langgraph_api
 .env
 .pytest_cache
+.coverage
