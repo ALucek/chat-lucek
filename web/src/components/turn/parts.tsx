@@ -14,7 +14,7 @@ export function Dot() {
   return (
     <span
       aria-hidden="true"
-      className="bg-fg-strong mt-1 h-1.5 w-1.5 shrink-0 animate-pulse rounded-full"
+      className="bg-fg-strong h-1.5 w-1.5 shrink-0 animate-pulse self-center rounded-full"
     />
   );
 }
@@ -38,7 +38,7 @@ export function RowHeader({
       type="button"
       aria-expanded={open}
       onClick={onToggle}
-      className="flex w-full items-start gap-2 text-left"
+      className="flex w-full items-baseline gap-2 text-left"
     >
       {active && <Dot />}
       <Tag>{label}</Tag>
