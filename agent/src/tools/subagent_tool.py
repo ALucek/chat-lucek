@@ -3,6 +3,7 @@ from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import StructuredTool
 from pydantic import BaseModel, Field
 
+from src.config import get_settings
 from src.graphs.subagent import subagent
 
 
@@ -18,9 +19,11 @@ Usage guidelines:
 
 
 async def _run_subagent(task: str, config: RunnableConfig) -> str:
+    # Subagent gets its own recursion budget, not the parent's.
+    sub_config = {**config, "recursion_limit": get_settings().subagent_recursion_limit}
     result = await subagent.ainvoke(
         {"messages": [HumanMessage(content=task)]},
-        config=config,
+        config=sub_config,
     )
     last_message = result["messages"][-1]
     return getattr(last_message, "content", "") or ""

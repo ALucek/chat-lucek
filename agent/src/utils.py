@@ -1,4 +1,3 @@
-
 from typing import Any
 
 from langchain_core.messages import AnyMessage, SystemMessage, trim_messages
@@ -15,7 +14,7 @@ def build_chat_model(
     role: str,
     **overrides: Any,
 ) -> ChatOpenRouter:
-    kwargs = config.chat_kwargs(role)
+    kwargs = {"streaming": True, "stream_usage": True, **config.chat_kwargs(role)}
     if overrides:
         kwargs.update(overrides)
     return ChatOpenRouter(**kwargs)
@@ -32,4 +31,3 @@ def build_messages(system_prompt: str, history: list[AnyMessage]) -> list[AnyMes
         start_on="human",
         include_system=True,
     )
-

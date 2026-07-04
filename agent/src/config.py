@@ -1,12 +1,28 @@
-import os
+from functools import lru_cache
 from typing import Any, ClassVar
 
+from dotenv import load_dotenv
 from pydantic import BaseModel, ConfigDict, Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
-DEFAULT_CHAT_KWARGS: dict[str, Any] = {
-    "model": os.getenv("DEFAULT_MODEL", "deepseek/deepseek-v4-flash"),
-}
-DEFAULT_MAX_SEARCHES = int(os.getenv("MAX_SEARCHES", "5"))
+load_dotenv()  # .env -> os.environ in local dev; no-op in prod
+
+
+class Settings(BaseSettings):
+    """Process config from the environment."""
+
+    model_config = SettingsConfigDict(extra="ignore")
+
+    default_model: str = "deepseek/deepseek-v4-flash"
+    max_searches: int = 5
+    max_tokens: int = 8192
+    recursion_limit: int = 100
+    subagent_recursion_limit: int = 50
+
+
+@lru_cache
+def get_settings() -> Settings:
+    return Settings()
 
 
 class RoleConfig(BaseModel):
@@ -24,7 +40,7 @@ class AgentConfig(BaseModel):
     agent: RoleConfig = Field(default_factory=RoleConfig, description="Overrides for the top-level agent.")
     subagent: RoleConfig = Field(default_factory=RoleConfig, description="Overrides for the subagent.")
     max_searches: int = Field(
-        default=DEFAULT_MAX_SEARCHES,
+        default_factory=lambda: get_settings().max_searches,
         description="Hard limit on the number of web searches per subagent run.",
     )
 
@@ -33,7 +49,9 @@ class AgentConfig(BaseModel):
     def chat_kwargs(self, role: str) -> dict[str, Any]:
         if role not in self.ROLES:
             raise ValueError(f"Unknown role {role!r}, expected one of {self.ROLES}")
-        return {**DEFAULT_CHAT_KWARGS, **getattr(self, role).model_dump(exclude_none=True)}
+        settings = get_settings()
+        base = {"model": settings.default_model, "max_tokens": settings.max_tokens}
+        return {**base, **getattr(self, role).model_dump(exclude_none=True)}
 
     @classmethod
     def from_runnable_config(cls, config: dict[str, Any] | None) -> "AgentConfig":
@@ -41,3 +59,21 @@ class AgentConfig(BaseModel):
         if not isinstance(configurable, dict) or not configurable:
             return cls()
         return cls.model_validate(configurable)
+
+
+def build_run_config(overrides: dict[str, Any] | None = None) -> dict[str, Any]:
+    """Build a RunnableConfig from optional per-run overrides."""
+    overrides = overrides or {}
+    settings = get_settings()
+    role: dict[str, Any] = {}
+    if "model" in overrides:
+        role["model"] = overrides["model"]
+    if "max_tokens" in overrides:
+        role["max_tokens"] = overrides["max_tokens"]
+    configurable: dict[str, Any] = {
+        "max_searches": overrides.get("max_searches", settings.max_searches),
+    }
+    if role:
+        configurable["agent"] = dict(role)
+        configurable["subagent"] = dict(role)
+    return {"recursion_limit": settings.recursion_limit, "configurable": configurable}
