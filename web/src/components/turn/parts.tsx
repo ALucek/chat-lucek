@@ -7,7 +7,7 @@ import type { ReactNode } from 'react';
 function Tag({ children, active }: { children: ReactNode; active?: boolean }) {
   return (
     <span
-      className={`text-subtle shrink-0 rounded bg-black/5 px-1.5 py-0.5 text-[10px] tracking-[0.14em] uppercase ${active ? 'animate-pulse' : ''}`}
+      className={`text-subtle shrink-0 rounded bg-black/5 px-1.5 pt-[3px] pb-[1px] text-[10px] tracking-[0.14em] uppercase ${active ? 'animate-pulse' : ''}`}
     >
       {children}
     </span>
