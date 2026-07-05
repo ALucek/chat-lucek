@@ -10,6 +10,7 @@ How to run chat-lucek on your machine and the workflow for changing it.
 - **Docker** (runs local Postgres)
 - **pre-commit** (`brew install pre-commit`) for the git hooks
 - **gitleaks** (secret-scanning commit hook)
+- **shellcheck** (`brew install shellcheck`) so actionlint lints workflow `run:` scripts as CI does
 - **Terraform** 1.9+ and **tflint** (infra `.tf` hooks)
 
 ## Environment
