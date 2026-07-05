@@ -1,5 +1,7 @@
 import asyncio
 import json
+import logging
+import sys
 
 import httpx
 import pytest
@@ -95,6 +97,49 @@ async def test_run_emits_error_then_end_on_failure(raising_app):
         events = _parse_sse(r.text)
         assert [e for e, _ in events] == ["error", "end"]
         assert "boom" in events[0][1]["message"]
+
+
+async def test_run_failure_logs_at_error(raising_app):
+    from src import server
+
+    records = []
+
+    class _Capture(logging.Handler):
+        def emit(self, record):
+            records.append(record)
+
+    cap = _Capture()
+    server.logger.addHandler(cap)
+    try:
+        transport = httpx.ASGITransport(app=raising_app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://t") as c:
+            await c.post("/run", json={"messages": [{"role": "user", "content": "hi"}]})
+    finally:
+        server.logger.removeHandler(cap)
+    # A swallowed run failure must still surface as an ERROR log for the metric.
+    assert any(r.levelno == logging.ERROR for r in records)
+
+
+def test_cloudrun_formatter_sets_severity_and_message():
+    from src import server
+
+    rec = logging.LogRecord("chat-agent", logging.ERROR, "f.py", 1, "boom", None, None)
+    out = json.loads(server._CloudRunLogFormatter().format(rec))
+    assert out["severity"] == "ERROR"
+    assert out["message"] == "boom"
+
+
+def test_cloudrun_formatter_includes_traceback():
+    from src import server
+
+    try:
+        raise ValueError("kaboom")
+    except ValueError:
+        rec = logging.LogRecord(
+            "chat-agent", logging.ERROR, "f.py", 1, "failed", None, sys.exc_info()
+        )
+    out = json.loads(server._CloudRunLogFormatter().format(rec))
+    assert "kaboom" in out["message"] and "Traceback" in out["message"]
 
 
 def test_to_lc_messages_maps_roles():
