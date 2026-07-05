@@ -14,7 +14,7 @@ An LLM chatbot, built, deployed and run end to end. Live at **[chat.lucek.ai](ht
 
 - [web/](web/) — Next.js Client
 - [api/](api/) — Go Backend
-- [agent/](agent/) — LangGraph Agent 🚧 WIP
+- [agent/](agent/) — LangGraph Agent
 - [infra/](infra/) — Terraform Infrastructure on GCP
 - [docs/](docs/) — Operational Documentation
 

@@ -1,6 +1,6 @@
 # Architecture
 
-chat-lucek runs as three Cloud Run services. A Global HTTPS load balancer fronts two of them, routing by path: API traffic to the Go service, everything else to the Next.js frontend. The third, the agent, is internal and reached only by the API. The API owns the database and secrets; the agent owns the LLM provider and web search.
+chat-lucek runs as three Cloud Run services. A Global HTTPS load balancer fronts two of them, routing by path: API traffic to the Go service, everything else to the Next.js frontend. The third, the agent, sits behind the API: it grants the invoke role only to the API's service account, which calls it with an ID token. The API owns the database and secrets; the agent owns the LLM provider and web search.
 
 ```mermaid
 flowchart LR

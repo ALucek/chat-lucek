@@ -17,7 +17,7 @@ Full first-time deployment (state bucket, secret values, DNS) lives in the [depl
 | File | Provisions |
 | --- | --- |
 | `apis.tf` | Enables the required GCP APIs |
-| `cloud_run.tf` | `web` and `api` services, the migration job, service accounts + IAM |
+| `cloud_run.tf` | `web`, `api`, and `agent` services, the migration job, service accounts + IAM |
 | `cloud_sql.tf` | Postgres instance, database, and app user |
 | `lb.tf` | Global HTTPS load balancer, managed cert, HTTP-to-HTTPS redirect |
 | `armor.tf` | Cloud Armor edge policy |
