@@ -1,6 +1,7 @@
 import asyncio
 import json
 import logging
+import sys
 from datetime import datetime, timezone
 from typing import Any
 
@@ -15,7 +16,29 @@ from src.events import Translator
 from src.graphs.agent import agent
 
 app = FastAPI()
-logger = logging.getLogger(__name__)
+
+
+class _CloudRunLogFormatter(logging.Formatter):
+    # Emit JSON so Cloud Run reads severity; ERROR feeds the agent_errors metric.
+    def format(self, record: logging.LogRecord) -> str:
+        entry = {"severity": record.levelname, "message": record.getMessage()}
+        if record.exc_info:
+            entry["message"] += "\n" + self.formatException(record.exc_info)
+        return json.dumps(entry)
+
+
+def _make_logger() -> logging.Logger:
+    log = logging.getLogger("chat-agent")
+    if not log.handlers:
+        handler = logging.StreamHandler(sys.stdout)
+        handler.setFormatter(_CloudRunLogFormatter())
+        log.addHandler(handler)
+        log.setLevel(logging.INFO)
+        log.propagate = False
+    return log
+
+
+logger = _make_logger()
 
 
 @app.get("/healthz")
@@ -78,6 +101,7 @@ async def run(req: Request) -> StreamingResponse:
                 _close_open_runs(tracer)
             raise
         except Exception as exc:  # noqa: BLE001
+            logger.exception("agent run failed")
             yield _sse({"event": "error", "data": {"message": str(exc)}})
         yield _sse({"event": "end", "data": {}})
 
