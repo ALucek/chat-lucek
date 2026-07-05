@@ -18,8 +18,11 @@ export function NodeRow({
   nested?: boolean;
 }) {
   if (node.type === 'reasoning') return <ReasoningRow node={node} />;
-  if (node.type === 'text')
+  if (node.type === 'text') {
+    // Skip blank text nodes; a whitespace-only node adds a phantom gap.
+    if (!node.text?.trim()) return null;
     return <TextBlock node={node} nested={nested} streaming={caret} />;
+  }
   const active = !!turnStreaming && node.output === undefined;
   if (node.children.length > 0)
     return (
