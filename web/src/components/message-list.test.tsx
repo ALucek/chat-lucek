@@ -110,6 +110,25 @@ describe('MessageList timeline', () => {
     expect(screen.queryByText('search')).toBeNull();
   });
 
+  it('drops whitespace-only text nodes so they add no phantom row', () => {
+    const nodes: RunNode[] = [
+      { id: 't1', parent_id: null, type: 'text', text: 'before' },
+      { id: 'ws', parent_id: null, type: 'text', text: '\n ' },
+      { id: 't2', parent_id: null, type: 'text', text: 'after' },
+    ];
+    const { container } = render(
+      <MessageList
+        messages={[
+          { id: 1, role: 'assistant', content: '', created_at: '', nodes },
+        ]}
+      />,
+    );
+    expect(screen.getByText('before')).toBeInTheDocument();
+    expect(screen.getByText('after')).toBeInTheDocument();
+    // the blank node in the middle renders no markdown block of its own
+    expect(container.querySelectorAll('.markdown')).toHaveLength(2);
+  });
+
   it('marks an in-flight subagent as running while the turn streams', () => {
     const nodes: RunNode[] = [
       {
