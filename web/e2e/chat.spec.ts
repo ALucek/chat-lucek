@@ -72,13 +72,26 @@ test('composer grows with content up to a max, then stops', async ({
   await expect(page).toHaveURL('/');
 
   const box = page.getByPlaceholder('Send a message…');
+  const send = page.getByRole('button', { name: 'Send' });
   const height = async () => (await box.boundingBox())!.height;
 
   await box.fill('one line');
   const single = await height();
 
+  // One line: input and Send are vertically centered on each other.
+  let b = (await box.boundingBox())!;
+  let s = (await send.boundingBox())!;
+  expect(
+    Math.abs(b.y + b.height / 2 - (s.y + s.height / 2)),
+  ).toBeLessThanOrEqual(2);
+
   await box.fill(Array.from({ length: 4 }, (_, i) => `line ${i}`).join('\n'));
   expect(await height()).toBeGreaterThan(single);
+
+  // Grown: Send sticks to the bottom of the (taller) input.
+  b = (await box.boundingBox())!;
+  s = (await send.boundingBox())!;
+  expect(Math.abs(b.y + b.height - (s.y + s.height))).toBeLessThanOrEqual(2);
 
   await box.fill(Array.from({ length: 40 }, (_, i) => `line ${i}`).join('\n'));
   const capped = await height();

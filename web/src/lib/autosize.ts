@@ -1,5 +1,12 @@
-// Grow a textarea to fit its content; CSS max-height caps it, then it scrolls.
-export function autoSize(el: HTMLTextAreaElement) {
+// Grow a textarea to its content; returns true once it wraps past line one.
+export function autoSize(el: HTMLTextAreaElement): boolean {
   el.style.height = 'auto';
-  el.style.height = `${el.scrollHeight}px`;
+  const height = el.scrollHeight;
+  el.style.height = `${height}px`;
+  const cs = getComputedStyle(el);
+  const oneLine =
+    (parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) * 1.5) +
+    parseFloat(cs.paddingTop) +
+    parseFloat(cs.paddingBottom);
+  return height > oneLine + 1;
 }
