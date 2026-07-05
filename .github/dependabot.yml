@@ -20,3 +20,11 @@ updates:
     directory: /web
     schedule:
       interval: weekly
+  - package-ecosystem: uv
+    directory: /agent
+    schedule:
+      interval: weekly
+  - package-ecosystem: docker
+    directory: /agent
+    schedule:
+      interval: weekly

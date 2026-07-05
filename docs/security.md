@@ -22,7 +22,7 @@ make tf-config-scan   # Trivy scan of the Terraform config
 | gitleaks | Committed secrets |
 | Trivy | Container images and Terraform config |
 
-CI runs these in [security.yml](../.github/workflows/security.yml) on every push, every pull request, and weekly. Dependabot opens weekly update PRs for Go modules, npm packages, GitHub Actions, and Docker base images.
+CI runs these in [security.yml](../.github/workflows/security.yml) on every push, every pull request, and weekly. Dependabot opens weekly update PRs for Go modules, npm packages, Python packages, GitHub Actions, and Docker base images.
 
 ## Application
 
@@ -30,7 +30,7 @@ CI runs these in [security.yml](../.github/workflows/security.yml) on every push
 - **Refresh tokens:** stored hashed, delivered in an httpOnly, Secure, SameSite=Strict cookie scoped to `/api`. Each refresh rotates the token within a family; reusing a revoked token revokes the whole family as suspected theft.
 - **Origin checks:** state-changing requests (POST, PATCH, DELETE) with a mismatched Origin are refused.
 - **Security headers:** CSP, HSTS, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, and Permissions-Policy on every response.
-- **Limits:** request bodies are capped at 1 MiB, chat sends are rate-limited per user, and each user has a daily token budget.
+- **Limits:** request bodies are capped at 1 MiB, chat sends are rate-limited per user, and each user has a daily run budget.
 
 ## Infrastructure
 
@@ -39,11 +39,12 @@ CI runs these in [security.yml](../.github/workflows/security.yml) on every push
 - **Secrets:** every secret lives in Secret Manager, never in the repo or an image.
 - **Deploy identity:** GitHub Actions authenticate through Workload Identity Federation, so there are no long-lived service account keys.
 - **Least privilege:** each Cloud Run service runs as its own service account with only the roles it needs.
+- **Internal service:** the agent grants its invoke role only to the API's service account, which calls it with a Google-signed ID token; it is not publicly invocable.
 
 ## Supply chain
 
 - **Pinned Actions:** every GitHub Action is pinned to a commit SHA.
-- **Attestations:** each deploy publishes an SBOM and a build-provenance attestation for the api and web images.
+- **Attestations:** each deploy publishes an SBOM and a build-provenance attestation for the api, web, and agent images.
 - **Dependabot:** weekly dependency-update PRs.
 
 ## Repository

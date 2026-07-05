@@ -5,7 +5,7 @@ on:
       service:
         description: Which service to roll back
         type: choice
-        options: [api, web, both]
+        options: [api, web, agent, all]
         required: true
       revision:
         description: Revision to roll back to (blank = previous serving revision; "latest" = resume auto-routing)
@@ -43,9 +43,10 @@ jobs:
           set -euo pipefail
 
           case "$SERVICE" in
-            api)  targets=("chat-api") ;;
-            web)  targets=("chat-web") ;;
-            both) targets=("chat-api" "chat-web") ;;
+            api)   targets=("chat-api") ;;
+            web)   targets=("chat-web") ;;
+            agent) targets=("chat-agent") ;;
+            all)   targets=("chat-api" "chat-web" "chat-agent") ;;
             *) echo "unknown service: $SERVICE"; exit 1 ;;
           esac
 

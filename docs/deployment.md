@@ -58,18 +58,19 @@ terraform init -backend-config=backend.hcl
 
 ### 5. Seed bootstrap images
 
-The Cloud Run services reference `:bootstrap` images that must exist before they can be created. Apply just the Artifact Registry repo first, then push placeholders:
+The Cloud Run services reference `:bootstrap` images that must exist before they can be created. Apply just the Artifact Registry repo first, then push placeholders. Build for `linux/amd64` (Cloud Run's architecture; a default build on an Apple Silicon Mac is arm64 and fails to start):
 
 ```bash
 terraform apply -target=google_artifact_registry_repository.chat
 gcloud auth configure-docker us-central1-docker.pkg.dev
 
 REGISTRY=us-central1-docker.pkg.dev/<project-id>/chat
-docker build -t $REGISTRY/api:bootstrap ./api && docker push $REGISTRY/api:bootstrap
-docker build \
+docker build --platform linux/amd64 -t $REGISTRY/api:bootstrap ./api && docker push $REGISTRY/api:bootstrap
+docker build --platform linux/amd64 \
   --build-arg NEXT_PUBLIC_API_URL=https://chat.lucek.ai \
   --build-arg NEXT_PUBLIC_GOOGLE_CLIENT_ID=<client-id> \
   -t $REGISTRY/web:bootstrap ./web && docker push $REGISTRY/web:bootstrap
+docker build --platform linux/amd64 -t $REGISTRY/agent:bootstrap ./agent && docker push $REGISTRY/agent:bootstrap
 ```
 
 ### 6. Apply
@@ -82,11 +83,13 @@ This creates everything else: Cloud SQL, the Cloud Run services and migrate job,
 
 ### 7. Secrets and database password
 
-Set the four secret values, and set the database user's password to match the `db-password` secret:
+Set the six secret values, and set the database user's password to match the `db-password` secret. The agent reads `openrouter-api-key`, `tavily-api-key`, and `langsmith-api-key`; the API reads the rest:
 
 ```bash
 openssl rand -hex 32 | tr -d '\n' | gcloud secrets versions add jwt-secret --data-file=-
 printf '%s' '<openrouter-key>'    | gcloud secrets versions add openrouter-api-key --data-file=-
+printf '%s' '<tavily-key>'        | gcloud secrets versions add tavily-api-key --data-file=-
+printf '%s' '<langsmith-key>'     | gcloud secrets versions add langsmith-api-key --data-file=-
 printf '%s' '<google-client-secret>' | gcloud secrets versions add google-client-secret --data-file=-
 
 DB_PW=$(openssl rand -hex 24)
@@ -123,4 +126,4 @@ terraform output -raw lb_ip
 
 ### 10. First deploy
 
-Push to `main`. CI builds the real images, runs migrations, deploys both services, and the site comes up at your domain.
+Push to `main`. CI builds the real images, runs migrations, deploys the services, and the site comes up at your domain.

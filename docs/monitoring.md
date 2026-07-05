@@ -19,12 +19,17 @@ Two HTTPS checks run every 60 seconds:
 | API latency | non-stream p95 latency exceeds 2s over 5 minutes |
 | Cloud SQL disk | disk utilization exceeds 85% for 10 minutes |
 | Cloud SQL CPU | CPU utilization exceeds 80% for 15 minutes |
-| OpenRouter errors | more than 2 upstream errors in 5 minutes |
+| Agent errors | more than 2 agent error logs in 5 minutes |
+| Agent 5xx | more than 5 agent 5xx responses in 5 minutes |
 | LB 429 spike | more than 30 rate-limited responses in 5 minutes |
 
 ## Billing budget
 
 A monthly budget (default $20) emails the owner as spend crosses 50%, 90%, 100%, and 150%, plus a forecast warning, so a cost spike surfaces early. It is notify-only; [full-kill](runbooks/full-kill.md) is the response. Defined in [infra/budget.tf](../infra/budget.tf).
+
+## Tracing
+
+The agent traces every run to LangSmith for step-level inspection of reasoning, tool calls, and subagents beyond what the Cloud Run logs show.
 
 When an alert fires, the [runbooks](runbooks/) say what to do.
 
