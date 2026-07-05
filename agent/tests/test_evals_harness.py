@@ -8,8 +8,16 @@ def test_load_state_rebuilds_trace_and_search_count():
     assert state["search_count"] == 5
     msgs = state["messages"]
     assert isinstance(msgs[0], HumanMessage)
-    ai_with_calls = [m for m in msgs if isinstance(m, AIMessage) and m.tool_calls]
-    assert len(ai_with_calls) == 5
-    assert ai_with_calls[0].tool_calls[0]["name"] == "internet_search"
+    # Tool-call messages deserialize with their ids preserved (needed for the
+    # ai/tool pairing the model API requires).
+    search_calls = [
+        c
+        for m in msgs
+        if isinstance(m, AIMessage)
+        for c in m.tool_calls
+        if c["name"] == "internet_search"
+    ]
+    assert search_calls and all(c["id"] for c in search_calls)
+    # The trace ends at the search limit.
     assert isinstance(msgs[-1], ToolMessage)
     assert "Search limit reached" in msgs[-1].content

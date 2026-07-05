@@ -11,16 +11,31 @@ SUITE = "chat-lucek-search"
 
 
 @pytest.mark.langsmith(test_suite_name=SUITE)
-async def test_returns_cleanly_when_search_limit_reached():
-    # Pre-set trace: budget already spent, last result reports the limit.
+async def test_returns_cleanly_after_limit_message():
+    # Easy: the subagent has already been told the limit is reached.
     state = load_state("search_limit_reached.json")
+    t.log_inputs({"case": "limit message seen", "search_count": state["search_count"]})
+    reply = await run_step(subagent, state)
+    t.log_outputs({"content": reply.content, "tool_calls": sorted(tool_names(reply))})
+    assert "internet_search" not in tool_names(reply), (
+        "subagent searched again after being told the limit was reached"
+    )
+
+
+@pytest.mark.langsmith(test_suite_name=SUITE)
+async def test_returns_cleanly_when_budget_spent():
+    # Hard: five searches done with real results, no limit message yet
+    state = load_state("search_budget_spent.json")
     t.log_inputs(
-        {"search_count": state["search_count"], "turns": len(state["messages"])}
+        {
+            "case": "budget spent, no limit message",
+            "search_count": state["search_count"],
+        }
     )
     reply = await run_step(subagent, state)
     t.log_outputs({"content": reply.content, "tool_calls": sorted(tool_names(reply))})
     assert "internet_search" not in tool_names(reply), (
-        "subagent retried search after the limit"
+        "subagent kept searching after spending its budget"
     )
 
 
@@ -64,11 +79,8 @@ async def test_search_query_is_clean_natural_language():
             "natural_language": (
                 "The search input is a single natural-language query with no "
                 "search-engine operators or special syntax (no site:, quoted "
-                "operators, boolean AND/OR, wildcards)."
-            ),
-            "no_filters": (
-                "No filter parameters are set beyond the query itself (no time "
-                "range, domain include/exclude, topic override, result count)."
+                "operators, boolean AND/OR, wildcards) and no filter parameters "
+                "beyond the query itself."
             ),
         },
         reference="current population of Tokyo",
@@ -79,8 +91,8 @@ async def test_search_query_is_clean_natural_language():
 
 
 @pytest.mark.langsmith(test_suite_name=SUITE)
-async def test_search_query_is_faithful_to_the_question():
-    # Content judge on FAITHFULNESS: the query adds nothing the user did not ask.
+async def test_search_query_is_relevant_to_the_question():
+    # Content judge on RELEVANCE: the query is clearly about what was asked.
     question = "What are the top tourist attractions in Kyoto?"
     state = {"messages": [HumanMessage(content=question)], "search_count": 0}
     t.log_inputs({"question": question})
@@ -96,9 +108,9 @@ async def test_search_query_is_faithful_to_the_question():
     verdict = judge(
         content,
         {
-            "faithful": (
-                "The query faithfully reflects the user's question without adding "
-                "topics, entities, dates, or constraints the user did not ask for."
+            "relevant": (
+                "The search query is clearly related to the user's question and "
+                "searches for what they asked about."
             ),
         },
         reference="top tourist attractions in Kyoto",

@@ -1,5 +1,5 @@
 {
-  "_source": "langsmith run 019f33f2-0588-7b92-a2a7-4493c3116a30 (chat-lucek-ai-prod)",
+  "_source": "langsmith run 019f33f2-0588-7b92-a2a7-4493c3116a30 (chat-lucek-ai-prod) truncated before the limit message",
   "search_count": 5,
   "messages": [
     {
@@ -88,38 +88,6 @@
       "name": "internet_search",
       "tool_call_id": "call_d6596d577d704b3491b3c3c7",
       "content": "## Search results for: distance from Essex Street Lower East Side Manhattan to 443 Broadway SoHo Blick\n"
-    },
-    {
-      "role": "ai",
-      "content": "",
-      "tool_calls": [
-        {
-          "name": "internet_search",
-          "args": {
-            "query": "Essex Street Manhattan to 443 Broadway distance miles"
-          },
-          "id": "call_00_M5pqhHoBOER9630jkDZK6619"
-        },
-        {
-          "name": "internet_search",
-          "args": {
-            "query": "Blick Art Materials 237 West 23rd Street Chelsea New York hours"
-          },
-          "id": "call_01_UNqycYUQIGEKCR0IfRbw2818"
-        }
-      ]
-    },
-    {
-      "role": "tool",
-      "name": "internet_search",
-      "tool_call_id": "call_00_M5pqhHoBOER9630jkDZK6619",
-      "content": "Search limit reached. No further web searches were executed."
-    },
-    {
-      "role": "tool",
-      "name": "internet_search",
-      "tool_call_id": "call_01_UNqycYUQIGEKCR0IfRbw2818",
-      "content": "Search limit reached. No further web searches were executed."
     }
   ]
 }
