@@ -27,6 +27,9 @@ dev = [
     "pytest-cov>=7.1.0",
     "ruff>=0.15.20",
 ]
+evals = [
+    "langsmith[pytest]>=0.3.4",
+]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

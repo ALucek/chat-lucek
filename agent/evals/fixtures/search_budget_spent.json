@@ -1,0 +1,93 @@
+{
+  "_source": "langsmith run 019f33f2-0588-7b92-a2a7-4493c3116a30 (chat-lucek-ai-prod) truncated before the limit message",
+  "search_count": 5,
+  "messages": [
+    {
+      "role": "human",
+      "content": "Search for the nearest Blick Art Materials store to Essex Street in Manhattan, New York City. Find the address, distance, and any relevant details about the closest location(s). Use web search to find this information."
+    },
+    {
+      "role": "ai",
+      "content": "",
+      "tool_calls": [
+        {
+          "name": "internet_search",
+          "args": {
+            "query": "Blick Art Materials store locations near Essex Street Manhattan New York City"
+          },
+          "id": "call_aee3ac864e664356a2d662ec"
+        }
+      ]
+    },
+    {
+      "role": "tool",
+      "name": "internet_search",
+      "tool_call_id": "call_aee3ac864e664356a2d662ec",
+      "content": "## Search results for: Blick Art Materials store locations near Essex Street Manhattan New York City\n\n1. [BLICK Art Materials New York City SoHo | New York, NY](https://www.dickblick.com/stores/new-york/new-york-city-soho)\n\t- (wheelchair accessible subway station) Bus: M55 - Broadway/Grand, M1 - Canal St, M21 - Houston St/ Broadway. All stores will be closed on Saturday, July 4th in observance of Independence Day. We hope everyone has a safe and happy holiday! Schedule an appointment at this Custom Services location to get started on your custom printing, framing, or stretch canvas order. Visit the flagship Blick Art Materials store in New York City, located at 443 Broadway in SoHo. Offering a wide assortment of art supplies, craft supplies, and unique gift items, we provide an outstanding selection for professional artists, educators, and students alike. Visit our Custom Printing & Framing department and let us help you find the perfect printing or framing package for your latest work of art. We proudly partner with local artists and arts organizations and support a variety of community events right here in New York City.\n\n2. [Pottery Supplies Store NYC - Blick Art Materials](https://fromfran.com/blogs/blog/pottery-supplies-store-nyc-blick-art-materials)\n\t- Head over to the main Blick Art Materials store in New York City, situated at 443 Broadway in the vibrant SoHo neighborhood. When I visit\n\n3. [W 23rd St Art Store | New York City, NY - Blick Art Materials](https://www.dickblick.com/stores/new-york/new-york-city-w-23rd-st)\n\t- Visit the New York BLICK store located in the heart of Chelsea between 7th and 8th Ave. Shop a wide assortment of art supplies, craft supplies, and unique gift\n"
+    },
+    {
+      "role": "ai",
+      "content": "",
+      "tool_calls": [
+        {
+          "name": "internet_search",
+          "args": {
+            "query": "Blick Art Materials 443 Broadway Manhattan distance from Essex Street"
+          },
+          "id": "call_7d15c615ad684cfc8742c1c2"
+        },
+        {
+          "name": "internet_search",
+          "args": {
+            "query": "Blick Art Materials New York City locations Manhattan Chelsea Lower East Side"
+          },
+          "id": "call_8b49d0f0d9c7471388a62927"
+        }
+      ]
+    },
+    {
+      "role": "tool",
+      "name": "internet_search",
+      "tool_call_id": "call_7d15c615ad684cfc8742c1c2",
+      "content": "## Search results for: Blick Art Materials 443 Broadway Manhattan distance from Essex Street\n"
+    },
+    {
+      "role": "tool",
+      "name": "internet_search",
+      "tool_call_id": "call_8b49d0f0d9c7471388a62927",
+      "content": "## Search results for: Blick Art Materials New York City locations Manhattan Chelsea Lower East Side\n\n1. [W 23rd St Art Store | New York City, NY | BLICK Art Materials](https://www.dickblick.com/stores/new-york/new-york-city-w-23rd-st)\n\t- # New York City W 23rd St. New York City W 23rd St Façade. * Mon: 10:00AM - 7:00PM. Visit the New York BLICK store located in the heart of Chelsea between 7th and 8th Ave. Shop a wide assortment of art supplies, craft supplies, and unique gift items. We have the greatest selection for professional artists, educators, and students alike – and it’s all available at your area art supply store. We proudly partner with local artists and arts organizations, and support a variety of community events right here in New York, NY. It’s easy to feel like you’re a part of BLICK when you come into our art supply store. We’re located between 7th and 8th Ave, across the street from the historic New York City Hotel and The Chelsea. Local transit includes: C E – 23rd St 1 – 23rd St A C E L – 14th St. Note: Prices and selection may vary between DickBlick.com and our retail stores.\n\n2. [New York City SoHo - Blick Art Materials](https://www.dickblick.com/stores/new-york/new-york-city-soho)\n\t- (wheelchair accessible subway station) Bus: M55 - Broadway/Grand, M1 - Canal St, M21 - Houston St/ Broadway. All stores will be closed on Saturday, July 4th in observance of Independence Day. We hope everyone has a safe and happy holiday! Schedule an appointment at this Custom Services location to get started on your custom printing, framing, or stretch canvas order. Visit the flagship Blick Art Materials store in New York City, located at 443 Broadway in SoHo. Offering a wide assortment of art supplies, craft supplies, and unique gift items, we provide an outstanding selection for professional artists, educators, and students alike. Visit our Custom Printing & Framing department and let us help you find the perfect printing or framing package for your latest work of art. We proudly partner with local artists and arts organizations and support a variety of community events right here in New York City.\n\n3. [Blick Art Materials, 237 W. 23rd St., New York, NY 10011, US](https://www.mapquest.com/us/new-york/blick-art-materials-353733273)\n\t- 5 Stars for an art supply shop that delivers on products and service. Blick is located in Chelsea, just across from the Chelsea Hotel. Inside, you find\n\n4. [6th Ave Art Store | New York City, NY - Blick Art Materials](https://www.dickblick.com/stores/new-york/new-york-city-6th-ave)\n\t- * Mon: 10:00AM - 7:00PM. All stores will be closed on Saturday, July 4th in observance of Independence Day. We hope everyone has a safe and happy holiday! Schedule an appointment at this Custom Services location to get started on your custom printing, framing, or stretch canvas order. Visit the New York BLICK store located in Midtown on 6th Ave and 20th St. Shop a wide assortment of art supplies, craft supplies, and unique gift items. We have the greatest selection for professional artists, educators, and students alike – and it’s all available at your area art supply store. We proudly partner with local artists and arts organizations, and support a variety of community events right here in New York, NY. It’s easy to feel like you’re a part of BLICK when you come into our art supply store. We’re located on the southwest corner of 6th Ave and 20th Street, just steps away from Union Square, the Flatiron District, and Madison Square Park.\n\n5. [Pottery Supplies Store NYC - Blick Art Materials](https://fromfran.com/blogs/blog/pottery-supplies-store-nyc-blick-art-materials)\n\t- Head over to the main Blick Art Materials store in New York City, situated at 443 Broadway in the vibrant SoHo neighborhood. When I visit\n"
+    },
+    {
+      "role": "ai",
+      "content": "",
+      "tool_calls": [
+        {
+          "name": "internet_search",
+          "args": {
+            "query": "Blick Art Materials 6th Avenue New York City address"
+          },
+          "id": "call_91d849915919495385bbe7f8"
+        },
+        {
+          "name": "internet_search",
+          "args": {
+            "query": "distance from Essex Street Lower East Side Manhattan to 443 Broadway SoHo Blick"
+          },
+          "id": "call_d6596d577d704b3491b3c3c7"
+        }
+      ]
+    },
+    {
+      "role": "tool",
+      "name": "internet_search",
+      "tool_call_id": "call_91d849915919495385bbe7f8",
+      "content": "## Search results for: Blick Art Materials 6th Avenue New York City address\n\n1. [BLICK ART MATERIALS - Updated July 2026 - Yelp](https://www.yelp.com/biz/blick-art-materials-new-york-5)\n\t- 650 6th Ave. New York, NY 10011. Flatiron. Directions ; (212) 524-9611. Call Now ; Visit Website. http://www.dickblick.com/.\n\n2. [6th Ave Art Store | New York City, NY - Blick Art Materials](https://www.dickblick.com/stores/new-york/new-york-city-6th-ave)\n\t- * Mon: 10:00AM - 7:00PM. All stores will be closed on Saturday, July 4th in observance of Independence Day. We hope everyone has a safe and happy holiday! Schedule an appointment at this Custom Services location to get started on your custom printing, framing, or stretch canvas order. Visit the New York BLICK store located in Midtown on 6th Ave and 20th St. Shop a wide assortment of art supplies, craft supplies, and unique gift items. We have the greatest selection for professional artists, educators, and students alike – and it’s all available at your area art supply store. We proudly partner with local artists and arts organizations, and support a variety of community events right here in New York, NY. It’s easy to feel like you’re a part of BLICK when you come into our art supply store. We’re located on the southwest corner of 6th Ave and 20th Street, just steps away from Union Square, the Flatiron District, and Madison Square Park.\n\n3. [Blick Art Materials | New York NY - Facebook](https://www.facebook.com/BlickStoreNewYork2215)\n\t- 650 6th Ave., New York, NY, United States, 10011. Links. 󰤂. dickblick.com/stores/new-york/new-york-city-6th-... Contact info. 󰛪. (212) 524-9611. 󰘢. blick6ave@\n\n4. [Driving directions to Blick Art Materials, 650 6th Ave, New York - Waze](https://www.waze.com/live-map/directions/us/ny/new-york/blick-art-materials?to=place.ChIJDwEXSaNZwokRuo4t34okIa4)\n\t- 650 6th Ave, New York, NY 10011, USA. Open in Waze. (212) 524-9611 · dickblick.com/stores/new-york/new-york-city-6th-ave. Closed now. Sunday11:00 - 18:00.\n\n5. [Blick Art Materials 6th Ave (@blickon6th) · New York, NY - Instagram](https://www.instagram.com/blickon6th)\n\t- We do custom framing! Mon-Fri: 10am-7pm | Sat-Sun: 11am-6pm 650 6th Avenue, New York, NY. Follow. Message. Our current HOTBUY is here!\n"
+    },
+    {
+      "role": "tool",
+      "name": "internet_search",
+      "tool_call_id": "call_d6596d577d704b3491b3c3c7",
+      "content": "## Search results for: distance from Essex Street Lower East Side Manhattan to 443 Broadway SoHo Blick\n"
+    }
+  ]
+}

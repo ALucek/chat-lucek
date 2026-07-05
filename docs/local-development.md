@@ -88,6 +88,7 @@ They run in two stages so commits stay fast and the slow checks gate the push:
 | `make typecheck` | `go build` and `tsc` |
 | `make test` | Go, web, and agent unit tests |
 | `make check` | Full pre-merge gate (everything above + infra and workflow checks + e2e) |
+| `make evals` | Run the agent's live behavioral evals (real models; see [testing.md](testing.md)) |
 | `make db-reset` | Wipe, recreate, and migrate the local database |
 | `make db-psql` | Open a `psql` shell into the local database |
 | `make health` | Curl the API's `/readyz` |
