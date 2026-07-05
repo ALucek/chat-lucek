@@ -49,6 +49,15 @@ def test_build_run_config_overrides_apply_to_both_roles():
     assert conf["subagent"] == {"model": "x/y", "max_tokens": 111}
 
 
+def test_build_run_config_sets_thread_id_metadata():
+    cfg = build_run_config({}, thread_id="42")
+    assert cfg["metadata"] == {"thread_id": "42"}
+
+
+def test_build_run_config_omits_metadata_without_thread_id():
+    assert "metadata" not in build_run_config({})
+
+
 def test_chat_model_streams_with_default_max_tokens(monkeypatch):
     monkeypatch.setenv("OPENROUTER_API_KEY", "test")
     model = build_chat_model(AgentConfig(), role="agent")
