@@ -21,6 +21,17 @@ cd web && pnpm exec playwright install chromium
 
 `make e2e-local` starts Postgres, migrates, and runs the suite; Playwright boots the api, web, and fake servers itself. Use `make e2e` on its own if the database is already up and migrated.
 
+## Evals
+
+The agent has live behavioral evals under `agent/evals/` that call the real agent and sync to LangSmith. Run them on demand:
+
+| Command | Runs |
+| --- | --- |
+| `make evals` | The eval suite uncached against real models |
+| `make evals-cached` | The eval suite replaying recorded cassettes |
+
+See [agent/evals/README.md](../agent/evals/README.md) for the layout, harness, and how to add one.
+
 ## Gates
 
 | Command | Runs |
