@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-load_dotenv()  # .env -> os.environ in local dev; no-op in prod
+load_dotenv()
 
 
 class Settings(BaseSettings):
@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     max_tokens: int = 8192
     recursion_limit: int = 100
     subagent_recursion_limit: int = 50
+    model_max_retries: int = 3
 
 
 @lru_cache
