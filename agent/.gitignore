@@ -6,3 +6,4 @@ __pycache__
 .env
 .pytest_cache
 .coverage
+evals/cassettes
