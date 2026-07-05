@@ -49,10 +49,15 @@ type runHandlers struct {
 }
 
 // run POSTs history to /run, streams events, and returns aggregate usage.
-func (c *agentClient) run(ctx context.Context, msgs []llmMessage, h runHandlers) (tokenUsage, error) {
+// threadID groups the conversation's runs into one LangSmith thread.
+func (c *agentClient) run(ctx context.Context, msgs []llmMessage, threadID string, h runHandlers) (tokenUsage, error) {
 	var usage tokenUsage
 
-	reqBody, err := json.Marshal(map[string]any{"messages": msgs})
+	payload := map[string]any{"messages": msgs}
+	if threadID != "" {
+		payload["thread_id"] = threadID
+	}
+	reqBody, err := json.Marshal(payload)
 	if err != nil {
 		return usage, err
 	}

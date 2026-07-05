@@ -82,7 +82,7 @@ def _close_open_runs(tracer: LangChainTracer) -> None:
 async def run(req: Request) -> StreamingResponse:
     body = await req.json()
     messages = _to_lc_messages(body.get("messages", []))
-    config = build_run_config(body.get("overrides"))
+    config = build_run_config(body.get("overrides"), body.get("thread_id"))
     tracer = _make_tracer()
     if tracer is not None:
         config = {**config, "callbacks": [tracer]}

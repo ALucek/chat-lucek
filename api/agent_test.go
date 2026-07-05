@@ -28,7 +28,7 @@ func TestAgentRun_DispatchesNodesAndUsage(t *testing.T) {
 	var nodes []nodeFrame
 	deltas := map[string]string{}
 	ends := map[string]string{}
-	usage, err := c.run(context.Background(), []llmMessage{{Role: "user", Content: "hi"}}, runHandlers{
+	usage, err := c.run(context.Background(), []llmMessage{{Role: "user", Content: "hi"}}, "", runHandlers{
 		onNode:    func(n nodeFrame) { nodes = append(nodes, n) },
 		onDelta:   func(id, text string) { deltas[id] += text },
 		onNodeEnd: func(id string, out json.RawMessage) { ends[id] = string(out) },
@@ -62,7 +62,7 @@ func TestAgentRun_ErrorEvent(t *testing.T) {
 	defer srv.Close()
 	c := &agentClient{baseURL: srv.URL, http: srv.Client()}
 
-	if _, err := c.run(context.Background(), nil, runHandlers{}); err == nil || !strings.Contains(err.Error(), "boom") {
+	if _, err := c.run(context.Background(), nil, "", runHandlers{}); err == nil || !strings.Contains(err.Error(), "boom") {
 		t.Fatalf("want error containing boom, got %v", err)
 	}
 }
@@ -74,7 +74,7 @@ func TestAgentRun_BadStatus(t *testing.T) {
 	defer srv.Close()
 	c := &agentClient{baseURL: srv.URL, http: srv.Client()}
 
-	if _, err := c.run(context.Background(), nil, runHandlers{}); err == nil {
+	if _, err := c.run(context.Background(), nil, "", runHandlers{}); err == nil {
 		t.Fatal("want error on non-200 status")
 	}
 }
@@ -92,7 +92,7 @@ func TestAgentRun_AttachesBearerWhenTokenSet(t *testing.T) {
 		http:    srv.Client(),
 		token:   func(context.Context) (string, error) { return "tok123", nil },
 	}
-	if _, err := c.run(context.Background(), nil, runHandlers{}); err != nil {
+	if _, err := c.run(context.Background(), nil, "", runHandlers{}); err != nil {
 		t.Fatalf("run: %v", err)
 	}
 	if gotAuth != "Bearer tok123" {
@@ -109,10 +109,36 @@ func TestAgentRun_NoHeaderWhenTokenNil(t *testing.T) {
 	}))
 	defer srv.Close()
 	c := &agentClient{baseURL: srv.URL, http: srv.Client()}
-	if _, err := c.run(context.Background(), nil, runHandlers{}); err != nil {
+	if _, err := c.run(context.Background(), nil, "", runHandlers{}); err != nil {
 		t.Fatalf("run: %v", err)
 	}
 	if gotAuth != "" {
 		t.Fatalf("unexpected auth header %q", gotAuth)
+	}
+}
+
+func TestAgentRun_SendsThreadID(t *testing.T) {
+	var body map[string]any
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewDecoder(r.Body).Decode(&body)
+		w.Header().Set("Content-Type", "text/event-stream")
+		fmt.Fprint(w, endFrame)
+	}))
+	defer srv.Close()
+	c := &agentClient{baseURL: srv.URL, http: srv.Client()}
+
+	if _, err := c.run(context.Background(), nil, "42", runHandlers{}); err != nil {
+		t.Fatalf("run: %v", err)
+	}
+	if body["thread_id"] != "42" {
+		t.Fatalf("thread_id: got %v, want 42", body["thread_id"])
+	}
+
+	body = nil
+	if _, err := c.run(context.Background(), nil, "", runHandlers{}); err != nil {
+		t.Fatalf("run: %v", err)
+	}
+	if _, ok := body["thread_id"]; ok {
+		t.Fatalf("thread_id should be omitted when empty: %v", body)
 	}
 }

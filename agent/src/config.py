@@ -66,7 +66,9 @@ class AgentConfig(BaseModel):
         return cls.model_validate(configurable)
 
 
-def build_run_config(overrides: dict[str, Any] | None = None) -> dict[str, Any]:
+def build_run_config(
+    overrides: dict[str, Any] | None = None, thread_id: str | None = None
+) -> dict[str, Any]:
     """Build a RunnableConfig from optional per-run overrides."""
     overrides = overrides or {}
     settings = get_settings()
@@ -81,4 +83,11 @@ def build_run_config(overrides: dict[str, Any] | None = None) -> dict[str, Any]:
     if role:
         configurable["agent"] = dict(role)
         configurable["subagent"] = dict(role)
-    return {"recursion_limit": settings.recursion_limit, "configurable": configurable}
+    config: dict[str, Any] = {
+        "recursion_limit": settings.recursion_limit,
+        "configurable": configurable,
+    }
+    # thread_id groups this conversation's runs into one LangSmith thread.
+    if thread_id:
+        config["metadata"] = {"thread_id": thread_id}
+    return config

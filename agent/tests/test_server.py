@@ -99,6 +99,27 @@ async def test_run_emits_error_then_end_on_failure(raising_app):
         assert "boom" in events[0][1]["message"]
 
 
+async def test_run_forwards_thread_id_to_run_config(monkeypatch):
+    from src import server
+
+    seen = {}
+
+    class _CapturingAgent:
+        async def astream_events(self, inp, version="v2", config=None):
+            seen["config"] = config
+            return
+            yield  # unreachable; makes this an async generator
+
+    monkeypatch.setattr(server, "agent", _CapturingAgent())
+    transport = httpx.ASGITransport(app=server.app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://t") as c:
+        await c.post(
+            "/run",
+            json={"messages": [{"role": "user", "content": "hi"}], "thread_id": "42"},
+        )
+    assert seen["config"]["metadata"] == {"thread_id": "42"}
+
+
 async def test_run_failure_logs_at_error(raising_app):
     from src import server
 

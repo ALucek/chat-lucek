@@ -305,7 +305,7 @@ func (c *Chat) Send(w http.ResponseWriter, r *http.Request) {
 	var reply strings.Builder
 	nodes := []*traceNode{}
 	byID := map[string]*traceNode{}
-	usage, err := c.agent.run(r.Context(), msgs, runHandlers{
+	usage, err := c.agent.run(r.Context(), msgs, strconv.FormatInt(id, 10), runHandlers{
 		onNode: func(f nodeFrame) {
 			n := &traceNode{ID: f.ID, ParentID: f.ParentID, Type: f.Type, Name: f.Name, Input: f.Input}
 			nodes = append(nodes, n)
