@@ -4,13 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 
 // Tag is the small uppercase label chip; it pulses while its step runs.
-export function Tag({
-  children,
-  active,
-}: {
-  children: ReactNode;
-  active?: boolean;
-}) {
+function Tag({ children, active }: { children: ReactNode; active?: boolean }) {
   return (
     <span
       className={`text-subtle shrink-0 rounded bg-black/5 px-1.5 py-0.5 text-[10px] tracking-[0.14em] uppercase ${active ? 'animate-pulse' : ''}`}
