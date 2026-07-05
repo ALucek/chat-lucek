@@ -36,8 +36,8 @@ Request body: `{"messages": [{"role": "user", "content": "..."}], "overrides": {
 | `end`      | `{}`                                   | Stream complete                                |
 
 A node's `parent_id` is the `id` of the `tool` it runs inside, or `null` at the
-top level. A subagent (`run_subagent`) and its own `internet_search` and
-`set_todos` calls nest under it, so the run reads as a tree.
+top level. A subagent (`run_subagent`) and its own `internet_search` calls
+nest under it, so the run reads as a tree.
 
 ## Structure
 
