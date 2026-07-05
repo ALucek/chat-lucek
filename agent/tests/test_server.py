@@ -1,3 +1,4 @@
+import asyncio
 import json
 
 import httpx
@@ -111,3 +112,90 @@ def test_sse_framing():
 
     out = server._sse({"event": "delta", "data": {"id": "r1:text", "text": "hi"}})
     assert out == 'event: delta\ndata: {"id": "r1:text", "text": "hi"}\n\n'
+
+
+class _FakeRun:
+    def __init__(self, end_time=None):
+        self.end_time = end_time
+
+
+class _FakeClient:
+    def __init__(self, fail_ids=()):
+        self.updates = []
+        self.fail_ids = set(fail_ids)
+
+    def update_run(self, run_id, **kwargs):
+        if run_id in self.fail_ids:
+            raise RuntimeError("patch failed")
+        self.updates.append((run_id, kwargs))
+
+
+class _FakeTracer:
+    def __init__(self, run_map, client):
+        self.run_map = run_map
+        self.client = client
+
+
+class _FakeReq:
+    def __init__(self, body):
+        self._body = body
+
+    async def json(self):
+        return self._body
+
+
+def test_close_open_runs_closes_only_open_ones():
+    from src import server
+
+    client = _FakeClient()
+    tracer = _FakeTracer(
+        run_map={
+            "open1": _FakeRun(end_time=None),
+            "done": _FakeRun(end_time="already"),
+            "open2": _FakeRun(end_time=None),
+        },
+        client=client,
+    )
+    server._close_open_runs(tracer)
+    assert {rid for rid, _ in client.updates} == {"open1", "open2"}
+    for _, kw in client.updates:
+        assert kw["error"] == "Client interrupted"
+        assert kw["end_time"] is not None
+
+
+def test_close_open_runs_swallows_client_errors():
+    from src import server
+
+    client = _FakeClient(fail_ids={"open1"})
+    tracer = _FakeTracer(
+        run_map={"open1": _FakeRun(None), "open2": _FakeRun(None)}, client=client
+    )
+    server._close_open_runs(tracer)  # a failed patch must not abort the rest
+    assert {rid for rid, _ in client.updates} == {"open2"}
+
+
+def test_make_tracer_gated_on_tracing(monkeypatch):
+    from src import server
+
+    monkeypatch.setattr(server, "tracing_is_enabled", lambda: False)
+    assert server._make_tracer() is None
+
+    sentinel = object()
+    monkeypatch.setattr(server, "tracing_is_enabled", lambda: True)
+    monkeypatch.setattr(server, "LangChainTracer", lambda: sentinel)
+    assert server._make_tracer() is sentinel
+
+
+async def test_interrupt_closes_open_runs(monkeypatch):
+    from src import server
+
+    tracer = _FakeTracer(run_map={"open": _FakeRun(None)}, client=_FakeClient())
+    monkeypatch.setattr(server, "agent", _FakeAgent())
+    monkeypatch.setattr(server, "_make_tracer", lambda: tracer)
+
+    resp = await server.run(_FakeReq({"messages": [{"role": "user", "content": "hi"}]}))
+    agen = resp.body_iterator
+    await agen.__anext__()  # start the run
+    with pytest.raises(asyncio.CancelledError):
+        await agen.athrow(asyncio.CancelledError())  # client disconnects mid-run
+    assert {rid for rid, _ in tracer.client.updates} == {"open"}
