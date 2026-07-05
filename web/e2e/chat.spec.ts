@@ -54,3 +54,34 @@ test('sign in with Google, send a message, stream a reply, persist on reload', a
     page.getByRole('button').filter({ hasText: 'subagent' }),
   ).toBeVisible();
 });
+
+test('composer grows with content up to a max, then stops', async ({
+  page,
+}) => {
+  const email = `e2e-grow-${Date.now()}@gmail.com`;
+
+  await page.route('https://accounts.google.com/gsi/client', (route) =>
+    route.fulfill({ contentType: 'application/javascript', body: FAKE_GSI }),
+  );
+  await page.addInitScript((e) => {
+    (window as unknown as { __E2E_EMAIL__: string }).__E2E_EMAIL__ = e;
+  }, email);
+
+  await page.goto('/login');
+  await page.getByRole('button', { name: 'Sign in with Google' }).click();
+  await expect(page).toHaveURL('/');
+
+  const box = page.getByPlaceholder('Send a message…');
+  const height = async () => (await box.boundingBox())!.height;
+
+  await box.fill('one line');
+  const single = await height();
+
+  await box.fill(Array.from({ length: 4 }, (_, i) => `line ${i}`).join('\n'));
+  expect(await height()).toBeGreaterThan(single);
+
+  await box.fill(Array.from({ length: 40 }, (_, i) => `line ${i}`).join('\n'));
+  const capped = await height();
+  expect(capped).toBeLessThanOrEqual(162); // max-h-40 (160px) + borders
+  expect(capped).toBeGreaterThan(single);
+});

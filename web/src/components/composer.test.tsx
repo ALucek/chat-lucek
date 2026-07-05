@@ -43,6 +43,13 @@ describe('Composer', () => {
     expect(bar.className).toContain('safe-area-inset-bottom');
   });
 
+  it('caps textarea growth and scrolls past the cap', () => {
+    render(<Composer onSend={vi.fn()} onStop={vi.fn()} sending={false} />);
+    const box = screen.getByRole('textbox');
+    expect(box.className).toContain('max-h-40');
+    expect(box.className).toContain('overflow-y-auto');
+  });
+
   it('shows Stop while sending and calls onStop', async () => {
     const onStop = vi.fn();
     render(<Composer onSend={vi.fn()} onStop={onStop} sending={true} />);

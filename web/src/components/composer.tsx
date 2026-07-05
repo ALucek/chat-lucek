@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { autoSize } from '@/lib/autosize';
 
 export function Composer({
   onSend,
@@ -14,12 +15,14 @@ export function Composer({
   sending: boolean;
 }) {
   const [text, setText] = useState('');
+  const ref = useRef<HTMLTextAreaElement>(null);
 
   function submit() {
     const trimmed = text.trim();
     if (!trimmed) return;
     onSend(trimmed);
     setText('');
+    if (ref.current) ref.current.style.height = 'auto';
   }
 
   function onKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
@@ -30,16 +33,20 @@ export function Composer({
   }
 
   return (
-    <div className="border-border bg-surface flex h-[calc(var(--bottombar-h)+env(safe-area-inset-bottom,0px))] items-center border-t px-3 pb-[env(safe-area-inset-bottom,0px)]">
-      <div className="mx-auto flex w-full max-w-2xl items-center gap-2">
+    <div className="border-border bg-surface flex items-end border-t px-3 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))]">
+      <div className="mx-auto flex w-full max-w-2xl items-end gap-2">
         <Textarea
+          ref={ref}
           value={text}
-          onChange={(e) => setText(e.target.value)}
+          onChange={(e) => {
+            setText(e.target.value);
+            autoSize(e.target);
+          }}
           onKeyDown={onKeyDown}
           disabled={sending}
           rows={1}
           placeholder="Send a message…"
-          className="flex-1 text-base sm:text-sm"
+          className="max-h-40 flex-1 overflow-y-auto text-base sm:text-sm"
         />
         {sending ? (
           <Button type="button" variant="ghost" onClick={onStop}>

@@ -3,7 +3,7 @@ import { cn } from '@/lib/cn';
 export function Textarea({
   className,
   ...props
-}: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
+}: React.ComponentPropsWithRef<'textarea'>) {
   return (
     <textarea
       className={cn(
