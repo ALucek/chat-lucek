@@ -22,7 +22,9 @@ _FIXTURES = Path(__file__).parent / "fixtures"
 
 _JUDGE_SYSTEM = (
     "You are a strict evaluator. For each assertion, first reason about whether "
-    "the content satisfies it, then decide pass or fail. Judge only what is asked."
+    "the content satisfies it, then decide pass or fail. Judge only what is asked. "
+    "If a reference is provided, treat it as one example of an ideal response, not "
+    "the only acceptable one."
 )
 
 
@@ -80,20 +82,32 @@ def tool_names(message: AnyMessage) -> set[str]:
     return {call["name"] for call in getattr(message, "tool_calls", None) or []}
 
 
-def judge(content: str, asserts: list[str], *, key: str = "correctness") -> JudgeResult:
-    """Grade content against natural-language assertions (reason, then boolean, each)."""
+def judge(
+    content: str,
+    asserts: dict[str, str],
+    *,
+    prefix: str = "eval",
+    reference: str | None = None,
+) -> JudgeResult:
+    """Grade content against named assertions (reason, then boolean, each).
+
+    Logs one boolean feedback per assertion under "<prefix>_<name>". An optional
+    reference is shown to the judge as one example of an ideal response.
+    """
     model = ChatOpenRouter(
         model=judge_model_name(), temperature=0
     ).with_structured_output(JudgeResult)
-    listed = "\n".join(f"- {a}" for a in asserts)
+    listed = "\n".join(f"- {a}" for a in asserts.values())
+    blocks = [f"<assertions>\n{listed}\n</assertions>"]
+    if reference is not None:
+        blocks.append(f"<reference>\n{reference}\n</reference>")
+    blocks.append(f"<content>\n{content}\n</content>")
     prompt = [
         SystemMessage(content=_JUDGE_SYSTEM),
-        HumanMessage(
-            content=f"<assertions>\n{listed}\n</assertions>\n\n<content>\n{content}\n</content>"
-        ),
+        HumanMessage(content="\n\n".join(blocks)),
     ]
     with t.trace_feedback():
         result = model.invoke(prompt)
-        score = sum(r.passed for r in result.results) / len(asserts)
-        t.log_feedback(key=key, score=score)
+        for name, r in zip(asserts, result.results):
+            t.log_feedback(key=f"{prefix}_{name}", score=r.passed)
     return result
