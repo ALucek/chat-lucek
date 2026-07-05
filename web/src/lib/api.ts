@@ -147,11 +147,27 @@ export interface Conversation {
   updated_at: string;
 }
 
+export interface RunNode {
+  id: string;
+  parent_id: string | null;
+  type: 'reasoning' | 'text' | 'tool';
+  text?: string;
+  name?: string;
+  input?: unknown;
+  output?: unknown;
+}
+
+export interface RunTrace {
+  version: number;
+  nodes: RunNode[];
+}
+
 export interface Message {
   id: number;
   role: string;
   content: string;
   created_at: string;
+  trace?: RunTrace | null;
 }
 
 export function listConversations(): Promise<Conversation[]> {
@@ -210,7 +226,9 @@ export function parseSSE(buffer: string): { events: SSEEvent[]; rest: string } {
 }
 
 export interface StreamHandlers {
-  onDelta: (text: string) => void;
+  onNode: (node: RunNode) => void;
+  onDelta: (id: string, text: string) => void;
+  onNodeEnd: (id: string, output: unknown) => void;
   onDone: (messageId: number) => void;
   onTitle: (title: string) => void;
   onError: (message: string) => void;
@@ -257,8 +275,14 @@ export async function sendMessage(
       for (const ev of parsed.events) {
         const payload = ev.data ? JSON.parse(ev.data) : {};
         switch (ev.event) {
+          case 'node':
+            handlers.onNode(payload as RunNode);
+            break;
           case 'delta':
-            handlers.onDelta(payload.text);
+            handlers.onDelta(payload.id, payload.text);
+            break;
+          case 'node_end':
+            handlers.onNodeEnd(payload.id, payload.output);
             break;
           case 'done':
             handlers.onDone(payload.message_id);

@@ -10,13 +10,12 @@ func setAllEnv(t *testing.T) {
 	t.Setenv("DB_NAME", "chat")
 	t.Setenv("PORT", "8080")
 	t.Setenv("JWT_SECRET", "test-secret-at-least-32-bytes-long-xx")
-	t.Setenv("OPENROUTER_API_KEY", "test-openrouter-key")
 	t.Setenv("GOOGLE_CLIENT_ID", "test-client-id")
 	t.Setenv("GOOGLE_CLIENT_SECRET", "test-client-secret")
 	// Clear optional vars so a developer's .env can't leak into default assertions.
 	for _, k := range []string{
-		"OPENROUTER_MODEL", "SYSTEM_PROMPT", "ALLOWED_ORIGIN", "OPENROUTER_BASE_URL",
-		"LOG_LEVEL", "DATABASE_URL", "TOKEN_BUDGET_DAILY", "OWNER_EMAIL",
+		"AGENT_URL", "ALLOWED_ORIGIN",
+		"LOG_LEVEL", "DATABASE_URL", "RUNS_BUDGET_DAILY", "OWNER_EMAIL",
 		"GOOGLE_AUTH_FAKE", "SIGNUP_OPEN",
 	} {
 		t.Setenv(k, "")
@@ -53,26 +52,26 @@ func TestLoadConfig_MissingKey(t *testing.T) {
 	}
 }
 
-func TestLoadConfig_OpenRouterBaseURLDefault(t *testing.T) {
+func TestLoadConfig_AgentURLDefault(t *testing.T) {
 	setAllEnv(t)
 	cfg, err := LoadConfig()
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
-	if cfg.OpenRouterBaseURL != openRouterURL {
-		t.Fatalf("want default %q, got %q", openRouterURL, cfg.OpenRouterBaseURL)
+	if cfg.AgentURL != "http://localhost:8081" {
+		t.Fatalf("want default agent url, got %q", cfg.AgentURL)
 	}
 }
 
-func TestLoadConfig_OpenRouterBaseURLOverride(t *testing.T) {
+func TestLoadConfig_AgentURLOverride(t *testing.T) {
 	setAllEnv(t)
-	t.Setenv("OPENROUTER_BASE_URL", "http://localhost:8090")
+	t.Setenv("AGENT_URL", "http://localhost:8090")
 	cfg, err := LoadConfig()
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
-	if cfg.OpenRouterBaseURL != "http://localhost:8090" {
-		t.Fatalf("want override, got %q", cfg.OpenRouterBaseURL)
+	if cfg.AgentURL != "http://localhost:8090" {
+		t.Fatalf("want override, got %q", cfg.AgentURL)
 	}
 }
 

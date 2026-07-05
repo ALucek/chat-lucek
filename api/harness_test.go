@@ -22,8 +22,7 @@ var testPool *pgxpool.Pool
 
 var testSecret = []byte("test-secret-at-least-32-bytes-long-xx")
 
-const testSystemPrompt = "You are a helpful assistant."
-const testTokenBudget = 1_000_000
+const testRunsBudget = 1_000_000
 
 // TestMain starts one Postgres container, migrates, then runs all tests.
 func TestMain(m *testing.M) {
@@ -74,14 +73,14 @@ func resetDB(t *testing.T) {
 }
 
 // newTestMux builds the router against the test pool with a generous budget.
-func newTestMux(client *openRouterClient) http.Handler {
-	return newTestMuxBudget(client, testTokenBudget)
+func newTestMux(client *agentClient) http.Handler {
+	return newTestMuxBudget(client, testRunsBudget)
 }
 
-// newTestMuxBudget builds the router with an explicit daily token budget.
-func newTestMuxBudget(client *openRouterClient, budget int) http.Handler {
+// newTestMuxBudget builds the router with an explicit daily run budget.
+func newTestMuxBudget(client *agentClient, budget int) http.Handler {
 	auth := &Auth{pool: testPool, secret: testSecret, verify: fakeGoogleVerifier(), exchange: fakeGoogleExchanger(), signupOpen: true}
-	chat := &Chat{pool: testPool, llm: client, systemPrompt: testSystemPrompt, tokenBudget: budget}
+	chat := &Chat{pool: testPool, agent: client, runsBudget: budget}
 	check := func(ctx context.Context) error { return Healthy(ctx, testPool) }
 	return newMux(check, auth, chat)
 }

@@ -8,11 +8,10 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
-	"time"
 )
 
-// fakeOpenRouter returns a client hitting a server that emits the given frames.
-func fakeOpenRouter(t *testing.T, status int, frames ...string) *openRouterClient {
+// fakeAgent returns a client hitting a server that emits the given SSE frames.
+func fakeAgent(t *testing.T, status int, frames ...string) *agentClient {
 	t.Helper()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if status != http.StatusOK {
@@ -25,18 +24,54 @@ func fakeOpenRouter(t *testing.T, status int, frames ...string) *openRouterClien
 		}
 	}))
 	t.Cleanup(srv.Close)
-	return &openRouterClient{key: "test", model: "test", baseURL: srv.URL, http: srv.Client()}
+	return &agentClient{baseURL: srv.URL, http: srv.Client()}
 }
 
-// deltaFrame builds one OpenAI-style content delta SSE frame.
-func deltaFrame(text string) string {
-	return fmt.Sprintf("data: {\"choices\":[{\"delta\":{\"content\":%q}}]}\n\n", text)
+// nodeStartFrame builds a `node` SSE frame; empty parent means top-level.
+func nodeStartFrame(id, parent, typ, name, input string) string {
+	p := "null"
+	if parent != "" {
+		p = fmt.Sprintf("%q", parent)
+	}
+	extra := ""
+	if name != "" {
+		extra += fmt.Sprintf(`,"name":%q`, name)
+	}
+	if input != "" {
+		extra += fmt.Sprintf(`,"input":%s`, input)
+	}
+	return fmt.Sprintf("event: node\ndata: {\"id\":%q,\"parent_id\":%s,\"type\":%q%s}\n\n", id, p, typ, extra)
 }
+
+// deltaFrame builds a `delta` SSE frame appending text to a node.
+func deltaFrame(id, text string) string {
+	return fmt.Sprintf("event: delta\ndata: {\"id\":%q,\"text\":%q}\n\n", id, text)
+}
+
+// nodeEndFrame builds a `node_end` SSE frame carrying a tool's output.
+func nodeEndFrame(id, output string) string {
+	return fmt.Sprintf("event: node_end\ndata: {\"id\":%q,\"output\":%s}\n\n", id, output)
+}
+
+// textFrames opens a top-level text node and streams one delta into it.
+func textFrames(id, text string) string {
+	return nodeStartFrame(id, "", "text", "", "") + deltaFrame(id, text)
+}
+
+// usageFrame builds the aggregate-usage SSE frame.
+func usageFrame(input, output int) string {
+	return fmt.Sprintf(
+		"event: usage\ndata: {\"input\":%d,\"output\":%d,\"total\":%d,\"reasoning\":0}\n\n",
+		input, output, input+output)
+}
+
+const endFrame = "event: end\ndata: {}\n\n"
 
 func TestSend_StreamsAndPersists(t *testing.T) {
 	resetDB(t)
-	client := fakeOpenRouter(t, http.StatusOK,
-		deltaFrame("Hello"), deltaFrame(" there"), "data: [DONE]\n\n")
+	client := fakeAgent(t, http.StatusOK,
+		nodeStartFrame("a:text", "", "text", "", ""),
+		deltaFrame("a:text", "Hello"), deltaFrame("a:text", " there"), endFrame)
 	mux := newTestMux(client)
 	ta, _ := signup(t, mux, "a@x.com")
 	cid := createConversation(t, mux, ta)
@@ -50,8 +85,11 @@ func TestSend_StreamsAndPersists(t *testing.T) {
 		t.Fatalf("want X-Accel-Buffering: no, got %q", got)
 	}
 	body := rec.Body.String()
-	if !strings.Contains(body, "event: delta") || !strings.Contains(body, `"text":"Hello"`) {
-		t.Fatalf("missing delta frames: %s", body)
+	if !strings.Contains(body, "event: node") || !strings.Contains(body, "event: delta") {
+		t.Fatalf("missing node/delta frames: %s", body)
+	}
+	if !strings.Contains(body, `"text":"Hello"`) {
+		t.Fatalf("missing delta text: %s", body)
 	}
 	if !strings.Contains(body, "event: done") {
 		t.Fatalf("missing done event: %s", body)
@@ -77,7 +115,7 @@ func TestSend_StreamsAndPersists(t *testing.T) {
 
 func TestSend_BumpsUpdatedAt(t *testing.T) {
 	resetDB(t)
-	client := fakeOpenRouter(t, http.StatusOK, deltaFrame("hi"), "data: [DONE]\n\n")
+	client := fakeAgent(t, http.StatusOK, textFrames("a", "hi"), endFrame)
 	mux := newTestMux(client)
 	ta, _ := signup(t, mux, "a@x.com")
 	first := createConversation(t, mux, ta)
@@ -98,7 +136,7 @@ func TestSend_BumpsUpdatedAt(t *testing.T) {
 
 func TestSend_NotOwner(t *testing.T) {
 	resetDB(t)
-	client := fakeOpenRouter(t, http.StatusOK, deltaFrame("hi"), "data: [DONE]\n\n")
+	client := fakeAgent(t, http.StatusOK, textFrames("a", "hi"), endFrame)
 	mux := newTestMux(client)
 	ta, _ := signup(t, mux, "a@x.com")
 	tb, _ := signup(t, mux, "b@x.com")
@@ -112,7 +150,7 @@ func TestSend_NotOwner(t *testing.T) {
 
 func TestSend_EmptyContent(t *testing.T) {
 	resetDB(t)
-	mux := newTestMux(fakeOpenRouter(t, http.StatusOK))
+	mux := newTestMux(fakeAgent(t, http.StatusOK))
 	ta, _ := signup(t, mux, "a@x.com")
 	cid := createConversation(t, mux, ta)
 	rec := do(t, mux, http.MethodPost, fmt.Sprintf("/api/conversations/%d/messages", cid), ta,
@@ -124,7 +162,7 @@ func TestSend_EmptyContent(t *testing.T) {
 
 func TestSend_BadID(t *testing.T) {
 	resetDB(t)
-	mux := newTestMux(fakeOpenRouter(t, http.StatusOK))
+	mux := newTestMux(fakeAgent(t, http.StatusOK))
 	ta, _ := signup(t, mux, "a@x.com")
 	rec := do(t, mux, http.MethodPost, "/api/conversations/abc/messages", ta,
 		map[string]string{"content": "hi"})
@@ -135,7 +173,7 @@ func TestSend_BadID(t *testing.T) {
 
 func TestSend_UpstreamError(t *testing.T) {
 	resetDB(t)
-	client := fakeOpenRouter(t, http.StatusInternalServerError)
+	client := fakeAgent(t, http.StatusInternalServerError)
 	mux := newTestMux(client)
 	ta, _ := signup(t, mux, "a@x.com")
 	cid := createConversation(t, mux, ta)
@@ -162,10 +200,7 @@ func TestSend_UpstreamError(t *testing.T) {
 
 func TestSend_RecordsUsage(t *testing.T) {
 	resetDB(t)
-	client := fakeOpenRouter(t, http.StatusOK,
-		deltaFrame("hi"),
-		"data: {\"choices\":[],\"usage\":{\"prompt_tokens\":4,\"completion_tokens\":6}}\n\n",
-		"data: [DONE]\n\n")
+	client := fakeAgent(t, http.StatusOK, textFrames("a", "hi"), usageFrame(4, 6), endFrame)
 	mux := newTestMux(client)
 	ta, uid := signup(t, mux, "a@x.com")
 	cid := createConversation(t, mux, ta)
@@ -176,24 +211,27 @@ func TestSend_RecordsUsage(t *testing.T) {
 		t.Fatalf("want 200, got %d", rec.Code)
 	}
 
-	total, err := usageSince(context.Background(), testPool, uid, time.Now().Add(-24*time.Hour))
+	var total int
+	err := testPool.QueryRow(context.Background(),
+		`select coalesce(sum(prompt_tokens + completion_tokens), 0) from token_usage where user_id=$1`,
+		uid).Scan(&total)
 	if err != nil {
-		t.Fatalf("usageSince: %v", err)
+		t.Fatalf("usage query: %v", err)
 	}
 	if total != 10 {
 		t.Fatalf("want recorded usage 10, got %d", total)
 	}
 }
 
-func TestSend_OverTokenBudget(t *testing.T) {
+func TestSend_OverRunBudget(t *testing.T) {
 	resetDB(t)
-	client := fakeOpenRouter(t, http.StatusOK, deltaFrame("hi"), "data: [DONE]\n\n")
-	mux := newTestMuxBudget(client, 10)
+	client := fakeAgent(t, http.StatusOK, textFrames("a", "hi"), endFrame)
+	mux := newTestMuxBudget(client, 1)
 	ta, uid := signup(t, mux, "a@x.com")
 	cid := createConversation(t, mux, ta)
 
-	// Seed usage at/over the budget.
-	if err := recordUsage(context.Background(), testPool, uid, tokenUsage{Prompt: 15, Completion: 10}); err != nil {
+	// Seed one run (one usage row) to reach the budget of 1.
+	if err := recordUsage(context.Background(), testPool, uid, tokenUsage{Prompt: 1, Completion: 1}); err != nil {
 		t.Fatalf("seed usage: %v", err)
 	}
 
@@ -206,7 +244,7 @@ func TestSend_OverTokenBudget(t *testing.T) {
 
 func TestSend_MessageTooLong(t *testing.T) {
 	resetDB(t)
-	mux := newTestMux(fakeOpenRouter(t, http.StatusOK))
+	mux := newTestMux(fakeAgent(t, http.StatusOK))
 	ta, _ := signup(t, mux, "a@x.com")
 	cid := createConversation(t, mux, ta)
 
@@ -215,5 +253,95 @@ func TestSend_MessageTooLong(t *testing.T) {
 		map[string]string{"content": long})
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("want 400, got %d", rec.Code)
+	}
+}
+
+// assistantTrace returns the conversation's assistant-message trace.
+func assistantTrace(t *testing.T, mux http.Handler, token string, cid int64) json.RawMessage {
+	t.Helper()
+	var msgs []struct {
+		Role  string          `json:"role"`
+		Trace json.RawMessage `json:"trace"`
+	}
+	body := do(t, mux, http.MethodGet, fmt.Sprintf("/api/conversations/%d/messages", cid), token, nil).Body.Bytes()
+	if err := json.Unmarshal(body, &msgs); err != nil {
+		t.Fatalf("decode messages: %v", err)
+	}
+	for _, m := range msgs {
+		if m.Role == "assistant" {
+			return m.Trace
+		}
+	}
+	t.Fatal("no assistant message found")
+	return nil
+}
+
+func TestSend_PersistsNodeTrace(t *testing.T) {
+	resetDB(t)
+	client := fakeAgent(t, http.StatusOK,
+		nodeStartFrame("r1:reasoning", "", "reasoning", "", ""), deltaFrame("r1:reasoning", "thinking"),
+		nodeStartFrame("SA", "", "tool", "run_subagent", `{"task":"research"}`),
+		nodeStartFrame("s1", "SA", "tool", "internet_search", `{"query":"q"}`),
+		nodeEndFrame("s1", `{"results":[]}`),
+		nodeStartFrame("m:text", "SA", "text", "", ""), deltaFrame("m:text", "sub summary"),
+		nodeEndFrame("SA", `"done"`),
+		nodeStartFrame("a:text", "", "text", "", ""), deltaFrame("a:text", "Answer"),
+		endFrame)
+	mux := newTestMux(client)
+	ta, _ := signup(t, mux, "a@x.com")
+	cid := createConversation(t, mux, ta)
+	do(t, mux, http.MethodPost, fmt.Sprintf("/api/conversations/%d/messages", cid), ta,
+		map[string]string{"content": "hi"})
+
+	// content is the top-level answer text only.
+	var content string
+	if err := testPool.QueryRow(context.Background(),
+		`select content from messages where conversation_id=$1 and role='assistant'`, cid).Scan(&content); err != nil {
+		t.Fatalf("content query: %v", err)
+	}
+	if content != "Answer" {
+		t.Fatalf("content: %q", content)
+	}
+
+	var trace messageTrace
+	if err := json.Unmarshal(assistantTrace(t, mux, ta, cid), &trace); err != nil {
+		t.Fatalf("decode trace: %v", err)
+	}
+	if trace.Version != 2 {
+		t.Fatalf("version: %d", trace.Version)
+	}
+	// the search nests under the subagent
+	var s1 *traceNode
+	for i := range trace.Nodes {
+		if trace.Nodes[i].ID == "s1" {
+			s1 = &trace.Nodes[i]
+		}
+	}
+	if s1 == nil || s1.ParentID == nil || *s1.ParentID != "SA" {
+		t.Fatalf("s1 nesting: %+v", s1)
+	}
+	// the subagent emitted a nested text node
+	var hasSubText bool
+	for _, n := range trace.Nodes {
+		if n.ID == "m:text" && n.ParentID != nil && *n.ParentID == "SA" && n.Text == "sub summary" {
+			hasSubText = true
+		}
+	}
+	if !hasSubText {
+		t.Fatalf("missing subagent text node: %+v", trace.Nodes)
+	}
+}
+
+func TestSend_NoTraceForPlainAnswer(t *testing.T) {
+	resetDB(t)
+	client := fakeAgent(t, http.StatusOK, textFrames("a", "hi"), endFrame)
+	mux := newTestMux(client)
+	ta, _ := signup(t, mux, "a@x.com")
+	cid := createConversation(t, mux, ta)
+	do(t, mux, http.MethodPost, fmt.Sprintf("/api/conversations/%d/messages", cid), ta,
+		map[string]string{"content": "hi"})
+
+	if raw := assistantTrace(t, mux, ta, cid); len(raw) != 0 {
+		t.Fatalf("plain answer should have no trace, got %s", raw)
 	}
 }

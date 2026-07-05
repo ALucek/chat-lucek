@@ -16,7 +16,7 @@ export function UsageMeter() {
   return (
     <div
       className="usage"
-      title={`${used.toLocaleString()} / ${budget.toLocaleString()} tokens`}
+      title={`${used.toLocaleString()} / ${budget.toLocaleString()} runs`}
     >
       <span
         className={warn ? 'usage-donut warn' : 'usage-donut'}

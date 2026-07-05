@@ -7,7 +7,7 @@ Defense in depth across the application, infrastructure, and supply chain, backe
 Run the scanners locally:
 
 ```bash
-make security         # govulncheck, gosec, pnpm audit, gitleaks
+make security         # govulncheck, gosec, pip-audit, bandit, pnpm audit, gitleaks
 make scan-images      # Trivy scan of the built container images
 make tf-config-scan   # Trivy scan of the Terraform config
 ```
@@ -16,6 +16,8 @@ make tf-config-scan   # Trivy scan of the Terraform config
 | --- | --- |
 | govulncheck | Go dependency vulnerabilities |
 | gosec | Go static analysis |
+| pip-audit | Python dependency vulnerabilities |
+| bandit | Python static analysis |
 | pnpm audit | npm dependency vulnerabilities |
 | gitleaks | Committed secrets |
 | Trivy | Container images and Terraform config |

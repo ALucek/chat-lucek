@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MessageList } from './message-list';
 import type { ChatMessage } from '@/lib/messages-context';
+import type { RunNode } from '@/lib/api';
 
 describe('MessageList markdown', () => {
   it('renders assistant markdown (bold, link, list)', () => {
@@ -72,5 +73,132 @@ describe('MessageList markdown', () => {
     const code = document.querySelector('pre code');
     expect(code?.className).toMatch(/hljs/);
     expect(document.querySelector('.hljs-keyword')).not.toBeNull();
+  });
+});
+
+describe('MessageList timeline', () => {
+  it('renders steps and answer from the node log, subagent folded', () => {
+    const nodes: RunNode[] = [
+      { id: 'r', parent_id: null, type: 'reasoning', text: 'hmm' },
+      {
+        id: 'SA',
+        parent_id: null,
+        type: 'tool',
+        name: 'run_subagent',
+        input: { task: 'dig' },
+      },
+      {
+        id: 's1',
+        parent_id: 'SA',
+        type: 'tool',
+        name: 'internet_search',
+        input: { query: 'q' },
+      },
+      { id: 'a', parent_id: null, type: 'text', text: 'the answer' },
+    ];
+    render(
+      <MessageList
+        messages={[
+          { id: 1, role: 'assistant', content: '', created_at: '', nodes },
+        ]}
+      />,
+    );
+    expect(screen.getByText('thinking')).toBeInTheDocument();
+    expect(screen.getByText('subagent')).toBeInTheDocument();
+    expect(screen.getByText('the answer')).toBeInTheDocument();
+    // subagent is collapsed by default, so its nested search is hidden
+    expect(screen.queryByText('search')).toBeNull();
+  });
+
+  it('marks an in-flight subagent as running while the turn streams', () => {
+    const nodes: RunNode[] = [
+      {
+        id: 'SA',
+        parent_id: null,
+        type: 'tool',
+        name: 'run_subagent',
+        input: { task: 'go' },
+      },
+      {
+        id: 's1',
+        parent_id: 'SA',
+        type: 'tool',
+        name: 'internet_search',
+        input: { query: 'q' },
+      },
+    ];
+    const { container } = render(
+      <MessageList
+        messages={[
+          {
+            id: 1,
+            role: 'assistant',
+            content: '',
+            created_at: '',
+            streaming: true,
+            nodes,
+          },
+        ]}
+      />,
+    );
+    // subagent has no output yet + turn is streaming -> a running dot shows
+    expect(container.querySelector('.animate-pulse')).not.toBeNull();
+  });
+
+  it('shows a streaming caret on the last answer node', () => {
+    const nodes: RunNode[] = [
+      { id: 'a', parent_id: null, type: 'text', text: 'partial' },
+    ];
+    const { container } = render(
+      <MessageList
+        messages={[
+          {
+            id: 1,
+            role: 'assistant',
+            content: '',
+            created_at: '',
+            streaming: true,
+            nodes,
+          },
+        ]}
+      />,
+    );
+    expect(container.querySelector('.caret-blink')).not.toBeNull();
+  });
+
+  it('drops the caret from a preamble once a tool follows it', () => {
+    const nodes: RunNode[] = [
+      { id: 'p', parent_id: null, type: 'text', text: 'let me look' },
+      {
+        id: 'SA',
+        parent_id: null,
+        type: 'tool',
+        name: 'run_subagent',
+        input: { task: 'dig' },
+      },
+      {
+        id: 's1',
+        parent_id: 'SA',
+        type: 'tool',
+        name: 'internet_search',
+        input: { query: 'q' },
+      },
+    ];
+    const { container } = render(
+      <MessageList
+        messages={[
+          {
+            id: 1,
+            role: 'assistant',
+            content: '',
+            created_at: '',
+            streaming: true,
+            nodes,
+          },
+        ]}
+      />,
+    );
+    // last node is the subagent, so the preamble text has no live caret
+    expect(container.querySelector('.caret-blink')).toBeNull();
   });
 });

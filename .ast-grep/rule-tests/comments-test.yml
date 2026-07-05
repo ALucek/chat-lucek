@@ -23,3 +23,11 @@ valid:
   - "/* single line ok */\n.a { color: red; }"
 invalid:
   - "/*\nmulti line css\n*/\n.a { color: red; }"
+---
+id: comment-too-long-python
+valid:
+  - "# short and fine\nx = 1"
+  - "# see https://example.com/a/very/long/url/well/over/the/eighty/char/limit/ok\nx = 1"
+  - "x = 1  # type: ignore this pragma line is intentionally longer than eighty chars ok\n"
+invalid:
+  - "# this standalone python comment is intentionally way over eighty characters to trip cap\nx = 1"

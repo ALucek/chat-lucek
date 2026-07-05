@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-func TestUsage_RecordAndSumWithinWindow(t *testing.T) {
+func TestRunsSince_CountsWithinWindow(t *testing.T) {
 	resetDB(t)
 	ctx := context.Background()
 
@@ -27,23 +27,23 @@ func TestUsage_RecordAndSumWithinWindow(t *testing.T) {
 		t.Fatalf("record 2: %v", err)
 	}
 
-	// A row older than the window must be excluded.
+	// A row older than the window must not count.
 	if _, err := testPool.Exec(ctx,
 		`insert into token_usage (user_id, prompt_tokens, completion_tokens, created_at)
 		 values ($1, 100, 100, now() - interval '25 hours')`, uid); err != nil {
 		t.Fatalf("seed old: %v", err)
 	}
 
-	total, err := usageSince(ctx, testPool, uid, time.Now().Add(-24*time.Hour))
+	n, err := runsSince(ctx, testPool, uid, time.Now().Add(-24*time.Hour))
 	if err != nil {
-		t.Fatalf("usageSince: %v", err)
+		t.Fatalf("runsSince: %v", err)
 	}
-	if total != 20 {
-		t.Fatalf("want 20 within window, got %d", total)
+	if n != 2 {
+		t.Fatalf("want 2 runs within window, got %d", n)
 	}
 }
 
-func TestUsage_SurvivesConversationDelete(t *testing.T) {
+func TestRunsSince_SurvivesConversationDelete(t *testing.T) {
 	resetDB(t)
 	ctx := context.Background()
 
@@ -66,18 +66,18 @@ func TestUsage_SurvivesConversationDelete(t *testing.T) {
 		t.Fatalf("delete conversation: %v", err)
 	}
 
-	total, err := usageSince(ctx, testPool, uid, time.Now().Add(-24*time.Hour))
+	n, err := runsSince(ctx, testPool, uid, time.Now().Add(-24*time.Hour))
 	if err != nil {
-		t.Fatalf("usageSince: %v", err)
+		t.Fatalf("runsSince: %v", err)
 	}
-	if total != 10 {
-		t.Fatalf("usage must survive conversation delete; want 10, got %d", total)
+	if n != 1 {
+		t.Fatalf("usage must survive conversation delete; want 1, got %d", n)
 	}
 }
 
 func TestUsage_Endpoint(t *testing.T) {
 	resetDB(t)
-	mux := newTestMuxBudget(nil, 8192)
+	mux := newTestMuxBudget(nil, 20)
 	ta, uid := signup(t, mux, "a@x.com")
 
 	ctx := context.Background()
@@ -105,17 +105,17 @@ func TestUsage_Endpoint(t *testing.T) {
 	if err := json.Unmarshal(rec.Body.Bytes(), &out); err != nil {
 		t.Fatalf("decode: %v", err)
 	}
-	if out.Used != 20 {
-		t.Fatalf("want used 20, got %d", out.Used)
+	if out.Used != 2 {
+		t.Fatalf("want used 2 runs, got %d", out.Used)
 	}
-	if out.Budget != 8192 {
-		t.Fatalf("want budget 8192, got %d", out.Budget)
+	if out.Budget != 20 {
+		t.Fatalf("want budget 20, got %d", out.Budget)
 	}
 }
 
 func TestUsage_Endpoint_RequiresAuth(t *testing.T) {
 	resetDB(t)
-	mux := newTestMuxBudget(nil, 8192)
+	mux := newTestMuxBudget(nil, 20)
 	rec := do(t, mux, http.MethodGet, "/api/usage", "", nil)
 	if rec.Code != http.StatusUnauthorized {
 		t.Fatalf("want 401, got %d", rec.Code)
@@ -124,14 +124,14 @@ func TestUsage_Endpoint_RequiresAuth(t *testing.T) {
 
 func TestSend_OwnerBypassesBudget(t *testing.T) {
 	resetDB(t)
-	client := fakeOpenRouter(t, http.StatusOK, deltaFrame("hi"), "data: [DONE]\n\n")
+	client := fakeAgent(t, http.StatusOK, textFrames("a", "hi"), endFrame)
 	auth := &Auth{pool: testPool, secret: testSecret, verify: fakeGoogleVerifier(), exchange: fakeGoogleExchanger()}
-	chat := &Chat{pool: testPool, llm: client, systemPrompt: testSystemPrompt, tokenBudget: 1, ownerEmail: "owner@gmail.com"}
+	chat := &Chat{pool: testPool, agent: client, runsBudget: 1, ownerEmail: "owner@gmail.com"}
 	mux := newMux(func(ctx context.Context) error { return Healthy(ctx, testPool) }, auth, chat)
 
 	// Owner, already over budget → still allowed.
 	ownerTok, ownerID := signup(t, mux, "owner@gmail.com")
-	if err := recordUsage(context.Background(), testPool, ownerID, tokenUsage{Prompt: 50, Completion: 50}); err != nil {
+	if err := recordUsage(context.Background(), testPool, ownerID, tokenUsage{Prompt: 1, Completion: 1}); err != nil {
 		t.Fatalf("seed owner usage: %v", err)
 	}
 	ownerConv := createConversation(t, mux, ownerTok)
@@ -142,7 +142,7 @@ func TestSend_OwnerBypassesBudget(t *testing.T) {
 
 	// Non-owner, over budget → blocked.
 	otherTok, otherID := signup(t, mux, "other@gmail.com")
-	if err := recordUsage(context.Background(), testPool, otherID, tokenUsage{Prompt: 50, Completion: 50}); err != nil {
+	if err := recordUsage(context.Background(), testPool, otherID, tokenUsage{Prompt: 1, Completion: 1}); err != nil {
 		t.Fatalf("seed other usage: %v", err)
 	}
 	otherConv := createConversation(t, mux, otherTok)

@@ -15,11 +15,10 @@ import (
 
 // Chat holds the conversation/message handlers and their dependencies.
 type Chat struct {
-	pool         *pgxpool.Pool
-	llm          *openRouterClient
-	systemPrompt string
-	tokenBudget  int
-	ownerEmail   string
+	pool       *pgxpool.Pool
+	agent      *agentClient
+	runsBudget int
+	ownerEmail string
 }
 
 type conversation struct {
@@ -30,10 +29,38 @@ type conversation struct {
 }
 
 type message struct {
-	ID        int64     `json:"id"`
-	Role      string    `json:"role"`
-	Content   string    `json:"content"`
-	CreatedAt time.Time `json:"created_at"`
+	ID        int64           `json:"id"`
+	Role      string          `json:"role"`
+	Content   string          `json:"content"`
+	CreatedAt time.Time       `json:"created_at"`
+	Trace     json.RawMessage `json:"trace,omitempty"`
+}
+
+// traceNode is one node in a run's event log (persisted and streamed).
+type traceNode struct {
+	ID       string          `json:"id"`
+	ParentID *string         `json:"parent_id"`
+	Type     string          `json:"type"`
+	Name     string          `json:"name,omitempty"`
+	Input    json.RawMessage `json:"input,omitempty"`
+	Output   json.RawMessage `json:"output,omitempty"`
+	Text     string          `json:"text,omitempty"`
+}
+
+// messageTrace is a run's ordered event log persisted on a reply.
+type messageTrace struct {
+	Version int         `json:"version"`
+	Nodes   []traceNode `json:"nodes"`
+}
+
+// nonTrivial reports whether a run has anything beyond top-level answer text.
+func nonTrivial(nodes []*traceNode) bool {
+	for _, n := range nodes {
+		if !(n.Type == "text" && n.ParentID == nil) {
+			return true
+		}
+	}
+	return false
 }
 
 const maxMessageChars = 8000
@@ -105,7 +132,7 @@ func (c *Chat) Messages(w http.ResponseWriter, r *http.Request) {
 	}
 
 	rows, err := c.pool.Query(r.Context(),
-		`select id, role, content, created_at from messages
+		`select id, role, content, created_at, trace from messages
 		 where conversation_id = $1 order by id`, id)
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "could not load messages"})
@@ -116,7 +143,7 @@ func (c *Chat) Messages(w http.ResponseWriter, r *http.Request) {
 	msgs := []message{}
 	for rows.Next() {
 		var m message
-		if err := rows.Scan(&m.ID, &m.Role, &m.Content, &m.CreatedAt); err != nil {
+		if err := rows.Scan(&m.ID, &m.Role, &m.Content, &m.CreatedAt, &m.Trace); err != nil {
 			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "scan failed"})
 			return
 		}
@@ -224,13 +251,13 @@ func (c *Chat) Send(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if !owner {
-		used, err := usageSince(r.Context(), c.pool, userID, time.Now().Add(-24*time.Hour))
+		used, err := runsSince(r.Context(), c.pool, userID, time.Now().Add(-24*time.Hour))
 		if err != nil {
 			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "usage check failed"})
 			return
 		}
-		if used >= c.tokenBudget {
-			writeJSON(w, http.StatusTooManyRequests, map[string]string{"error": "daily token budget exceeded"})
+		if used >= c.runsBudget {
+			writeJSON(w, http.StatusTooManyRequests, map[string]string{"error": "daily run limit exceeded"})
 			return
 		}
 	}
@@ -243,8 +270,8 @@ func (c *Chat) Send(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Build the request: system prompt + full history (includes the new message).
-	msgs := []llmMessage{{Role: "system", Content: c.systemPrompt}}
+	// Build the request from full history; the agent owns the system prompt.
+	msgs := []llmMessage{}
 	rows, err := c.pool.Query(r.Context(),
 		`select role, content from messages where conversation_id = $1 order by id`, id)
 	if err != nil {
@@ -262,7 +289,7 @@ func (c *Chat) Send(w http.ResponseWriter, r *http.Request) {
 	}
 	rows.Close() // free the pooled connection before the (long) stream
 
-	firstMessage := len(msgs) == 2 // system prompt + the just-inserted user message
+	firstMessage := len(msgs) == 1 // just the inserted user message
 
 	// Commit to the stream: from here, failures are reported as SSE events.
 	flusher, ok := w.(http.Flusher)
@@ -276,10 +303,33 @@ func (c *Chat) Send(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 
 	var reply strings.Builder
-	usage, err := c.llm.stream(r.Context(), msgs, func(text string) {
-		reply.WriteString(text)
-		writeSSE(w, "delta", map[string]string{"text": text})
-		flusher.Flush()
+	nodes := []*traceNode{}
+	byID := map[string]*traceNode{}
+	usage, err := c.agent.run(r.Context(), msgs, runHandlers{
+		onNode: func(f nodeFrame) {
+			n := &traceNode{ID: f.ID, ParentID: f.ParentID, Type: f.Type, Name: f.Name, Input: f.Input}
+			nodes = append(nodes, n)
+			byID[f.ID] = n
+			writeSSE(w, "node", f)
+			flusher.Flush()
+		},
+		onDelta: func(id, text string) {
+			if n := byID[id]; n != nil {
+				n.Text += text
+				if n.Type == "text" && n.ParentID == nil {
+					reply.WriteString(text)
+				}
+			}
+			writeSSE(w, "delta", map[string]string{"id": id, "text": text})
+			flusher.Flush()
+		},
+		onNodeEnd: func(id string, output json.RawMessage) {
+			if n := byID[id]; n != nil {
+				n.Output = output
+			}
+			writeSSE(w, "node_end", map[string]any{"id": id, "output": output})
+			flusher.Flush()
+		},
 	})
 	if err != nil {
 		slog.ErrorContext(r.Context(), "stream", "err", err)
@@ -289,10 +339,18 @@ func (c *Chat) Send(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Persist the complete reply and bump activity time.
+	var traceJSON []byte
+	if nonTrivial(nodes) {
+		flat := make([]traceNode, len(nodes))
+		for i, n := range nodes {
+			flat[i] = *n
+		}
+		traceJSON, _ = json.Marshal(messageTrace{Version: 2, Nodes: flat})
+	}
 	var msgID int64
 	if err := c.pool.QueryRow(r.Context(),
-		`insert into messages (conversation_id, role, content) values ($1, 'assistant', $2) returning id`,
-		id, reply.String()).Scan(&msgID); err != nil {
+		`insert into messages (conversation_id, role, content, trace) values ($1, 'assistant', $2, $3) returning id`,
+		id, reply.String(), traceJSON).Scan(&msgID); err != nil {
 		slog.ErrorContext(r.Context(), "save reply", "err", err)
 		writeSSE(w, "error", map[string]string{"error": "could not save reply"})
 		flusher.Flush()

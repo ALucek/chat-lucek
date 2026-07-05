@@ -9,8 +9,11 @@ import (
 	"os"
 	"os/signal"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
+
+	"google.golang.org/api/idtoken"
 )
 
 const serverIdleTimeout = 120 * time.Second
@@ -55,8 +58,22 @@ func main() {
 	check := func(ctx context.Context) error { return Healthy(ctx, pool) }
 
 	auth := &Auth{pool: pool, secret: []byte(cfg.JWTSecret), verify: selectGoogleVerifier(cfg), exchange: selectGoogleExchanger(cfg), signupOpen: cfg.SignupOpen}
-	llm := &openRouterClient{key: cfg.OpenRouterKey, model: cfg.Model, baseURL: cfg.OpenRouterBaseURL, http: newLLMHTTPClient()}
-	chat := &Chat{pool: pool, llm: llm, systemPrompt: cfg.SystemPrompt, tokenBudget: cfg.TokenBudgetDaily, ownerEmail: normalizeEmail(cfg.OwnerEmail)}
+	agent := &agentClient{baseURL: cfg.AgentURL, http: newAgentHTTPClient()}
+	if strings.HasPrefix(cfg.AgentURL, "https") {
+		ts, err := idtoken.NewTokenSource(ctx, cfg.AgentURL)
+		if err != nil {
+			slog.Error("agent id token", "err", err)
+			os.Exit(1)
+		}
+		agent.token = func(context.Context) (string, error) {
+			t, err := ts.Token()
+			if err != nil {
+				return "", err
+			}
+			return t.AccessToken, nil
+		}
+	}
+	chat := &Chat{pool: pool, agent: agent, runsBudget: cfg.RunsBudgetDaily, ownerEmail: normalizeEmail(cfg.OwnerEmail)}
 
 	mux := newMux(check, auth, chat)
 

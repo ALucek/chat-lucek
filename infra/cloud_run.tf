@@ -1,7 +1,13 @@
 locals {
-  registry  = "${var.region}-docker.pkg.dev/${var.project_id}/chat"
-  api_image = "${local.registry}/api:bootstrap"
-  web_image = "${local.registry}/web:bootstrap"
+  registry    = "${var.region}-docker.pkg.dev/${var.project_id}/chat"
+  api_image   = "${local.registry}/api:bootstrap"
+  web_image   = "${local.registry}/web:bootstrap"
+  agent_image = "${local.registry}/agent:bootstrap"
+
+  # Each runtime SA reads only the secrets it needs. The API keeps
+  # openrouter-api-key until the agent-relay image is live (dropped in cleanup).
+  api_secret_ids   = ["jwt-secret", "db-password", "google-client-secret", "openrouter-api-key"]
+  agent_secret_ids = ["openrouter-api-key", "tavily-api-key", "langsmith-api-key"]
 }
 
 resource "google_service_account" "api" {
@@ -14,11 +20,23 @@ resource "google_service_account" "web" {
   display_name = "chat web runtime"
 }
 
+resource "google_service_account" "agent" {
+  account_id   = "chat-agent"
+  display_name = "chat agent runtime"
+}
+
 resource "google_secret_manager_secret_iam_member" "api_secrets" {
-  for_each  = google_secret_manager_secret.app
-  secret_id = each.value.secret_id
+  for_each  = toset(local.api_secret_ids)
+  secret_id = google_secret_manager_secret.app[each.key].secret_id
   role      = "roles/secretmanager.secretAccessor"
   member    = "serviceAccount:${google_service_account.api.email}"
+}
+
+resource "google_secret_manager_secret_iam_member" "agent_secrets" {
+  for_each  = toset(local.agent_secret_ids)
+  secret_id = google_secret_manager_secret.app[each.key].secret_id
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${google_service_account.agent.email}"
 }
 
 resource "google_project_iam_member" "api_sql" {
@@ -120,6 +138,10 @@ resource "google_cloud_run_v2_service" "api" {
         name  = "ALLOWED_ORIGIN"
         value = "https://${var.domain}"
       }
+      env {
+        name  = "AGENT_URL"
+        value = google_cloud_run_v2_service.agent.uri
+      }
 
       env {
         name = "DB_PASSWORD"
@@ -139,6 +161,8 @@ resource "google_cloud_run_v2_service" "api" {
           }
         }
       }
+      # Kept until the agent-relay image is live, then dropped; the pre-agent
+      # image requires it at startup.
       env {
         name = "OPENROUTER_API_KEY"
         value_source {
@@ -182,6 +206,106 @@ resource "google_cloud_run_v2_service" "api" {
     google_secret_manager_secret_iam_member.api_secrets,
     google_project_iam_member.api_sql,
   ]
+}
+
+resource "google_cloud_run_v2_service" "agent" {
+  name                = "chat-agent"
+  location            = var.region
+  ingress             = "INGRESS_TRAFFIC_ALL"
+  deletion_protection = false
+
+  template {
+    service_account = google_service_account.agent.email
+    timeout         = "3600s"
+
+    scaling {
+      min_instance_count = 0
+      max_instance_count = 2
+    }
+
+    containers {
+      image = local.agent_image
+      ports {
+        container_port = 8080
+      }
+
+      env {
+        name  = "DEFAULT_MODEL"
+        value = var.agent_default_model
+      }
+      env {
+        name  = "MAX_SEARCHES"
+        value = tostring(var.agent_max_searches)
+      }
+      env {
+        name  = "LANGSMITH_TRACING"
+        value = "true"
+      }
+      env {
+        name  = "LANGSMITH_ENDPOINT"
+        value = "https://api.smith.langchain.com"
+      }
+      env {
+        name  = "LANGSMITH_PROJECT"
+        value = var.langsmith_project
+      }
+
+      env {
+        name = "OPENROUTER_API_KEY"
+        value_source {
+          secret_key_ref {
+            secret  = google_secret_manager_secret.app["openrouter-api-key"].secret_id
+            version = "latest"
+          }
+        }
+      }
+      env {
+        name = "TAVILY_API_KEY"
+        value_source {
+          secret_key_ref {
+            secret  = google_secret_manager_secret.app["tavily-api-key"].secret_id
+            version = "latest"
+          }
+        }
+      }
+      env {
+        name = "LANGSMITH_API_KEY"
+        value_source {
+          secret_key_ref {
+            secret  = google_secret_manager_secret.app["langsmith-api-key"].secret_id
+            version = "latest"
+          }
+        }
+      }
+
+      startup_probe {
+        http_get {
+          path = "/healthz"
+          port = 8080
+        }
+      }
+    }
+  }
+
+  # Fields written by gcloud/Cloud Run, not managed here.
+  lifecycle {
+    ignore_changes = [
+      client,
+      client_version,
+      scaling,
+      template[0].containers[0].image,
+    ]
+  }
+
+  depends_on = [google_secret_manager_secret_iam_member.agent_secrets]
+}
+
+# Only the API may invoke the agent; no public (allUsers) access.
+resource "google_cloud_run_v2_service_iam_member" "api_invokes_agent" {
+  name     = google_cloud_run_v2_service.agent.name
+  location = var.region
+  role     = "roles/run.invoker"
+  member   = "serviceAccount:${google_service_account.api.email}"
 }
 
 resource "google_cloud_run_v2_job" "migrate" {

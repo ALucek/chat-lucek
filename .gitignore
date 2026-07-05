@@ -4,10 +4,13 @@
 # OS noise
 .DS_Store
 
+# editor
+.vscode/
+
 # Go build artifacts
 /api/api
 
-# local planning/design notes (kept out of the example repo)
+# local planning
 notes/
 
 # terraform

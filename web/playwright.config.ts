@@ -18,7 +18,7 @@ export default defineConfig({
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
   webServer: [
     {
-      command: 'node e2e/fake-openrouter.mjs',
+      command: 'node e2e/fake-agent.mjs',
       url: `http://localhost:${FAKE_PORT}`,
       reuseExistingServer: !process.env.CI,
       timeout: 30_000,
@@ -27,7 +27,7 @@ export default defineConfig({
       command: 'cd ../api && go run .',
       url: `http://localhost:${API_PORT}/readyz`,
       env: {
-        OPENROUTER_BASE_URL: `http://localhost:${FAKE_PORT}`,
+        AGENT_URL: `http://localhost:${FAKE_PORT}`,
         GOOGLE_AUTH_FAKE: '1',
         GOOGLE_CLIENT_ID: 'e2e-dummy',
         SIGNUP_OPEN: 'true',
