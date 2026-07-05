@@ -4,9 +4,8 @@ locals {
   web_image   = "${local.registry}/web:bootstrap"
   agent_image = "${local.registry}/agent:bootstrap"
 
-  # Each runtime SA reads only the secrets it needs. The API keeps
-  # openrouter-api-key until the agent-relay image is live (dropped in cleanup).
-  api_secret_ids   = ["jwt-secret", "db-password", "google-client-secret", "openrouter-api-key"]
+  # Each runtime SA reads only the secrets it needs.
+  api_secret_ids   = ["jwt-secret", "db-password", "google-client-secret"]
   agent_secret_ids = ["openrouter-api-key", "tavily-api-key", "langsmith-api-key"]
 }
 
@@ -157,17 +156,6 @@ resource "google_cloud_run_v2_service" "api" {
         value_source {
           secret_key_ref {
             secret  = google_secret_manager_secret.app["jwt-secret"].secret_id
-            version = "latest"
-          }
-        }
-      }
-      # Kept until the agent-relay image is live, then dropped; the pre-agent
-      # image requires it at startup.
-      env {
-        name = "OPENROUTER_API_KEY"
-        value_source {
-          secret_key_ref {
-            secret  = google_secret_manager_secret.app["openrouter-api-key"].secret_id
             version = "latest"
           }
         }
