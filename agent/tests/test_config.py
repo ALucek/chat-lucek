@@ -16,6 +16,7 @@ def test_settings_defaults(monkeypatch):
         "DEFAULT_MAX_TOKENS",
         "RECURSION_LIMIT",
         "SUBAGENT_RECURSION_LIMIT",
+        "MODEL_MAX_RETRIES",
     ):
         monkeypatch.delenv(k, raising=False)
     get_settings.cache_clear()
@@ -23,6 +24,7 @@ def test_settings_defaults(monkeypatch):
     assert s.default_model == "deepseek/deepseek-v4-flash"
     assert (s.max_searches, s.max_tokens) == (5, 8192)
     assert (s.recursion_limit, s.subagent_recursion_limit) == (100, 50)
+    assert s.model_max_retries == 3
 
 
 def test_settings_env_override(monkeypatch):
@@ -53,6 +55,7 @@ def test_chat_model_streams_with_default_max_tokens(monkeypatch):
     assert model.streaming is True
     assert model.stream_usage is True
     assert model.max_tokens == get_settings().max_tokens
+    assert model.max_retries == get_settings().model_max_retries
 
 
 def test_role_override_beats_default_max_tokens(monkeypatch):
