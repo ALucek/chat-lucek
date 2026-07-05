@@ -30,7 +30,7 @@ The agent has live behavioral evals under `agent/evals/` that call the real agen
 | `make evals` | The eval suite uncached against real models |
 | `make evals-cached` | The eval suite replaying recorded cassettes |
 
-See [agent/evals/README.md](../agent/evals/README.md) for the layout, harness, and how to add one.
+See [agent/evals/README.md](../agent/evals/README.md) for more details.
 
 ## Gates
 

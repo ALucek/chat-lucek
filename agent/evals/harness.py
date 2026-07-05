@@ -21,10 +21,10 @@ JUDGE_MODEL = "anthropic/claude-sonnet-5"
 _FIXTURES = Path(__file__).parent / "fixtures"
 
 _JUDGE_SYSTEM = (
-    "You are a strict evaluator. For each assertion, first reason about whether "
-    "the content satisfies it, then decide pass or fail. Judge only what is asked. "
-    "If a reference is provided, treat it as one example of an ideal response, not "
-    "the only acceptable one."
+    "You are a strict evaluator. First reason about whether the content satisfies "
+    "the criterion, then decide pass or fail. Judge only what is asked. If a "
+    "reference is provided, treat it as one example of an ideal response, not the "
+    "only acceptable one."
 )
 
 
@@ -32,18 +32,13 @@ def judge_model_name() -> str:
     return os.getenv("EVAL_JUDGE_MODEL", JUDGE_MODEL)
 
 
-class AssertResult(BaseModel):
-    assertion: str = Field(description="The assertion being evaluated.")
+class Verdict(BaseModel):
     reasoning: str = Field(
-        description="Reasoning about whether the content satisfies it."
+        description="Reasoning about whether the content satisfies the criterion."
     )
     passed: bool = Field(
-        description="True only if the content satisfies the assertion."
+        description="True only if the content satisfies the criterion."
     )
-
-
-class JudgeResult(BaseModel):
-    results: list[AssertResult]
 
 
 def _to_message(m: dict) -> AnyMessage:
@@ -84,21 +79,20 @@ def tool_names(message: AnyMessage) -> set[str]:
 
 def judge(
     content: str,
-    asserts: dict[str, str],
+    criterion: str,
     *,
-    prefix: str = "eval",
+    key: str,
     reference: str | None = None,
-) -> JudgeResult:
-    """Grade content against named assertions (reason, then boolean, each).
+) -> Verdict:
+    """Grade content against a single criterion (reason, then boolean).
 
-    Logs one boolean feedback per assertion under "<prefix>_<name>". An optional
-    reference is shown to the judge as one example of an ideal response.
+    Logs the boolean under `key`. An optional reference is shown to the judge as
+    one example of an ideal response.
     """
     model = ChatOpenRouter(
         model=judge_model_name(), temperature=0
-    ).with_structured_output(JudgeResult)
-    listed = "\n".join(f"- {a}" for a in asserts.values())
-    blocks = [f"<assertions>\n{listed}\n</assertions>"]
+    ).with_structured_output(Verdict)
+    blocks = [f"<criterion>\n{criterion}\n</criterion>"]
     if reference is not None:
         blocks.append(f"<reference>\n{reference}\n</reference>")
     blocks.append(f"<content>\n{content}\n</content>")
@@ -107,7 +101,6 @@ def judge(
         HumanMessage(content="\n\n".join(blocks)),
     ]
     with t.trace_feedback():
-        result = model.invoke(prompt)
-        for name, r in zip(asserts, result.results):
-            t.log_feedback(key=f"{prefix}_{name}", score=r.passed)
-    return result
+        verdict = model.invoke(prompt)
+        t.log_feedback(key=key, score=verdict.passed)
+    return verdict

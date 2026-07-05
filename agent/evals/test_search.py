@@ -75,19 +75,13 @@ async def test_search_query_is_clean_natural_language():
     content = f"User question: {question}\nSearch tool call args: {json.dumps(args)}"
     verdict = judge(
         content,
-        {
-            "natural_language": (
-                "The search input is a single natural-language query with no "
-                "search-engine operators or special syntax (no site:, quoted "
-                "operators, boolean AND/OR, wildcards) and no filter parameters "
-                "beyond the query itself."
-            ),
-        },
+        "The search input is a single natural-language query with no search-engine "
+        "operators or special syntax (no site:, quoted operators, boolean AND/OR, "
+        "wildcards) and no filter parameters beyond the query itself.",
+        key="search_query_natural_language",
         reference="current population of Tokyo",
-        prefix="search_query",
     )
-    failed = [r for r in verdict.results if not r.passed]
-    assert not failed, [f"{r.assertion}: {r.reasoning}" for r in failed]
+    assert verdict.passed, verdict.reasoning
 
 
 @pytest.mark.langsmith(test_suite_name=SUITE)
@@ -107,14 +101,9 @@ async def test_search_query_is_relevant_to_the_question():
     content = f"User question: {question}\nSearch tool call args: {json.dumps(args)}"
     verdict = judge(
         content,
-        {
-            "relevant": (
-                "The search query is clearly related to the user's question and "
-                "searches for what they asked about."
-            ),
-        },
+        "The search query is clearly related to the user's question and searches "
+        "for what they asked about.",
+        key="search_query_relevant",
         reference="top tourist attractions in Kyoto",
-        prefix="search_query",
     )
-    failed = [r for r in verdict.results if not r.passed]
-    assert not failed, [f"{r.assertion}: {r.reasoning}" for r in failed]
+    assert verdict.passed, verdict.reasoning

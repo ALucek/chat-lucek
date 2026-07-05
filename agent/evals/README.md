@@ -1,39 +1,43 @@
 # Agent evals
 
-Behavioral evals for the agent, run on demand against the real models and synced to LangSmith. They call the live agent (OpenRouter) and Tavily, so unlike `agent/tests/` they cost money and stay out of the CI gate. Philosophy: https://lucek.ai/blogs/agent-evaluations
-
-## Layout
-
-Flat, one file per feature. Each file is one LangSmith dataset, set by `@pytest.mark.langsmith(test_suite_name=...)`.
-
-| File | Dataset | Covers |
-| --- | --- | --- |
-| `test_routing.py` | `chat-lucek-routing` | planning and subagent delegation |
-| `test_search.py` | `chat-lucek-search` | search-limit handling and query quality |
-| `test_tone.py` | `chat-lucek-tone` | answer tone |
-
-Each test is one dataset example, keyed by its logged inputs, so distinct behaviors need distinct inputs.
-
-## harness.py
-
-The shared toolkit:
-
-- `load_state(name)` loads a JSON trace fixture from `fixtures/` into a graph state. Fixtures are real captured runs; each records its source run id.
-- `run_step(graph, state)` drives a compiled graph one node and returns the message it produced, so step evals see the agent's next decision without running a tool.
-- `tool_names(message)` returns the tool-call names on a message.
-- `judge(content, asserts, *, prefix, reference=None)` is the LLM judge. `asserts` is a `{name: assertion}` dict; it grades each with reasoning then a boolean and logs one score per assertion as `<prefix>_<name>`. `reference`, when given, is shown as an example of an ideal response. The judge model is `JUDGE_MODEL` (`anthropic/claude-sonnet-5`), overridable with `EVAL_JUDGE_MODEL`.
+Live behavioral evals for the agent, built on the LangSmith pytest integration. They call the real agent and sync to LangSmith, so unlike `agent/tests/` they cost money and stay out of the CI gate.
 
 ## Running
 
 Keys load from `agent/.env`. From the repo root:
 
-| Command | Use |
+| Command | Runs |
 | --- | --- |
-| `make evals` | Authoritative: uncached, real models, syncs to LangSmith |
-| `make evals-cached` | Iteration: replays cassettes in `evals/cassettes` |
+| `make evals` | The eval suite uncached against real models |
+| `make evals-cached` | The eval suite replaying cassettes in `evals/cassettes` |
 
-Cassettes key on the request, so changing a prompt, model, tool schema, or input re-records. Cached runs replay frozen responses and miss model drift, so trust `make evals` for real numbers. Cassettes are gitignored.
+Cassettes key on the request, so changing a prompt, model, tool schema, or input re-records. Cached runs replay frozen responses and miss model drift, so trust `make evals` for real numbers.
 
-## Adding an eval
+## Evals
 
-Add to the feature file it belongs to, or start a new `test_<feature>.py` (one file per dataset) marked with `test_suite_name`. Log `t.log_inputs`/`t.log_outputs`, and `t.log_reference_outputs` when there is a gold example. Step evals assert on `tool_names(await run_step(graph, state))`; content evals run the full graph and gate on `judge(...)`. Seed fixtures from real LangSmith traces, and keep assertions grounded in what the prompt actually specifies.
+**[Routing](test_routing.py)** (`chat-lucek-routing`) — does the main agent pick the right next step? Step evals on the router.
+
+| Test | Checks |
+| --- | --- |
+| `plans_multi_step_task` | calls `set_todos` on a clearly multi-step task |
+| `no_plan_for_trivial_request` | no `set_todos` on a trivial one-step question |
+| `delegates_research_to_subagent` | calls `run_subagent` for current-info research |
+| `answers_simple_question_directly` | no `run_subagent` for a directly answerable question |
+
+**[Search](test_search.py)** (`chat-lucek-search`) — how the subagent handles its search budget and shapes queries.
+
+| Test | Checks |
+| --- | --- |
+| `returns_cleanly_after_limit_message` | stops searching once told the limit is reached |
+| `returns_cleanly_when_budget_spent` | stops on its own after the budget is spent, no limit message |
+| `search_uses_only_a_query_arg` | the search call carries only a `query`, no filter params |
+| `search_query_is_clean_natural_language` | a bare natural-language query, no operators or filters |
+| `search_query_is_relevant_to_the_question` | the query is clearly about what was asked |
+
+**[Tone](test_tone.py)** (`chat-lucek-tone`) — does the answer follow the prompt's `<tone>`/`<behavior>`? One judged criterion each.
+
+| Test | Checks |
+| --- | --- |
+| `tone_is_plain_and_direct` | plain and direct, no padding |
+| `tone_has_no_filler` | no filler pleasantries, forced enthusiasm, or greeting fluff |
+| `tone_does_not_perform` | no sycophancy, overeagerness, emoji spam, or AI-isms |
