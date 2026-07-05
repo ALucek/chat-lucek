@@ -141,7 +141,7 @@ jobs:
           subject-digest: ${{ steps.build_api.outputs.digest }}
       - name: Attest api SBOM
         if: needs.changes.outputs.api == 'true'
-        uses: actions/attest-sbom@4651f806c01d8637787e274ac3bdf724ef169f34 # v3
+        uses: actions/attest-sbom@c604332985a26aa8cf1bdc465b92731239ec6b9e # v4.1.0
         with:
           subject-name: ${{ env.REGISTRY }}/api
           subject-digest: ${{ steps.build_api.outputs.digest }}
@@ -163,7 +163,7 @@ jobs:
           subject-digest: ${{ steps.build_web.outputs.digest }}
       - name: Attest web SBOM
         if: needs.changes.outputs.web == 'true'
-        uses: actions/attest-sbom@4651f806c01d8637787e274ac3bdf724ef169f34 # v3
+        uses: actions/attest-sbom@c604332985a26aa8cf1bdc465b92731239ec6b9e # v4.1.0
         with:
           subject-name: ${{ env.REGISTRY }}/web
           subject-digest: ${{ steps.build_web.outputs.digest }}
@@ -185,7 +185,7 @@ jobs:
           subject-digest: ${{ steps.build_agent.outputs.digest }}
       - name: Attest agent SBOM
         if: needs.changes.outputs.agent == 'true'
-        uses: actions/attest-sbom@4651f806c01d8637787e274ac3bdf724ef169f34 # v3
+        uses: actions/attest-sbom@c604332985a26aa8cf1bdc465b92731239ec6b9e # v4.1.0
         with:
           subject-name: ${{ env.REGISTRY }}/agent
           subject-digest: ${{ steps.build_agent.outputs.digest }}
