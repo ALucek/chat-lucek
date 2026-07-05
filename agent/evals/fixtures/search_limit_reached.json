@@ -1,0 +1,16 @@
+{
+  "search_count": 5,
+  "messages": [
+    { "role": "human", "content": "Give me a detailed rundown of the outcomes of the COP30 climate summit." },
+    { "role": "ai", "content": "", "tool_calls": [ { "name": "internet_search", "args": { "query": "COP30 climate summit outcomes" }, "id": "s1" } ] },
+    { "role": "tool", "name": "internet_search", "tool_call_id": "s1", "content": "## Search results for: COP30 climate summit outcomes\n1. [COP30 wrap-up](https://example.com/a)\n\t- Overview of the final agreement.\n" },
+    { "role": "ai", "content": "", "tool_calls": [ { "name": "internet_search", "args": { "query": "COP30 final agreement text" }, "id": "s2" } ] },
+    { "role": "tool", "name": "internet_search", "tool_call_id": "s2", "content": "## Search results for: COP30 final agreement text\n1. [Agreement](https://example.com/b)\n\t- Key provisions summary.\n" },
+    { "role": "ai", "content": "", "tool_calls": [ { "name": "internet_search", "args": { "query": "COP30 funding commitments" }, "id": "s3" } ] },
+    { "role": "tool", "name": "internet_search", "tool_call_id": "s3", "content": "## Search results for: COP30 funding commitments\n1. [Funding](https://example.com/c)\n\t- Pledged climate finance figures.\n" },
+    { "role": "ai", "content": "", "tool_calls": [ { "name": "internet_search", "args": { "query": "COP30 country reactions" }, "id": "s4" } ] },
+    { "role": "tool", "name": "internet_search", "tool_call_id": "s4", "content": "## Search results for: COP30 country reactions\n1. [Reactions](https://example.com/d)\n\t- Statements from major economies.\n" },
+    { "role": "ai", "content": "", "tool_calls": [ { "name": "internet_search", "args": { "query": "COP30 criticism and gaps" }, "id": "s5" } ] },
+    { "role": "tool", "name": "internet_search", "tool_call_id": "s5", "content": "Search limit reached. No further web searches were executed." }
+  ]
+}
