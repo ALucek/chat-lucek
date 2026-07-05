@@ -15,6 +15,7 @@ export function Composer({
   sending: boolean;
 }) {
   const [text, setText] = useState('');
+  const [expanded, setExpanded] = useState(false);
   const ref = useRef<HTMLTextAreaElement>(null);
 
   function submit() {
@@ -22,6 +23,7 @@ export function Composer({
     if (!trimmed) return;
     onSend(trimmed);
     setText('');
+    setExpanded(false);
     if (ref.current) ref.current.style.height = 'auto';
   }
 
@@ -34,13 +36,15 @@ export function Composer({
 
   return (
     <div className="border-border bg-surface flex items-end border-t px-3 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))]">
-      <div className="mx-auto flex w-full max-w-2xl items-end gap-2">
+      <div
+        className={`mx-auto flex w-full max-w-2xl gap-2 ${expanded ? 'items-end' : 'items-center'}`}
+      >
         <Textarea
           ref={ref}
           value={text}
           onChange={(e) => {
             setText(e.target.value);
-            autoSize(e.target);
+            setExpanded(autoSize(e.target));
           }}
           onKeyDown={onKeyDown}
           disabled={sending}
