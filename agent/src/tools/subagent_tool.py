@@ -11,7 +11,7 @@ class SubagentTask(BaseModel):
     task: str = Field(description="The task to delegate to the subagent.")
 
 
-SUBAGENT_TOOL_DESCRIPTION = """Delegate a focused task to a subagent that works independently in its own context window and returns a summary.
+SUBAGENT_TOOL_DESCRIPTION = """Delegate a focused task to a subagent that works independently in its own context window.
 Usage guidelines:
 1. Specify Intent - The subagent is another LLM based agent that can be given further instructions or clarification to complete the task.
 2. Be Specific - Subagents excel at individual, well-scoped tasks. Avoid broad, multi-part tasks. Call this tool multiple times for different tasks.
