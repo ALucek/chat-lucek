@@ -13,7 +13,7 @@ def test_settings_defaults(monkeypatch):
     for k in (
         "DEFAULT_MODEL",
         "MAX_SEARCHES",
-        "DEFAULT_MAX_TOKENS",
+        "MAX_TOKENS",
         "RECURSION_LIMIT",
         "SUBAGENT_RECURSION_LIMIT",
     ):
