@@ -1,5 +1,6 @@
 import asyncio
 import json
+import logging
 from datetime import datetime, timezone
 from typing import Any
 
@@ -14,6 +15,7 @@ from src.events import Translator
 from src.graphs.agent import agent
 
 app = FastAPI()
+logger = logging.getLogger(__name__)
 
 
 @app.get("/healthz")
@@ -50,7 +52,7 @@ def _close_open_runs(tracer: LangChainTracer) -> None:
                     run_id, end_time=now, error="Client interrupted"
                 )
             except Exception:  # noqa: BLE001
-                pass
+                logger.warning("failed to close interrupted run %s", run_id)
 
 
 @app.post("/run")
