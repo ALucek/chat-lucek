@@ -193,6 +193,7 @@ comment-check-test:
 
 # Lints all GitHub Actions workflows (plus shellcheck on run: blocks).
 actions-check:
+	@command -v shellcheck >/dev/null 2>&1 || { echo "shellcheck not found; CI lints run: blocks with it. Install: brew install shellcheck"; exit 1; }
 	@cd api && go tool actionlint
 
 # Per-service umbrella gates — what CI runs for each job (CI == local).
