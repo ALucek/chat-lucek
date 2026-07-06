@@ -75,6 +75,6 @@ Some of these scores also drive email alerts to the owner; see [monitoring.md](.
 
 ## Scheduled runs
 
-The [`evals` workflow](../../.github/workflows/evals.yml) runs the full offline suite every Monday (and on demand from the Actions tab). It is report-only: outcomes never fail the job. The run output is emailed to the owner via Resend by [`report_email.py`](report_email.py), and the results are also recorded in the LangSmith test suites. Traces go to a separate `chat-lucek-ai-evals` project so they stay out of the prod project's alerts.
+The [`evals` workflow](../../.github/workflows/evals.yml) runs the full offline suite every Monday (and on demand from the Actions tab). It is report-only: outcomes never fail the job. The run output is emailed to the owner via Resend SMTP, and the results are recorded as experiments in the LangSmith test suites.
 
-It needs GitHub Actions secrets `OPENROUTER_API_KEY`, `TAVILY_API_KEY`, `LANGSMITH_API_KEY`, `RESEND_API_KEY`, and repo variables `EVAL_REPORT_TO` and `LANGSMITH_WORKSPACE_ID`.
+It needs GitHub Actions secrets `OPENROUTER_API_KEY`, `TAVILY_API_KEY`, `LANGSMITH_API_KEY`, `RESEND_API_KEY`, and `EVAL_REPORT_TO`.

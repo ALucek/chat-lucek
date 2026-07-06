@@ -21,15 +21,26 @@ jobs:
           TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
           LANGSMITH_API_KEY: ${{ secrets.LANGSMITH_API_KEY }}
           LANGSMITH_TRACING: 'true'
-          LANGSMITH_PROJECT: chat-lucek-ai-evals
-          OPENAI_API_KEY: placeholder
-      # Email the run output; keep prod eval traces out of the alerted project.
+      # Load the run output into an env var for the email body.
       - if: always()
-        run: python3 agent/evals/report_email.py "$RUNNER_TEMP/evals.log"
-        env:
-          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
-          EVAL_REPORT_TO: ${{ vars.EVAL_REPORT_TO }}
-          LANGSMITH_WORKSPACE_ID: ${{ vars.LANGSMITH_WORKSPACE_ID }}
-          EVAL_OUTCOME: ${{ steps.run.outcome }}
+        run: |
+          {
+            echo 'EVAL_BODY<<__EOF__'
+            cat "$RUNNER_TEMP/evals.log"
+            echo '__EOF__'
+          } >> "$GITHUB_ENV"
+      # Always email the output via Resend SMTP, pass or fail.
+      - if: always()
+        uses: dawidd6/action-send-mail@94de994a9f6fffee200243214e17002e2920bb59 # v18
+        with:
+          server_address: smtp.resend.com
+          server_port: 465
+          secure: true
+          username: resend
+          password: ${{ secrets.RESEND_API_KEY }}
+          from: alerts@lucek.ai
+          to: ${{ secrets.EVAL_REPORT_TO }}
+          subject: '[chat.lucek.ai] Weekly agent evals: ${{ steps.run.outcome }}'
+          body: ${{ env.EVAL_BODY }}
       - if: always()
         run: cat "$RUNNER_TEMP/evals.log" >> "$GITHUB_STEP_SUMMARY"
