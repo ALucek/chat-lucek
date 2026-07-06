@@ -23,6 +23,10 @@ Two HTTPS checks run every 60 seconds:
 | Agent 5xx | more than 5 agent 5xx responses in 5 minutes |
 | LB 429 spike | more than 30 rate-limited responses in 5 minutes |
 
+When an alert fires, the [runbooks](runbooks/) say what to do.
+
+All checks and policies are defined in [infra/monitoring.tf](../infra/monitoring.tf) and route to the owner email channel. View their live status in the Cloud Monitoring console.
+
 ## Billing budget
 
 A monthly budget (default $20) emails the owner as spend crosses 50%, 90%, 100%, and 150%, plus a forecast warning, so a cost spike surfaces early. It is notify-only; [full-kill](runbooks/full-kill.md) is the response. Defined in [infra/budget.tf](../infra/budget.tf).
@@ -31,6 +35,11 @@ A monthly budget (default $20) emails the owner as spend crosses 50%, 90%, 100%,
 
 The agent traces every run to LangSmith for step-level inspection of reasoning, tool calls, and subagents beyond what the Cloud Run logs show.
 
-When an alert fires, the [runbooks](runbooks/) say what to do.
+LangSmith online evaluators also score live prod traces (see [deployment.md](deployment.md#langsmith-online-evals)). The following email the owner through Resend when a security signal appears:
 
-All checks and policies are defined in [infra/monitoring.tf](../infra/monitoring.tf) and route to the owner email channel. View their live status in the Cloud Monitoring console.
+| Alert | Fires when |
+| --- | --- |
+| PII in answers | a prod answer scores positive on the pii evaluator |
+| Prompt injection | a user message scores positive on the prompt-injection judge |
+
+Both trip on any single positive over a 15 minute window. Defined in [infra/langsmith.tf](../infra/langsmith.tf). When one fires, [triage the trace](runbooks/eval-alerts.md).

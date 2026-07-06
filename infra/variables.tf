@@ -92,3 +92,15 @@ variable "thread_helpfulness_prompt_commit" {
   type        = string
   description = "Pinned Prompt Hub commit hash for the thread-helpfulness judge."
 }
+
+variable "resend_api_key" {
+  type        = string
+  description = "Resend API key (send-scoped) for delivering online-eval alerts."
+  sensitive   = true
+}
+
+variable "alert_email_from" {
+  type        = string
+  description = "From address for alert emails; must be a verified Resend sender."
+  default     = "alerts@lucek.ai"
+}

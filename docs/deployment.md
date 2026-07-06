@@ -151,3 +151,14 @@ make push-llm-judge JUDGE=<name>   # e.g. prompt_injection; prints a commit hash
 ```
 
 Publishing constructs the model client locally to serialize it, so `agent/.env` needs `OPENAI_API_KEY` set to any non-empty placeholder. The model only ever runs server-side in LangSmith under the workspace secret, so the local value is never used for inference.
+
+### Alert emails
+
+`infra/langsmith.tf` also provisions `langsmith_alert_rule` resources that email the owner when a security evaluator scores positive (`pii_detected` or `prompt_injection_score`). LangSmith delivers them by POSTing to Resend's send API. Set the Resend values in `terraform.tfvars`:
+
+```hcl
+resend_api_key = "<resend-send-scoped-key>"
+# alert_email_from = "alerts@lucek.ai"   # optional; must be a verified Resend sender
+```
+
+Emails go to `owner_email`. Use a send-scoped key: LangSmith stores the webhook config to replay the call, so the key lands in LangSmith and in Terraform state. The sending domain must be verified in Resend. After `terraform apply`, fire a test from the LangSmith alert UI to confirm delivery.
