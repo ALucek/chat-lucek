@@ -1,6 +1,7 @@
-# Prompt-injection LLM judge definition, published by push_prompt.py.
+# Prompt-injection LLM judge
 from langchain_core.prompts.structured import StructuredPrompt
 from langchain_openai import ChatOpenAI
+from langsmith import Client
 
 HANDLE = "chat-lucek-prompt-injection"
 
@@ -36,3 +37,14 @@ SCHEMA = {
 def build():
     prompt = StructuredPrompt([("system", SYSTEM), ("human", "{input}")], SCHEMA)
     return prompt | ChatOpenAI(model="gpt-5.4-mini", temperature=0)
+
+
+def main() -> None:
+    client = Client()
+    url = client.push_prompt(HANDLE, object=build())
+    print("prompt url:", url)
+    print("commit_hash:", client.pull_prompt_commit(HANDLE).commit_hash)
+
+
+if __name__ == "__main__":
+    main()
