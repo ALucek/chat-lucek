@@ -1,7 +1,7 @@
-// Verbatim copy of the published lucek.ai/terms of service.
+// chat.lucek.ai/terms
 export const termsMarkdown = `# Terms of Service
 
-**Effective date: June 27, 2026**
+**Effective date: July 6, 2026**
 
 ## The Service
 
@@ -40,7 +40,7 @@ You keep whatever rights you have in your content. You give me the limited permi
 
 ## Third-Party Services
 
-The service depends on third parties for sign-in, hosting, infrastructure, and AI responses, including services such as Google and OpenRouter. Their own terms and policies may apply to their services.
+The service depends on third parties for sign-in, hosting, infrastructure, observability, and AI responses, including services such as Google, OpenRouter, and LangSmith. Their own terms and policies may apply to their services.
 
 ## Privacy
 
