@@ -5,7 +5,7 @@ DB_DSN := postgres://$(DB_USER):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(DB_NAME)?
 .PHONY: db-up db-down db-psql migrate-up migrate-down migrate-status migrate-create db-delete db-reset docker-build stack-up stack-down\
         api-run api-fmt api-fmt-check api-lint api-typecheck api-test api-vuln api-sast \
         web-install web-run web-build web-fmt web-fmt-check web-lint web-typecheck web-test web-audit e2e e2e-local \
-        agent-install agent-run agent-fmt agent-fmt-check agent-lint agent-test agent-vuln agent-sast agent-check evals evals-cached \
+        agent-install agent-run agent-fmt agent-fmt-check agent-lint agent-test agent-vuln agent-sast agent-check evals evals-cached push-eval-prompt \
         fmt lint typecheck test api-check web-check actions-check check comment-check comment-check-test \
 		scan-secrets scan-secrets-staged scan-images security \
 		tf-fmt tf-fmt-check tf-validate tf-lint tf-config-scan tf-check \
@@ -132,6 +132,10 @@ evals:
 
 evals-cached:
 	cd agent && set -a && . ./.env && set +a && LANGSMITH_TEST_CACHE=evals/cassettes uv run --group evals pytest evals --langsmith-output
+
+# Publish one online-eval prompt, e.g. make push-eval-prompt PROMPT=prompt_injection
+push-eval-prompt:
+	cd agent && set -a && . ./.env && set +a && uv run python evals/online/push_prompt.py evals/online/$(PROMPT).py
 
 # ── Security scanning ────────────────────────────────────────────────────
 
