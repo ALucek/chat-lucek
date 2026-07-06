@@ -20,8 +20,6 @@ jobs:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
           LANGSMITH_API_KEY: ${{ secrets.LANGSMITH_API_KEY }}
-          LANGSMITH_TRACING: 'true'
-      # Load the run output into an env var for the email body.
       - if: always()
         run: |
           {
@@ -29,7 +27,6 @@ jobs:
             cat "$RUNNER_TEMP/evals.log"
             echo '__EOF__'
           } >> "$GITHUB_ENV"
-      # Always email the output via Resend SMTP, pass or fail.
       - if: always()
         uses: dawidd6/action-send-mail@94de994a9f6fffee200243214e17002e2920bb59 # v18
         with:
