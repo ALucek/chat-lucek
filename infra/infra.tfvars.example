@@ -2,5 +2,10 @@ project_id       = "your-project-id"
 region           = "us-central1"
 google_client_id = "your-oauth-client-id"
 owner_email      = "your-email"
-# signup_open = false   # close new-user registration (default: true)
 billing_account  = "XXXXXX-XXXXXX-XXXXXX"
+# signup_open    = false   # close new-user registration (default: true)
+
+
+# LangSmith online evals
+langsmith_api_key      = "your-langsmith-api-key"
+langsmith_workspace_id = "your-langsmith-workspace-id"

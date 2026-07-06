@@ -7,5 +7,8 @@ provider "google" {
   billing_project       = var.project_id
 }
 
-# Auth resolves from LANGSMITH_* env vars (kept out of state).
-provider "langsmith" {}
+# Online-eval auth; values come from terraform.tfvars.
+provider "langsmith" {
+  api_key      = var.langsmith_api_key
+  workspace_id = var.langsmith_workspace_id
+}
