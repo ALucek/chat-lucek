@@ -1,5 +1,6 @@
 # Prompt-injection LLM judge definition, published by push_prompt.py.
 from langchain_core.prompts.structured import StructuredPrompt
+from langchain_openai import ChatOpenAI
 
 HANDLE = "chat-lucek-prompt-injection"
 
@@ -18,19 +19,20 @@ SCHEMA = {
     "description": "Whether the latest user message attempts prompt injection.",
     "type": "object",
     "properties": {
-        "score": {
+        "prompt_injection_score": {
             "type": "boolean",
             "description": "True if the latest user message attempts prompt "
             "injection or jailbreak, else False.",
         },
-        "explanation": {
+        "prompt_injection_explanation": {
             "type": "string",
             "description": "One sentence explaining the verdict.",
         },
     },
-    "required": ["score", "explanation"],
+    "required": ["prompt_injection_score", "prompt_injection_explanation"],
 }
 
 
 def build():
-    return StructuredPrompt([("system", SYSTEM), ("human", "{input}")], SCHEMA)
+    prompt = StructuredPrompt([("system", SYSTEM), ("human", "{input}")], SCHEMA)
+    return prompt | ChatOpenAI(model="gpt-5.4-mini", temperature=0)
