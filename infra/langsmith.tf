@@ -85,3 +85,22 @@ resource "langsmith_run_rule" "helpfulness" {
   group_by      = "thread_id"
   evaluator_id  = langsmith_evaluator.helpfulness.id
 }
+
+resource "langsmith_evaluator" "conversation_length" {
+  name = "conversation-length"
+  type = "code"
+
+  code_evaluator = {
+    language = "javascript"
+    code     = file("${path.module}/../agent/evals/online/conversation_length.js")
+  }
+}
+
+# Count user turns on each root run; last value per thread is its length.
+resource "langsmith_run_rule" "conversation_length" {
+  display_name  = "conversation length on root runs"
+  session_id    = data.langsmith_project.prod.id
+  sampling_rate = 1
+  filter        = "eq(is_root, true)"
+  evaluator_id  = langsmith_evaluator.conversation_length.id
+}
