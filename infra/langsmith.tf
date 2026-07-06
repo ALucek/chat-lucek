@@ -41,3 +41,24 @@ resource "langsmith_run_rule" "overcap" {
   filter        = "and(eq(name, \"LangGraph\"), eq(metadata_key, \"langgraph_node\"), eq(metadata_value, \"subagent\"))"
   evaluator_id  = langsmith_evaluator.overcap.id
 }
+
+# Prompt-injection LLM judge on user inputs; model from the workspace default.
+resource "langsmith_evaluator" "injection" {
+  name = "prompt-injection-scan"
+  type = "llm"
+
+  llm_evaluator = {
+    prompt_repo_handle    = "chat-lucek-prompt-injection"
+    commit_hash_or_tag    = var.injection_prompt_commit
+    variable_mapping_json = jsonencode({ input = "input" })
+  }
+}
+
+# Judge 100% of root-run inputs (spend limits unavailable on this org plan).
+resource "langsmith_run_rule" "injection" {
+  display_name  = "prompt injection scan on inputs"
+  session_id    = data.langsmith_project.prod.id
+  sampling_rate = 1
+  filter        = "eq(is_root, true)"
+  evaluator_id  = langsmith_evaluator.injection.id
+}

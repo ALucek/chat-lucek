@@ -82,3 +82,8 @@ variable "langsmith_workspace_id" {
   type        = string
   description = "LangSmith workspace (tenant) ID that owns the evaluators."
 }
+
+variable "injection_prompt_commit" {
+  type        = string
+  description = "Pinned Prompt Hub commit hash for the prompt-injection judge."
+}
