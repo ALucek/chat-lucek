@@ -104,3 +104,81 @@ resource "langsmith_run_rule" "conversation_length" {
   filter        = "eq(is_root, true)"
   evaluator_id  = langsmith_evaluator.conversation_length.id
 }
+
+# Email alerts: page the owner when a security evaluator scores positive.
+# LangSmith POSTs the static body to Resend's send API; the API key lives in
+# config (TF state), so use a send-scoped key.
+locals {
+  resend_alert_headers = jsonencode({
+    "Authorization" = "Bearer ${var.resend_api_key}"
+    "Content-Type"  = "application/json"
+  })
+
+  pii_alert_html = <<-EOT
+    <p>The pii evaluator flagged an assistant answer in a live conversation on ${var.langsmith_project}. The response matched a PII pattern such as an SSN, email address, phone number, card number, IP address, passport, or license number.</p>
+    <p>Open the project in LangSmith and filter recent root runs by pii_detected = 1 to find the trace: <a href="https://smith.langchain.com">https://smith.langchain.com</a></p>
+    <p>This alert fires when the average pii_detected score rises above 0 in a 15 minute window.</p>
+  EOT
+
+  injection_alert_html = <<-EOT
+    <p>The prompt-injection judge flagged a user's latest message as an injection or jailbreak attempt in a live conversation on ${var.langsmith_project}.</p>
+    <p>Open the project in LangSmith and filter recent root runs by prompt_injection_score = 1 to review it: <a href="https://smith.langchain.com">https://smith.langchain.com</a></p>
+    <p>This alert fires when the average prompt_injection_score rises above 0 in a 15 minute window.</p>
+  EOT
+}
+
+# Alert on any answer flagged by the pii evaluator.
+resource "langsmith_alert_rule" "pii" {
+  session_id     = data.langsmith_project.prod.id
+  name           = "pii detected in answers"
+  description    = "A prod answer scored positive on the pii evaluator."
+  type           = "threshold"
+  attribute      = "feedback_score"
+  aggregation    = "avg"
+  operator       = "gt"
+  threshold      = 0
+  window_minutes = 15
+  filter         = "eq(feedback_key, \"pii_detected\")"
+
+  actions = [{
+    target = "webhook"
+    config_json = jsonencode({
+      url     = "https://api.resend.com/emails"
+      headers = local.resend_alert_headers
+      body = jsonencode({
+        from    = var.alert_email_from
+        to      = [var.owner_email]
+        subject = "[chat.lucek.ai] PII detected in a production answer"
+        html    = local.pii_alert_html
+      })
+    })
+  }]
+}
+
+# Alert on any user message flagged by the prompt-injection judge.
+resource "langsmith_alert_rule" "injection" {
+  session_id     = data.langsmith_project.prod.id
+  name           = "prompt injection detected"
+  description    = "A user message scored positive on the prompt-injection judge."
+  type           = "threshold"
+  attribute      = "feedback_score"
+  aggregation    = "avg"
+  operator       = "gt"
+  threshold      = 0
+  window_minutes = 15
+  filter         = "eq(feedback_key, \"prompt_injection_score\")"
+
+  actions = [{
+    target = "webhook"
+    config_json = jsonencode({
+      url     = "https://api.resend.com/emails"
+      headers = local.resend_alert_headers
+      body = jsonencode({
+        from    = var.alert_email_from
+        to      = [var.owner_email]
+        subject = "[chat.lucek.ai] Prompt injection attempt detected"
+        html    = local.injection_alert_html
+      })
+    })
+  }]
+}
