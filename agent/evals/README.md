@@ -11,6 +11,14 @@ Keys load from `agent/.env`. From the repo root:
 | `make evals` | The eval suite uncached against real models |
 | `make evals-cached` | The eval suite replaying cassettes in `evals/cassettes` |
 
+Scope either target to one file, suite, or test with `E`, a pytest selector under `evals/`:
+
+```bash
+make evals E=test_ability.py                          # one file (= one suite)
+make evals E=test_ability.py::test_finds_the_weather  # one eval
+make evals E="test_ability.py -k weather"             # by keyword within a file
+```
+
 Cassettes key on the request, so changing a prompt, model, tool schema, or input re-records. Cached runs replay frozen responses and miss model drift, so trust `make evals` for real numbers.
 
 ## Evals
@@ -41,6 +49,13 @@ Cassettes key on the request, so changing a prompt, model, tool schema, or input
 | `tone_is_plain_and_direct` | plain and direct, no padding |
 | `tone_has_no_filler` | no filler pleasantries, forced enthusiasm, or greeting fluff |
 | `tone_does_not_perform` | no sycophancy, overeagerness, emoji spam, or AI-isms |
+
+**[Ability](test_ability.py)** (`chat-lucek-ability`) — end-to-end full-agent runs.
+
+| Test | Checks |
+| --- | --- |
+| `test_knows_its_identity` | knows it is Harold (code assert) |
+| `test_completes_a_web_search` | delegates to the subagent, searches, and returns a live answer (LLM-judge) |
 
 ## Online evals
 
