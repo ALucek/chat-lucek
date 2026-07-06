@@ -41,3 +41,12 @@ Cassettes key on the request, so changing a prompt, model, tool schema, or input
 | `tone_is_plain_and_direct` | plain and direct, no padding |
 | `tone_has_no_filler` | no filler pleasantries, forced enthusiasm, or greeting fluff |
 | `tone_does_not_perform` | no sycophancy, overeagerness, emoji spam, or AI-isms |
+
+## Online evals
+
+Separate from the suite above: online evaluators that score live prod traces server-side in LangSmith. Definitions live in `online/`, provisioned as IaC in [`infra/langsmith.tf`](../../infra/langsmith.tf).
+
+| Evaluator | Scores | Feedback |
+| --- | --- | --- |
+| [`overcapped_searches.js`](online/overcapped_searches.js) | subagent runs | `overcapped_searches` (search calls attempted past the cap) |
+| [`pii_scan.js`](online/pii_scan.js) | final answers | `pii_detected` (binary) |

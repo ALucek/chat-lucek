@@ -26,3 +26,4 @@ Full first-time deployment (state bucket, secret values, DNS) lives in the [depl
 | `deploy.tf` | Workload Identity Federation + deploy service account for CI |
 | `monitoring.tf` | Uptime checks, alert policies, and log metrics |
 | `budget.tf` | Monthly billing budget alert |
+| `langsmith.tf` | Online eval evaluators and run rules |

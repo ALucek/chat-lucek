@@ -71,3 +71,14 @@ variable "langsmith_project" {
   description = "LangSmith project the agent traces into."
   default     = "simple-deep-research"
 }
+
+variable "langsmith_api_key" {
+  type        = string
+  description = "LangSmith API key for provisioning online evaluators."
+  sensitive   = true
+}
+
+variable "langsmith_workspace_id" {
+  type        = string
+  description = "LangSmith workspace (tenant) ID that owns the evaluators."
+}

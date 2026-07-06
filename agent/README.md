@@ -49,4 +49,4 @@ nest under it, so the run reads as a tree.
 | `src/server.py` | FastAPI app: `/run`, `/healthz`              |
 | `src/events.py` | LangGraph events to SSE translation          |
 | `src/config.py` | Settings and per-run config                  |
-| `evals/`        | Live behavioral evals, `make evals` (see [evals/README.md](evals/README.md)) |
+| `evals/`        | Live behavioral evals, offline and online (see [evals/README.md](evals/README.md)) |

@@ -48,7 +48,7 @@ In the GCP console, create an OAuth 2.0 Client ID (Web application). Add `https:
 
 ### 4. Configure and initialize Terraform
 
-From `infra/`, fill in the two gitignored files from their examples:
+From `infra/`, fill in the two files from their examples:
 
 ```bash
 cp backend.hcl.example backend.hcl          # bucket = "<project-id>-tfstate"
@@ -127,3 +127,13 @@ terraform output -raw lb_ip
 ### 10. First deploy
 
 Push to `main`. CI builds the real images, runs migrations, deploys the services, and the site comes up at your domain.
+
+### LangSmith online evals
+
+`infra/langsmith.tf` provisions code evaluators that score live prod traces (see [agent/evals/README.md](../agent/evals/README.md)). The same Terraform manages them, but they authenticate to LangSmith rather than GCP. Set the LangSmith values in `terraform.tfvars`:
+
+```hcl
+langsmith_project      = "<tracing-project-name>"
+langsmith_api_key      = "<workspace-api-key>"
+langsmith_workspace_id = "<workspace-id>"
+```
