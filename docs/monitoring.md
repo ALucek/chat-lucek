@@ -23,6 +23,17 @@ Two HTTPS checks run every 60 seconds:
 | Agent 5xx | more than 5 agent 5xx responses in 5 minutes |
 | LB 429 spike | more than 30 rate-limited responses in 5 minutes |
 
+## Online-eval alerts
+
+Separately from Cloud Monitoring, LangSmith online evaluators score live prod traces (see [deployment.md](deployment.md#langsmith-online-evals)). Two of them email the owner through Resend when a security signal appears:
+
+| Alert | Fires when |
+| --- | --- |
+| PII in answers | a prod answer scores positive on the pii evaluator |
+| Prompt injection | a user message scores positive on the prompt-injection judge |
+
+Both trip on any single positive over a 15 minute window. Defined in [infra/langsmith.tf](../infra/langsmith.tf).
+
 ## Billing budget
 
 A monthly budget (default $20) emails the owner as spend crosses 50%, 90%, 100%, and 150%, plus a forecast warning, so a cost spike surfaces early. It is notify-only; [full-kill](runbooks/full-kill.md) is the response. Defined in [infra/budget.tf](../infra/budget.tf).
