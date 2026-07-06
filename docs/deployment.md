@@ -137,6 +137,7 @@ langsmith_project       = "<tracing-project-name>"
 langsmith_api_key       = "<workspace-api-key>"
 langsmith_workspace_id  = "<workspace-id>"
 injection_prompt_commit = "<prompt-hub-commit-hash>"
+# plus one *_prompt_commit per additional LLM judge (see below)
 ```
 
 Some evaluators are LLM-as-judge rather than code. Each is a self-contained file in [`agent/evals/online/`](../agent/evals/online/) holding its prompt, output schema, and model, published to the LangSmith Prompt Hub and referenced by Terraform via a pinned commit. For each judge:
@@ -148,3 +149,5 @@ Some evaluators are LLM-as-judge rather than code. Each is a self-contained file
 make push-llm-judge JUDGE=<name>   # e.g. prompt_injection; prints a commit hash
 # set the hash as the judge's *_prompt_commit var in terraform.tfvars, then terraform apply
 ```
+
+Publishing constructs the model client locally to serialize it, so `agent/.env` needs `OPENAI_API_KEY` set to any non-empty placeholder. The model only ever runs server-side in LangSmith under the workspace secret, so the local value is never used for inference.

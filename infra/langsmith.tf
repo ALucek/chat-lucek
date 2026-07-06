@@ -48,9 +48,10 @@ resource "langsmith_evaluator" "injection" {
   type = "llm"
 
   llm_evaluator = {
-    prompt_repo_handle    = "chat-lucek-prompt-injection"
-    commit_hash_or_tag    = var.injection_prompt_commit
-    variable_mapping_json = jsonencode({ input = "input" })
+    prompt_repo_handle      = "chat-lucek-prompt-injection"
+    commit_hash_or_tag      = var.injection_prompt_commit
+    variable_mapping_json   = jsonencode({ input = "input" })
+    use_corrections_dataset = false
   }
 }
 
@@ -61,4 +62,26 @@ resource "langsmith_run_rule" "injection" {
   sampling_rate = 1
   filter        = "eq(is_root, true)"
   evaluator_id  = langsmith_evaluator.injection.id
+}
+
+# Thread-level helpfulness judge; reads the whole assembled conversation.
+resource "langsmith_evaluator" "helpfulness" {
+  name = "thread-helpfulness"
+  type = "llm"
+
+  llm_evaluator = {
+    prompt_repo_handle      = "chat-lucek-thread-helpfulness"
+    commit_hash_or_tag      = var.thread_helpfulness_prompt_commit
+    variable_mapping_json   = jsonencode({ outputs = "all_messages" })
+    use_corrections_dataset = false
+  }
+}
+
+# Judge 10% of completed threads (group_by thread_id makes it thread-level).
+resource "langsmith_run_rule" "helpfulness" {
+  display_name  = "thread helpfulness scan"
+  session_id    = data.langsmith_project.prod.id
+  sampling_rate = 0.1
+  group_by      = "thread_id"
+  evaluator_id  = langsmith_evaluator.helpfulness.id
 }
