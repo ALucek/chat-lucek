@@ -42,4 +42,4 @@ LangSmith online evaluators also score live prod traces (see [deployment.md](dep
 | PII in answers | a prod answer scores positive on the pii evaluator |
 | Prompt injection | a user message scores positive on the prompt-injection judge |
 
-Both trip on any single positive over a 15 minute window. Defined in [infra/langsmith.tf](../infra/langsmith.tf).
+Both trip on any single positive over a 15 minute window. Defined in [infra/langsmith.tf](../infra/langsmith.tf). When one fires, [triage the trace](runbooks/eval-alerts.md).

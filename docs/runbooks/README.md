@@ -16,6 +16,8 @@ What to do to operate and recover chat-lucek. Most levers are one-click GitHub A
 | Agent 5xx | The agent is returning 5xx to the API. Check `chat-agent` logs and its upstreams. |
 | LB 429 spike | Abuse. Climb the [escalation ladder](abuse.md). |
 | Budget threshold | Check Cloud Billing for the source of the spend; if it is abuse, [respond](abuse.md). |
+| PII in answers | An answer scored positive on the pii evaluator. [Triage the trace](eval-alerts.md). |
+| Prompt injection | A user message scored positive on the prompt-injection judge. [Triage the trace](eval-alerts.md); escalate via [abuse](abuse.md) if malicious. |
 
 ## Runbooks
 
@@ -27,3 +29,4 @@ What to do to operate and recover chat-lucek. Most levers are one-click GitHub A
 - [Full-kill](full-kill.md) — deny all API traffic at the edge
 - [Restore the database](db-restore.md) — recover Cloud SQL from a backup
 - [Abuse response](abuse.md) — escalation ladder for a traffic or abuse spike
+- [Eval alert triage](eval-alerts.md) — investigate a PII or prompt-injection flag
