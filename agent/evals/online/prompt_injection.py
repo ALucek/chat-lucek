@@ -35,8 +35,18 @@ SCHEMA = {
 
 
 def build():
-    prompt = StructuredPrompt([("system", SYSTEM), ("human", "{input}")], SCHEMA)
-    return prompt | ChatOpenAI(model="gpt-5.4-mini", temperature=0)
+    prompt = StructuredPrompt(
+        [("system", SYSTEM), ("human", "{input}")],
+        SCHEMA,
+        structured_output_kwargs={"strict": True},
+    )
+    # OpenRouter via OpenAI-compatible base; secret ref is OPENAI_API_KEY.
+    model = ChatOpenAI(
+        model="openai/gpt-5.4-mini",
+        base_url="https://openrouter.ai/api/v1",
+        temperature=0,
+    )
+    return prompt | model
 
 
 def main() -> None:
