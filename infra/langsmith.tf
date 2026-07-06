@@ -143,8 +143,9 @@ resource "langsmith_alert_rule" "pii" {
   actions = [{
     target = "webhook"
     config_json = jsonencode({
-      url     = "https://api.resend.com/emails"
-      headers = local.resend_alert_headers
+      project_name = var.langsmith_project
+      url          = "https://api.resend.com/emails"
+      headers      = local.resend_alert_headers
       body = jsonencode({
         from    = var.alert_email_from
         to      = [var.owner_email]
@@ -171,8 +172,9 @@ resource "langsmith_alert_rule" "injection" {
   actions = [{
     target = "webhook"
     config_json = jsonencode({
-      url     = "https://api.resend.com/emails"
-      headers = local.resend_alert_headers
+      project_name = var.langsmith_project
+      url          = "https://api.resend.com/emails"
+      headers      = local.resend_alert_headers
       body = jsonencode({
         from    = var.alert_email_from
         to      = [var.owner_email]
