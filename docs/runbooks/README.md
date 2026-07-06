@@ -29,4 +29,4 @@ What to do to operate and recover chat-lucek. Most levers are one-click GitHub A
 - [Full-kill](full-kill.md) — deny all API traffic at the edge
 - [Restore the database](db-restore.md) — recover Cloud SQL from a backup
 - [Abuse response](abuse.md) — escalation ladder for a traffic or abuse spike
-- [Eval alert triage](eval-alerts.md) — investigate a PII or prompt-injection flag
+- [Eval alert triage](eval-alerts.md) — investigate an online-eval alert
