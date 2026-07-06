@@ -68,4 +68,4 @@ Separate from the suite above: online evaluators that score live prod traces ser
 | [`prompt_injection.py`](online/prompt_injection.py) | LLM judge | user inputs | `prompt_injection_score` (binary), `prompt_injection_explanation` |
 | [`thread_helpfulness.py`](online/thread_helpfulness.py) | LLM judge | whole thread | `thread_helpful` (binary), `thread_helpful_explanation` |
 
-The `.js` evaluators are code that runs in LangSmith's sandbox. LLM-as-judge evaluators are each a self-contained Python file whose prompt, output schema, and model publish to the LangSmith Prompt Hub with `make push-llm-judge JUDGE=<name>`, then get referenced from Terraform by a pinned commit hash. Thread-level judges score an entire conversation; their run rule uses `group_by = "thread_id"` and maps the assembled conversation to the prompt's `all_messages` variable.
+The `.js` evaluators are code that runs in LangSmith's sandbox. LLM-as-judge evaluators are each a self-contained Python file whose prompt, output schema, and model publish to the LangSmith Prompt Hub with `make push-llm-judge JUDGE=<name>`, then get referenced from Terraform by a pinned commit hash.
