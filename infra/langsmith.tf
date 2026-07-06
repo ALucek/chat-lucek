@@ -105,9 +105,7 @@ resource "langsmith_run_rule" "conversation_length" {
   evaluator_id  = langsmith_evaluator.conversation_length.id
 }
 
-# Email alerts: page the owner when a security evaluator scores positive.
-# LangSmith POSTs the static body to Resend's send API; the API key lives in
-# config (TF state), so use a send-scoped key.
+# Email alerts via Resend when a security evaluator scores positive.
 locals {
   resend_alert_headers = jsonencode({
     "Authorization" = "Bearer ${var.resend_api_key}"
