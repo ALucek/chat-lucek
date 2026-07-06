@@ -1,7 +1,7 @@
-// Verbatim copy of the published lucek.ai/privacy policy.
+// chat.lucek.ai/privacy
 export const privacyMarkdown = `# Privacy Policy
 
-**Effective date: June 27, 2026**
+**Effective date: July 6, 2026**
 
 This Privacy Policy explains how Adam Lucek handles information for lucek.ai and the Lucek Chat web app.
 
@@ -29,7 +29,7 @@ I use information to:
 - provide the chat app and save your conversation history;
 - send your messages and relevant conversation context to AI model providers so the app can generate replies;
 - enforce usage limits, prevent abuse, and control service costs;
-- debug, secure, maintain, and improve the service;
+- debug, secure, maintain, monitor, and improve the service;
 - respond to privacy requests.
 
 ## Google Sign-In
@@ -46,7 +46,9 @@ Do not enter passwords, private keys, confidential business information, health 
 
 ## Hosting and Service Providers
 
-The service may use hosting, authentication, database, logging, security, infrastructure, and AI model providers, including services such as Google and OpenRouter.
+The service may use hosting, authentication, database, logging, observability, security, infrastructure, and AI model providers, including services such as Google, OpenRouter, and LangSmith.
+
+To monitor, debug, and evaluate the quality of the service, the app sends traces that include your messages and the assistant's replies to LangSmith, an observability service operated by LangChain. LangSmith processes this content under its own terms and privacy policy.
 
 I may also disclose information if required by law, to protect the service, or to investigate abuse, security issues, or fraud.
 
