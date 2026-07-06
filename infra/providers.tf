@@ -6,3 +6,6 @@ provider "google" {
   user_project_override = true
   billing_project       = var.project_id
 }
+
+# Auth resolves from LANGSMITH_* env vars (kept out of state).
+provider "langsmith" {}
