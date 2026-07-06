@@ -43,3 +43,5 @@ LangSmith online evaluators also score live prod traces (see [deployment.md](dep
 | Prompt injection | a user message scores positive on the prompt-injection judge |
 
 Both trip on any single positive over a 15 minute window. Defined in [infra/langsmith.tf](../infra/langsmith.tf). When one fires, [triage the trace](runbooks/eval-alerts.md).
+
+The offline eval suite also runs weekly and emails the owner its results; see [agent/evals/README.md](../agent/evals/README.md#running).

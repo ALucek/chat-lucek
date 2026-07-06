@@ -134,10 +134,10 @@ agent-sast:
 E ?=
 
 evals:
-	cd agent && set -a && . ./.env && set +a && uv run --group evals pytest evals/$(E) --langsmith-output
+	cd agent && if [ -f .env ]; then set -a && . ./.env && set +a; fi && uv run --group evals pytest evals/$(E) --langsmith-output
 
 evals-cached:
-	cd agent && set -a && . ./.env && set +a && LANGSMITH_TEST_CACHE=evals/cassettes uv run --group evals pytest evals/$(E) --langsmith-output
+	cd agent && if [ -f .env ]; then set -a && . ./.env && set +a; fi && LANGSMITH_TEST_CACHE=evals/cassettes uv run --group evals pytest evals/$(E) --langsmith-output
 
 # Publish one online-eval LLM judge, e.g. make push-llm-judge JUDGE=prompt_injection
 push-llm-judge:

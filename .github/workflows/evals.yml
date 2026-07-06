@@ -1,0 +1,43 @@
+name: evals
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 7 * * 1'
+permissions:
+  contents: read
+jobs:
+  evals:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+      - run: make agent-install
+      # Full offline suite against live models; report only, never gates.
+      - id: run
+        continue-on-error: true
+        run: make evals 2>&1 | tee "$RUNNER_TEMP/evals.log"
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
+          LANGSMITH_API_KEY: ${{ secrets.LANGSMITH_API_KEY }}
+      - if: always()
+        run: |
+          {
+            echo 'EVAL_BODY<<__EOF__'
+            cat "$RUNNER_TEMP/evals.log"
+            echo '__EOF__'
+          } >> "$GITHUB_ENV"
+      - if: always()
+        uses: dawidd6/action-send-mail@94de994a9f6fffee200243214e17002e2920bb59 # v18
+        with:
+          server_address: smtp.resend.com
+          server_port: 465
+          secure: true
+          username: resend
+          password: ${{ secrets.RESEND_API_KEY }}
+          from: alerts@lucek.ai
+          to: ${{ secrets.EVAL_REPORT_TO }}
+          subject: '[chat.lucek.ai] Weekly agent evals: ${{ steps.run.outcome }}'
+          body: ${{ env.EVAL_BODY }}
+      - if: always()
+        run: cat "$RUNNER_TEMP/evals.log" >> "$GITHUB_STEP_SUMMARY"
