@@ -1,0 +1,35 @@
+name: evals
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 7 * * 1'
+permissions:
+  contents: read
+jobs:
+  evals:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+      - run: make agent-install
+      # Full offline suite against live models; report only, never gates.
+      - id: run
+        continue-on-error: true
+        run: make evals 2>&1 | tee "$RUNNER_TEMP/evals.log"
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
+          LANGSMITH_API_KEY: ${{ secrets.LANGSMITH_API_KEY }}
+          LANGSMITH_TRACING: 'true'
+          LANGSMITH_PROJECT: chat-lucek-ai-evals
+          OPENAI_API_KEY: placeholder
+      # Email the run output; keep prod eval traces out of the alerted project.
+      - if: always()
+        run: python3 agent/evals/report_email.py "$RUNNER_TEMP/evals.log"
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          EVAL_REPORT_TO: ${{ vars.EVAL_REPORT_TO }}
+          LANGSMITH_WORKSPACE_ID: ${{ vars.LANGSMITH_WORKSPACE_ID }}
+          EVAL_OUTCOME: ${{ steps.run.outcome }}
+      - if: always()
+        run: cat "$RUNNER_TEMP/evals.log" >> "$GITHUB_STEP_SUMMARY"
