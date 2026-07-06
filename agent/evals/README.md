@@ -21,6 +21,8 @@ make evals E="test_ability.py -k weather"             # by keyword within a file
 
 Cassettes key on the request, so changing a prompt, model, tool schema, or input re-records. Cached runs replay frozen responses and miss model drift, so trust `make evals` for real numbers.
 
+The [`evals` workflow](../../.github/workflows/evals.yml) also runs the full suite every Monday (and on demand from the Actions tab) and emails the output to the owner via Resend.
+
 ## Evals
 
 **[Routing](test_routing.py)** (`chat-lucek-routing`) — does the main agent pick the right next step? Step evals on the router.
@@ -72,7 +74,3 @@ Separate from the suite above: online evaluators that score live prod traces ser
 The `.js` evaluators are code that runs in LangSmith's sandbox. LLM-as-judge evaluators are each a self-contained Python file whose prompt, output schema, and model publish to the LangSmith Prompt Hub with `make push-llm-judge JUDGE=<name>`, then get referenced from Terraform by a pinned commit hash.
 
 Some of these scores also drive email alerts to the owner; see [monitoring.md](../../docs/monitoring.md#tracing).
-
-## Scheduled runs
-
-The [`evals` workflow](../../.github/workflows/evals.yml) runs the full offline suite every Monday (and on demand from the Actions tab). The run output is emailed to the owner via Resend, and the results are recorded as experiments in the LangSmith test suites.
