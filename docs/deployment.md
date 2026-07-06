@@ -133,7 +133,18 @@ Push to `main`. CI builds the real images, runs migrations, deploys the services
 `infra/langsmith.tf` provisions code evaluators that score live prod traces (see [agent/evals/README.md](../agent/evals/README.md)). The same Terraform manages them, but they authenticate to LangSmith rather than GCP. Set the LangSmith values in `terraform.tfvars`:
 
 ```hcl
-langsmith_project      = "<tracing-project-name>"
-langsmith_api_key      = "<workspace-api-key>"
-langsmith_workspace_id = "<workspace-id>"
+langsmith_project       = "<tracing-project-name>"
+langsmith_api_key       = "<workspace-api-key>"
+langsmith_workspace_id  = "<workspace-id>"
+injection_prompt_commit = "<prompt-hub-commit-hash>"
+```
+
+Some evaluators are LLM-as-judge rather than code. Each is a self-contained file in [`agent/evals/online/`](../agent/evals/online/) holding its prompt, output schema, and model, published to the LangSmith Prompt Hub and referenced by Terraform via a pinned commit. For each judge:
+
+1. Add a workspace secret (Settings, Secrets) for the API key its model uses. The prompt-injection judge calls its model through OpenRouter's OpenAI-compatible endpoint, so its secret is `OPENAI_API_KEY` set to an OpenRouter key.
+2. Publish it and pin the commit:
+
+```bash
+make push-llm-judge JUDGE=<name>   # e.g. prompt_injection; prints a commit hash
+# set the hash as the judge's *_prompt_commit var in terraform.tfvars, then terraform apply
 ```

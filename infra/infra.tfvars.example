@@ -7,7 +7,7 @@ billing_account  = "XXXXXX-XXXXXX-XXXXXX"
 
 
 # LangSmith online evals
-langsmith_project      = "your-langsmith-project"
-langsmith_api_key      = "your-langsmith-api-key"
-langsmith_workspace_id = "your-langsmith-workspace-id"
+langsmith_project       = "your-langsmith-project"
+langsmith_api_key       = "your-langsmith-api-key"
+langsmith_workspace_id  = "your-langsmith-workspace-id"
 injection_prompt_commit = "your-prompt-injection-commit-hash"

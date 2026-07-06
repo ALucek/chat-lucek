@@ -46,7 +46,10 @@ Cassettes key on the request, so changing a prompt, model, tool schema, or input
 
 Separate from the suite above: online evaluators that score live prod traces server-side in LangSmith. Definitions live in `online/`, provisioned as IaC in [`infra/langsmith.tf`](../../infra/langsmith.tf).
 
-| Evaluator | Scores | Feedback |
-| --- | --- | --- |
-| [`overcapped_searches.js`](online/overcapped_searches.js) | subagent runs | `overcapped_searches` (search calls attempted past the cap) |
-| [`pii_scan.js`](online/pii_scan.js) | final answers | `pii_detected` (binary) |
+| Evaluator | Type | Scores | Feedback |
+| --- | --- | --- | --- |
+| [`overcapped_searches.js`](online/overcapped_searches.js) | code | subagent runs | `overcapped_searches` (search calls attempted past the cap) |
+| [`pii_scan.js`](online/pii_scan.js) | code | final answers | `pii_detected` (binary) |
+| [`prompt_injection.py`](online/prompt_injection.py) | LLM judge | user inputs | `prompt_injection_score` (binary), `prompt_injection_explanation` |
+
+The `.js` evaluators are code that runs in LangSmith's sandbox. LLM-as-judge evaluators are each a self-contained Python file whose prompt, output schema, and model publish to the LangSmith Prompt Hub with `make push-llm-judge JUDGE=<name>`, then get referenced from Terraform by a pinned commit hash.
