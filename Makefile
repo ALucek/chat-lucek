@@ -126,12 +126,14 @@ agent-sast:
 	cd agent && uv run bandit -q -r src
 
 # ── Agent evals (live; not in the CI gate) ───────────────────────────────
+# Scope with E, e.g. make evals E=test_ability.py or E=test_ability.py::test_knows_its_name
+E ?=
 
 evals:
-	cd agent && set -a && . ./.env && set +a && uv run --group evals pytest evals --langsmith-output
+	cd agent && set -a && . ./.env && set +a && uv run --group evals pytest evals/$(E) --langsmith-output
 
 evals-cached:
-	cd agent && set -a && . ./.env && set +a && LANGSMITH_TEST_CACHE=evals/cassettes uv run --group evals pytest evals --langsmith-output
+	cd agent && set -a && . ./.env && set +a && LANGSMITH_TEST_CACHE=evals/cassettes uv run --group evals pytest evals/$(E) --langsmith-output
 
 # Publish one online-eval LLM judge, e.g. make push-llm-judge JUDGE=prompt_injection
 push-llm-judge:

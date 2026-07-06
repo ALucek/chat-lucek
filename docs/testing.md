@@ -30,6 +30,8 @@ The agent has live behavioral evals under `agent/evals/` that call the real agen
 | `make evals` | The eval suite uncached against real models |
 | `make evals-cached` | The eval suite replaying recorded cassettes |
 
+Scope either to one file or test with `E`, e.g. `make evals E=test_ability.py`.
+
 See [agent/evals/README.md](../agent/evals/README.md) for more details.
 
 ## Gates
