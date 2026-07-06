@@ -114,17 +114,21 @@ locals {
     "Content-Type"  = "application/json"
   })
 
-  project_url = "https://smith.langchain.com/o/${var.langsmith_workspace_id}/projects/p/${data.langsmith_project.prod.id}"
+  project_base = "https://smith.langchain.com/o/${var.langsmith_workspace_id}/projects/p/${data.langsmith_project.prod.id}"
+  alert_time   = urlencode(jsonencode({ duration = "1d" }))
+
+  pii_url       = "${local.project_base}?timeModel=${local.alert_time}&searchModel=${urlencode(jsonencode({ filter = "and(eq(is_root, true), and(eq(feedback_key, \"pii_detected\"), gt(feedback_score, 0)))" }))}"
+  injection_url = "${local.project_base}?timeModel=${local.alert_time}&searchModel=${urlencode(jsonencode({ filter = "and(eq(is_root, true), and(eq(feedback_key, \"prompt_injection_score\"), gt(feedback_score, 0)))" }))}"
 
   pii_alert_html = <<-EOT
     <p>The pii evaluator flagged an assistant answer in a live conversation on ${var.langsmith_project}. The response matched a PII pattern such as an SSN, email address, phone number, card number, IP address, passport, or license number.</p>
-    <p>Open the project in LangSmith and filter recent root runs by pii_detected = 1 to find the trace: <a href="${local.project_url}">${var.langsmith_project}</a></p>
+    <p>Open the project in LangSmith and filter recent root runs by pii_detected = 1 to find the trace: <a href="${local.pii_url}">${var.langsmith_project}</a></p>
     <p>This alert fires when the average pii_detected score rises above 0 in a 15 minute window.</p>
   EOT
 
   injection_alert_html = <<-EOT
     <p>The prompt-injection judge flagged a user's latest message as an injection or jailbreak attempt in a live conversation on ${var.langsmith_project}.</p>
-    <p>Open the project in LangSmith and filter recent root runs by prompt_injection_score = 1 to review it: <a href="${local.project_url}">${var.langsmith_project}</a></p>
+    <p>Open the project in LangSmith and filter recent root runs by prompt_injection_score = 1 to review it: <a href="${local.injection_url}">${var.langsmith_project}</a></p>
     <p>This alert fires when the average prompt_injection_score rises above 0 in a 15 minute window.</p>
   EOT
 }
