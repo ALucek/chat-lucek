@@ -35,7 +35,7 @@ A monthly budget (default $20) emails the owner as spend crosses 50%, 90%, 100%,
 
 The agent traces every run to LangSmith for step-level inspection of reasoning, tool calls, and subagents beyond what the Cloud Run logs show.
 
-LangSmith online evaluators also score live prod traces (see [deployment.md](deployment.md#langsmith-online-evals)). Two of them email the owner through Resend when a security signal appears:
+LangSmith online evaluators also score live prod traces (see [deployment.md](deployment.md#langsmith-online-evals)). The following email the owner through Resend when a security signal appears:
 
 | Alert | Fires when |
 | --- | --- |
