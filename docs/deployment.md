@@ -128,11 +128,12 @@ terraform output -raw lb_ip
 
 Push to `main`. CI builds the real images, runs migrations, deploys the services, and the site comes up at your domain.
 
-### Optional: LangSmith online evals
+### LangSmith online evals
 
-`infra/langsmith.tf` provisions code evaluators that score live prod traces (see [agent/evals/README.md](../agent/evals/README.md)). The same Terraform manages them, but they authenticate to LangSmith rather than GCP. Add the workspace API key and ID to `terraform.tfvars`:
+`infra/langsmith.tf` provisions code evaluators that score live prod traces (see [agent/evals/README.md](../agent/evals/README.md)). The same Terraform manages them, but they authenticate to LangSmith rather than GCP. Set the LangSmith values in `terraform.tfvars`:
 
 ```hcl
+langsmith_project      = "<tracing-project-name>"
 langsmith_api_key      = "<workspace-api-key>"
 langsmith_workspace_id = "<workspace-id>"
 ```
