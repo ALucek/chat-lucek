@@ -1,4 +1,4 @@
-// Online eval: flag PII in the agent's final answer.
+// flag PII in the agent's final answer.
 function performEval(run) {
   const msgs = (run.outputs && run.outputs.messages) || [];
   const ai = msgs.filter((m) => m && m.type === "ai");
