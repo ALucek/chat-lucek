@@ -97,7 +97,12 @@ web-audit:
 e2e:
 	cd web && pnpm e2e
 
-e2e-local: db-up migrate-up e2e
+# Run e2e against a local db, always torn down afterward (even on failure).
+e2e-local:
+	@rc=0; \
+	$(MAKE) db-up && $(MAKE) migrate-up && $(MAKE) e2e || rc=$$?; \
+	$(MAKE) db-down; \
+	exit $$rc
 
 # ── Agent (Python) ───────────────────────────────────────────────────────
 
