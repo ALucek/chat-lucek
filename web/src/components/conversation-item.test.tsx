@@ -16,6 +16,12 @@ vi.mock('next/navigation', () => ({
 
 const convo = { id: 2, title: 'Hello', created_at: 't', updated_at: 't' };
 
+async function openMenu() {
+  await userEvent.click(
+    screen.getByRole('button', { name: 'Conversation actions' }),
+  );
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
 });
@@ -31,7 +37,8 @@ describe('ConversationItem', () => {
       />,
       { wrapper },
     );
-    await userEvent.click(screen.getByLabelText('Rename'));
+    await openMenu();
+    await userEvent.click(screen.getByRole('button', { name: 'Rename' }));
     const input = screen.getByLabelText('Conversation title');
     await userEvent.clear(input);
     await userEvent.type(input, 'Renamed{Enter}');
@@ -48,7 +55,8 @@ describe('ConversationItem', () => {
       />,
       { wrapper },
     );
-    await userEvent.click(screen.getByLabelText('Rename'));
+    await openMenu();
+    await userEvent.click(screen.getByRole('button', { name: 'Rename' }));
     await userEvent.type(
       screen.getByLabelText('Conversation title'),
       'X{Escape}',
@@ -57,7 +65,7 @@ describe('ConversationItem', () => {
     expect(screen.getByText('Hello')).toBeInTheDocument();
   });
 
-  it('deletes after inline confirm', async () => {
+  it('deletes after confirming', async () => {
     const remove = vi.fn().mockResolvedValue(undefined);
     render(
       <ConversationItem
@@ -67,9 +75,30 @@ describe('ConversationItem', () => {
       />,
       { wrapper },
     );
-    await userEvent.click(screen.getByLabelText('Delete'));
-    await userEvent.click(screen.getByText('yes'));
+    await openMenu();
+    await userEvent.click(screen.getByRole('button', { name: 'Delete' }));
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Delete' }),
+    );
     expect(remove).toHaveBeenCalledWith(2);
+  });
+
+  it('does not delete when cancelling the confirm', async () => {
+    const remove = vi.fn().mockResolvedValue(undefined);
+    render(
+      <ConversationItem
+        conversation={convo}
+        rename={vi.fn()}
+        remove={remove}
+      />,
+      { wrapper },
+    );
+    await openMenu();
+    await userEvent.click(screen.getByRole('button', { name: 'Delete' }));
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Cancel' }),
+    );
+    expect(remove).not.toHaveBeenCalled();
   });
 
   it('navigates home when deleting the open conversation', async () => {
@@ -79,8 +108,11 @@ describe('ConversationItem', () => {
       <ConversationItem conversation={open} rename={vi.fn()} remove={remove} />,
       { wrapper },
     );
-    await userEvent.click(screen.getByLabelText('Delete'));
-    await userEvent.click(screen.getByText('yes'));
+    await openMenu();
+    await userEvent.click(screen.getByRole('button', { name: 'Delete' }));
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Delete' }),
+    );
     expect(remove).toHaveBeenCalledWith(1);
     expect(push).toHaveBeenCalledWith('/');
   });
@@ -96,8 +128,11 @@ it('toasts when delete fails', async () => {
     </>,
     { wrapper },
   );
-  await userEvent.click(screen.getByLabelText('Delete'));
-  await userEvent.click(screen.getByText('yes'));
+  await userEvent.click(
+    screen.getByRole('button', { name: 'Conversation actions' }),
+  );
+  await userEvent.click(screen.getByRole('button', { name: 'Delete' }));
+  await userEvent.click(await screen.findByRole('button', { name: 'Delete' }));
   expect(
     await screen.findByText('Could not delete conversation'),
   ).toBeInTheDocument();
