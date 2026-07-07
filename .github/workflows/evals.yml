@@ -21,11 +21,14 @@ jobs:
           TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
           LANGSMITH_API_KEY: ${{ secrets.LANGSMITH_API_KEY }}
           LANGSMITH_TRACING: 'true'
+          COLUMNS: '200'
       - if: always()
         run: |
           {
             echo 'EVAL_BODY<<__EOF__'
-            cat "$RUNNER_TEMP/evals.log"
+            echo '<pre>'
+            sed 's/\x1b\[[0-9;?]*[a-zA-Z]//g; s/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g' "$RUNNER_TEMP/evals.log"
+            echo '</pre>'
             echo '__EOF__'
           } >> "$GITHUB_ENV"
       - if: always()
@@ -39,6 +42,6 @@ jobs:
           from: alerts@lucek.ai
           to: ${{ secrets.EVAL_REPORT_TO }}
           subject: '[chat.lucek.ai] Weekly agent evals: ${{ steps.run.outcome }}'
-          body: ${{ env.EVAL_BODY }}
+          html_body: ${{ env.EVAL_BODY }}
       - if: always()
         run: cat "$RUNNER_TEMP/evals.log" >> "$GITHUB_STEP_SUMMARY"
