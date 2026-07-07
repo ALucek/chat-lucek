@@ -14,23 +14,33 @@ import { useMediaQuery } from '@/lib/use-media-query';
 interface TriggerProps {
   ref: Ref<HTMLButtonElement>;
   onClick: () => void;
-  'aria-haspopup': 'menu';
+  'aria-haspopup': 'menu' | 'dialog';
   'aria-expanded': boolean;
 }
 
+type Placement = 'bottom-end' | 'top-start';
+
 interface MenuProps {
   label: string;
+  placement?: Placement;
+  role?: 'menu' | 'dialog';
   trigger: (props: TriggerProps) => ReactNode;
   children: (api: { close: () => void }) => ReactNode;
 }
 
 const FOCUSABLE = 'button, [href], input, [tabindex]:not([tabindex="-1"])';
 
-export function Menu({ label, trigger, children }: MenuProps) {
+export function Menu({
+  label,
+  placement = 'bottom-end',
+  role = 'menu',
+  trigger,
+  children,
+}: MenuProps) {
   const [open, setOpen] = useState(false);
   const [render, setRender] = useState(false);
   const [shown, setShown] = useState(false);
-  const [coords, setCoords] = useState({ top: 0, left: 0 });
+  const [coords, setCoords] = useState({ top: 0, bottom: 0, left: 0 });
   const triggerRef = useRef<HTMLButtonElement>(null);
   const surfaceRef = useRef<HTMLDivElement>(null);
   const isDesktop = useMediaQuery('(min-width: 768px)');
@@ -38,14 +48,20 @@ export function Menu({ label, trigger, children }: MenuProps) {
   // Measure and mount now; reveal + focus next frame to animate in.
   const openMenu = useCallback(() => {
     const r = triggerRef.current?.getBoundingClientRect();
-    if (r) setCoords({ top: r.bottom + 4, left: r.right });
+    if (r) {
+      setCoords(
+        placement === 'top-start'
+          ? { top: 0, bottom: window.innerHeight - r.top + 4, left: r.left }
+          : { top: r.bottom + 4, bottom: 0, left: r.right },
+      );
+    }
     setOpen(true);
     setRender(true);
     requestAnimationFrame(() => {
       setShown(true);
       surfaceRef.current?.querySelector<HTMLElement>(FOCUSABLE)?.focus();
     });
-  }, []);
+  }, [placement]);
 
   // Ref-free so it is safe to hand to children rendered in the surface.
   const close = useCallback(() => {
@@ -97,13 +113,20 @@ export function Menu({ label, trigger, children }: MenuProps) {
     };
   }, [open, isDesktop, close, dismiss]);
 
+  const up = placement === 'top-start';
   const surface = isDesktop ? (
     <div
       ref={surfaceRef}
-      role="menu"
+      role={role}
       aria-label={label}
-      style={{ top: coords.top, left: coords.left }}
-      className="border-border bg-surface fixed z-50 min-w-[168px] -translate-x-full rounded-[var(--radius)] border p-1 shadow-lg"
+      style={
+        up
+          ? { bottom: coords.bottom, left: coords.left }
+          : { top: coords.top, left: coords.left }
+      }
+      className={`border-border bg-surface fixed z-50 min-w-[168px] rounded-[var(--radius)] border p-1 shadow-lg ${
+        up ? '' : '-translate-x-full'
+      }`}
     >
       {children({ close })}
     </div>
@@ -134,7 +157,7 @@ export function Menu({ label, trigger, children }: MenuProps) {
       {trigger({
         ref: triggerRef,
         onClick: () => (open ? dismiss() : openMenu()),
-        'aria-haspopup': 'menu',
+        'aria-haspopup': role === 'dialog' ? 'dialog' : 'menu',
         'aria-expanded': open,
       })}
       {(isDesktop ? open : render) && createPortal(surface, document.body)}

@@ -69,6 +69,31 @@ describe('Menu', () => {
     expect(screen.queryByRole('menu')).not.toBeInTheDocument();
   });
 
+  it('opens upward as a dialog when placement is top-start', async () => {
+    setDesktop(true);
+    render(
+      <Menu
+        label="Settings"
+        placement="top-start"
+        role="dialog"
+        trigger={(p) => (
+          <button {...p} aria-label="Open">
+            menu
+          </button>
+        )}
+      >
+        {() => <button>Item</button>}
+      </Menu>,
+    );
+    const trigger = screen.getByRole('button', { name: 'Open' });
+    expect(trigger).toHaveAttribute('aria-haspopup', 'dialog');
+    await userEvent.click(trigger);
+    const surface = screen.getByRole('dialog');
+    // anchored from the bottom (grows upward), not the top
+    expect(surface.style.bottom).not.toBe('');
+    expect(surface.style.top).toBe('');
+  });
+
   it('renders a sheet with a backdrop on mobile and closes on backdrop tap', async () => {
     setDesktop(false);
     render(<Harness />);
