@@ -57,19 +57,13 @@ export function MessagesProvider({ children }: { children: React.ReactNode }) {
   const { patchConversation, create } = useConversationsContext();
 
   // Refs keep load/send/stop stable (effect re-runs only on id change).
-  const patchConvRef = useRef(patchConversation);
-  useEffect(() => {
-    patchConvRef.current = patchConversation;
-  });
-
-  const createRef = useRef(create);
-  useEffect(() => {
-    createRef.current = create;
-  });
-
   const { refresh: refreshUsage } = useUsage();
+  const patchConvRef = useRef(patchConversation);
+  const createRef = useRef(create);
   const refreshUsageRef = useRef(refreshUsage);
   useEffect(() => {
+    patchConvRef.current = patchConversation;
+    createRef.current = create;
     refreshUsageRef.current = refreshUsage;
   });
   const controllers = useRef<Record<number, AbortController>>({});
