@@ -58,7 +58,7 @@ Conversation history is stored so you can return to prior chats. In the app you 
 
 The database keeps your data until you delete it. Account records, usage records, server logs, and backups may be kept as long as reasonably needed to operate, secure, debug, prevent abuse, or comply with legal obligations for the service. Deleted data may remain in backups for a limited time until those backups expire.
 
-Traces sent to LangSmith (see Hosting and Service Providers) are retained under its settings, currently about 14 days, and age out automatically. Deleting your account removes your data from the active database but does not retroactively purge traces already held by LangSmith; those expire on their own.
+Traces sent to LangSmith (see Hosting and Service Providers) are retained under its settings, currently about 14 days and no more than 400 days, and age out automatically. Deleting your account removes your data from the active database but does not retroactively purge traces already held by LangSmith; those expire on their own.
 
 ## Your Choices
 
