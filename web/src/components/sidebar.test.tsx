@@ -72,6 +72,27 @@ describe('Sidebar', () => {
     expect(push).toHaveBeenCalledWith('/');
   });
 
+  it('shows a Settings trigger in the footer, not the old email/logout', () => {
+    vi.mocked(useConversationsContext).mockReturnValue({
+      conversations: [],
+      loading: false,
+      error: null,
+      create: vi.fn(),
+      rename,
+      remove,
+      patchConversation: vi.fn(),
+    });
+    render(<Sidebar />, { wrapper });
+    expect(
+      screen.getByRole('button', { name: 'Settings' }),
+    ).toBeInTheDocument();
+    // email + Log out live inside the panel now, not the closed footer
+    expect(screen.queryByText('a@b.co')).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Log out' }),
+    ).not.toBeInTheDocument();
+  });
+
   it('shows the loading state', () => {
     vi.mocked(useConversationsContext).mockReturnValue({
       conversations: [],
