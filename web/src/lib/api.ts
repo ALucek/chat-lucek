@@ -131,6 +131,25 @@ export function me(): Promise<User> {
   return request<User>('/api/me');
 }
 
+export async function exportAccount(): Promise<Blob> {
+  const fetchBlob = () =>
+    fetch(`${API_URL}/api/account/export`, {
+      headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+      credentials: 'include',
+    });
+  let res = await fetchBlob();
+  if (res.status === 401) {
+    const token = await refreshAccess();
+    if (token) res = await fetchBlob();
+  }
+  if (!res.ok) throw new ApiError(res.status, await errorMessage(res));
+  return res.blob();
+}
+
+export async function deleteAccount(): Promise<void> {
+  await request<null>('/api/account', { method: 'DELETE' });
+}
+
 export interface Usage {
   used: number;
   budget: number;

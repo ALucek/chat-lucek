@@ -14,6 +14,8 @@ import {
   parseSSE,
   sendMessage,
   setOnUnauthorized,
+  exportAccount,
+  deleteAccount,
 } from './api';
 
 // Minimal Response stand-in for a JSON body.
@@ -352,4 +354,30 @@ it('notifies onUnauthorized when a refresh fails', async () => {
   await expect(me()).rejects.toBeInstanceOf(ApiError);
   expect(cb).toHaveBeenCalled();
   setOnUnauthorized(null);
+});
+
+describe('account data', () => {
+  it('exportAccount returns the response blob', async () => {
+    const blob = new Blob(['{}'], { type: 'application/json' });
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        blob: async () => blob,
+      } as unknown as Response),
+    );
+    expect(await exportAccount()).toBe(blob);
+  });
+
+  it('deleteAccount DELETEs the account endpoint', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue({ ok: true, status: 204 } as Response);
+    vi.stubGlobal('fetch', fetchMock);
+    await deleteAccount();
+    const [url, opts] = fetchMock.mock.calls[0];
+    expect(String(url)).toContain('/api/account');
+    expect((opts as RequestInit).method).toBe('DELETE');
+  });
 });
