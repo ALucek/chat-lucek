@@ -143,7 +143,14 @@ func (a *Account) Export(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// Delete is implemented in Task 2.
+// Delete permanently removes the caller's account; all data cascades.
 func (a *Account) Delete(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusNotImplemented)
+	userID, _ := userIDFromContext(r.Context())
+	if _, err := a.pool.Exec(r.Context(),
+		`delete from users where id = $1`, userID); err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "could not delete account"})
+		return
+	}
+	http.SetCookie(w, refreshCookie("", -1)) // clear the refresh cookie
+	w.WriteHeader(http.StatusNoContent)
 }
