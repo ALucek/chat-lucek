@@ -1,5 +1,9 @@
 import { describe, it, expect, afterEach, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import {
+  render,
+  screen,
+  waitForElementToBeRemoved,
+} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Menu } from './menu';
 
@@ -71,6 +75,6 @@ describe('Menu', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Open' }));
     expect(screen.getByRole('dialog')).toBeInTheDocument();
     await userEvent.click(screen.getByTestId('menu-backdrop'));
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    await waitForElementToBeRemoved(() => screen.queryByRole('dialog'));
   });
 });
