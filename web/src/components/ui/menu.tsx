@@ -3,7 +3,6 @@
 import {
   useCallback,
   useEffect,
-  useLayoutEffect,
   useRef,
   useState,
   type ReactNode,
@@ -34,20 +33,31 @@ export function Menu({ label, trigger, children }: MenuProps) {
   const [coords, setCoords] = useState({ top: 0, left: 0 });
   const triggerRef = useRef<HTMLButtonElement>(null);
   const surfaceRef = useRef<HTMLDivElement>(null);
-  const wasOpen = useRef(false);
   const isDesktop = useMediaQuery('(min-width: 768px)');
 
-  // Mount, then flip to shown next frame so the enter transition runs.
+  // Measure and mount now; reveal + focus next frame to animate in.
   const openMenu = useCallback(() => {
+    const r = triggerRef.current?.getBoundingClientRect();
+    if (r) setCoords({ top: r.bottom + 4, left: r.right });
     setOpen(true);
     setRender(true);
-    requestAnimationFrame(() => setShown(true));
+    requestAnimationFrame(() => {
+      setShown(true);
+      surfaceRef.current?.querySelector<HTMLElement>(FOCUSABLE)?.focus();
+    });
   }, []);
 
+  // Ref-free so it is safe to hand to children rendered in the surface.
   const close = useCallback(() => {
     setOpen(false);
     setShown(false);
   }, []);
+
+  // Internal dismissers also return focus to the trigger.
+  const dismiss = useCallback(() => {
+    close();
+    triggerRef.current?.focus();
+  }, [close]);
 
   // Hold the mobile sheet mounted until its exit transition finishes.
   useEffect(() => {
@@ -56,36 +66,18 @@ export function Menu({ label, trigger, children }: MenuProps) {
     return () => clearTimeout(t);
   }, [isDesktop, open, render]);
 
-  // Anchor the desktop popover under the trigger's bottom-right corner.
-  useLayoutEffect(() => {
-    if (!open || !isDesktop || !triggerRef.current) return;
-    const r = triggerRef.current.getBoundingClientRect();
-    setCoords({ top: r.bottom + 4, left: r.right });
-  }, [open, isDesktop]);
-
-  // Focus into the surface on open; restore focus to the trigger on close.
-  useEffect(() => {
-    if (open) {
-      wasOpen.current = true;
-      surfaceRef.current?.querySelector<HTMLElement>(FOCUSABLE)?.focus();
-    } else if (wasOpen.current) {
-      wasOpen.current = false;
-      triggerRef.current?.focus();
-    }
-  }, [open]);
-
   // Dismiss on Escape or outside click; desktop also closes on scroll/resize.
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') close();
+      if (e.key === 'Escape') dismiss();
       if (e.key === 'Tab') trapFocus(e, surfaceRef.current);
     };
     const onDown = (e: MouseEvent) => {
       const t = e.target as Node;
       if (surfaceRef.current?.contains(t)) return;
       if (triggerRef.current?.contains(t)) return;
-      close();
+      dismiss();
     };
     document.addEventListener('keydown', onKey);
     document.addEventListener('mousedown', onDown);
@@ -103,7 +95,7 @@ export function Menu({ label, trigger, children }: MenuProps) {
       document.removeEventListener('mousedown', onDown);
       cleanupDesktop();
     };
-  }, [open, isDesktop, close]);
+  }, [open, isDesktop, close, dismiss]);
 
   const surface = isDesktop ? (
     <div
@@ -119,7 +111,7 @@ export function Menu({ label, trigger, children }: MenuProps) {
     <>
       <div
         data-testid="menu-backdrop"
-        onClick={close}
+        onClick={dismiss}
         className={`fixed inset-0 z-40 bg-black/40 transition-opacity duration-200 ${
           shown ? 'opacity-100' : 'opacity-0'
         }`}
@@ -141,7 +133,7 @@ export function Menu({ label, trigger, children }: MenuProps) {
     <>
       {trigger({
         ref: triggerRef,
-        onClick: () => (open ? close() : openMenu()),
+        onClick: () => (open ? dismiss() : openMenu()),
         'aria-haspopup': 'menu',
         'aria-expanded': open,
       })}
