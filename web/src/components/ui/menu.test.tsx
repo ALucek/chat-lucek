@@ -69,6 +69,54 @@ describe('Menu', () => {
     expect(screen.queryByRole('menu')).not.toBeInTheDocument();
   });
 
+  it('opens upward as a dialog when placement is top-start', async () => {
+    setDesktop(true);
+    render(
+      <Menu
+        label="Settings"
+        placement="top-start"
+        role="dialog"
+        trigger={(p) => (
+          <button {...p} aria-label="Open">
+            menu
+          </button>
+        )}
+      >
+        {() => <button>Item</button>}
+      </Menu>,
+    );
+    const trigger = screen.getByRole('button', { name: 'Open' });
+    expect(trigger).toHaveAttribute('aria-haspopup', 'dialog');
+    await userEvent.click(trigger);
+    const surface = screen.getByRole('dialog');
+    // anchored from the bottom (grows upward), not the top
+    expect(surface.style.bottom).not.toBe('');
+    expect(surface.style.top).toBe('');
+  });
+
+  it('opens downward left-aligned when placement is bottom-start', async () => {
+    setDesktop(true);
+    render(
+      <Menu
+        label="Actions"
+        placement="bottom-start"
+        trigger={(p) => (
+          <button {...p} aria-label="Open">
+            menu
+          </button>
+        )}
+      >
+        {() => <button>Item</button>}
+      </Menu>,
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Open' }));
+    const surface = screen.getByRole('menu');
+    // grows down from the trigger, and rightward (no right-edge translate)
+    expect(surface.style.top).not.toBe('');
+    expect(surface.style.bottom).toBe('');
+    expect(surface.className).not.toContain('-translate-x-full');
+  });
+
   it('renders a sheet with a backdrop on mobile and closes on backdrop tap', async () => {
     setDesktop(false);
     render(<Harness />);

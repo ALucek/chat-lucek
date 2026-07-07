@@ -2,15 +2,14 @@
 
 import { useRouter } from 'next/navigation';
 import { useConversationsContext } from '@/lib/conversations-context';
-import { useAuth } from '@/lib/auth-context';
 import { ConversationItem } from './conversation-item';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from './ui/skeleton';
 import { UsageMeter } from './usage-meter';
+import { SettingsMenu } from './settings-menu';
 
 export function Sidebar() {
   const router = useRouter();
-  const { user, logout } = useAuth();
   const { conversations, loading, error, rename, remove } =
     useConversationsContext();
 
@@ -44,17 +43,7 @@ export function Sidebar() {
       </nav>
 
       <div className="border-border flex h-[var(--bottombar-h)] items-center gap-2 border-t px-3 text-sm">
-        <div className="flex min-w-0 flex-1 flex-col justify-center">
-          <p className="text-muted truncate">{user?.email}</p>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => logout()}
-            className="mt-1 self-start px-0"
-          >
-            Log out
-          </Button>
-        </div>
+        <SettingsMenu />
         <UsageMeter />
       </div>
     </aside>
