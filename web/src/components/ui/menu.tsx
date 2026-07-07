@@ -18,7 +18,7 @@ interface TriggerProps {
   'aria-expanded': boolean;
 }
 
-type Placement = 'bottom-end' | 'top-start';
+type Placement = 'bottom-end' | 'bottom-start' | 'top-start';
 
 interface MenuProps {
   label: string;
@@ -49,11 +49,13 @@ export function Menu({
   const openMenu = useCallback(() => {
     const r = triggerRef.current?.getBoundingClientRect();
     if (r) {
-      setCoords(
-        placement === 'top-start'
-          ? { top: 0, bottom: window.innerHeight - r.top + 4, left: r.left }
-          : { top: r.bottom + 4, bottom: 0, left: r.right },
-      );
+      const up = placement.startsWith('top');
+      const end = placement.endsWith('end');
+      setCoords({
+        top: up ? 0 : r.bottom + 4,
+        bottom: up ? window.innerHeight - r.top + 4 : 0,
+        left: end ? r.right : r.left,
+      });
     }
     setOpen(true);
     setRender(true);
@@ -113,7 +115,8 @@ export function Menu({
     };
   }, [open, isDesktop, close, dismiss]);
 
-  const up = placement === 'top-start';
+  const up = placement.startsWith('top');
+  const end = placement.endsWith('end');
   const surface = isDesktop ? (
     <div
       ref={surfaceRef}
@@ -125,7 +128,7 @@ export function Menu({
           : { top: coords.top, left: coords.left }
       }
       className={`border-border bg-surface fixed z-50 min-w-[168px] rounded-[var(--radius)] border p-1 shadow-lg ${
-        up ? '' : '-translate-x-full'
+        end ? '-translate-x-full' : ''
       }`}
     >
       {children({ close })}

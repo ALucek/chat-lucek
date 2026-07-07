@@ -89,6 +89,7 @@ export function ConversationItem({ conversation, rename, remove }: Props) {
       </Link>
       <Menu
         label="Conversation actions"
+        placement="bottom-start"
         trigger={(p) => (
           <button
             {...p}

@@ -94,6 +94,29 @@ describe('Menu', () => {
     expect(surface.style.top).toBe('');
   });
 
+  it('opens downward left-aligned when placement is bottom-start', async () => {
+    setDesktop(true);
+    render(
+      <Menu
+        label="Actions"
+        placement="bottom-start"
+        trigger={(p) => (
+          <button {...p} aria-label="Open">
+            menu
+          </button>
+        )}
+      >
+        {() => <button>Item</button>}
+      </Menu>,
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Open' }));
+    const surface = screen.getByRole('menu');
+    // grows down from the trigger, and rightward (no right-edge translate)
+    expect(surface.style.top).not.toBe('');
+    expect(surface.style.bottom).toBe('');
+    expect(surface.className).not.toContain('-translate-x-full');
+  });
+
   it('renders a sheet with a backdrop on mobile and closes on backdrop tap', async () => {
     setDesktop(false);
     render(<Harness />);
