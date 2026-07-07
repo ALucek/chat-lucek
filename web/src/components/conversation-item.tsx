@@ -4,8 +4,8 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useParams } from 'next/navigation';
 import type { Conversation } from '@/lib/api';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Menu } from '@/components/ui/menu';
 import { useToast } from '@/lib/toast-context';
 
 interface Props {
@@ -20,9 +20,7 @@ export function ConversationItem({ conversation, rename, remove }: Props) {
   const isOpen = String(params.id) === String(conversation.id);
 
   const [editing, setEditing] = useState(false);
-  const [confirming, setConfirming] = useState(false);
   const [draft, setDraft] = useState(conversation.title);
-
   const { toast } = useToast();
 
   function cancelEdit() {
@@ -44,15 +42,15 @@ export function ConversationItem({ conversation, rename, remove }: Props) {
     setEditing(false);
   }
 
-  async function confirmDelete() {
+  async function confirmDelete(): Promise<boolean> {
     try {
       await remove(conversation.id);
     } catch {
       toast('Could not delete conversation');
-      setConfirming(false);
-      return;
+      return false;
     }
     if (isOpen) router.push('/');
+    return true;
   }
 
   if (editing) {
@@ -89,48 +87,82 @@ export function ConversationItem({ conversation, rename, remove }: Props) {
       >
         {conversation.title || 'New conversation'}
       </Link>
-      {confirming ? (
-        <span className="text-muted flex items-center gap-1 text-xs">
-          Delete?
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-5"
-            onClick={confirmDelete}
+      <Menu
+        label="Conversation actions"
+        trigger={(p) => (
+          <button
+            {...p}
+            aria-label="Conversation actions"
+            className="text-subtle hover:text-fg-strong flex h-5 w-5 shrink-0 items-center justify-center rounded text-base leading-none focus-visible:opacity-100 aria-expanded:opacity-100 md:opacity-0 md:group-hover:opacity-100"
           >
-            yes
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-5"
+            ⋮
+          </button>
+        )}
+      >
+        {({ close }) => (
+          <MenuContent
+            onRename={() => {
+              close();
+              setEditing(true);
+            }}
+            onDelete={confirmDelete}
+          />
+        )}
+      </Menu>
+    </div>
+  );
+}
+
+function MenuContent({
+  onRename,
+  onDelete,
+}: {
+  onRename: () => void;
+  onDelete: () => Promise<boolean>;
+}) {
+  const [confirming, setConfirming] = useState(false);
+
+  if (confirming) {
+    return (
+      <div className="p-1">
+        <p className="text-fg-strong mb-2 text-center text-xs">
+          Delete this conversation?
+        </p>
+        <div className="flex justify-center gap-1.5">
+          <button
             onClick={() => setConfirming(false)}
+            className="border-border text-muted hover:bg-hover rounded border px-3 py-1 text-xs"
           >
-            no
-          </Button>
-        </span>
-      ) : (
-        <span className="flex items-center gap-1 md:hidden md:group-hover:flex">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-5"
-            onClick={() => setEditing(true)}
-            aria-label="Rename"
-          >
-            Edit
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-5"
-            onClick={() => setConfirming(true)}
-            aria-label="Delete"
+            Cancel
+          </button>
+          <button
+            onClick={async () => {
+              const ok = await onDelete();
+              if (!ok) setConfirming(false);
+            }}
+            className="bg-danger rounded px-3 py-1 text-xs text-white hover:brightness-95"
           >
             Delete
-          </Button>
-        </span>
-      )}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col">
+      <button
+        onClick={onRename}
+        className="hover:bg-hover text-fg flex h-9 items-center rounded px-2 text-sm md:h-8"
+      >
+        Rename
+      </button>
+      <button
+        onClick={() => setConfirming(true)}
+        className="hover:bg-hover text-danger flex h-9 items-center rounded px-2 text-sm md:h-8"
+      >
+        Delete
+      </button>
     </div>
   );
 }
