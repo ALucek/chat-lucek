@@ -138,7 +138,9 @@ func (a *Account) Export(w http.ResponseWriter, r *http.Request) {
 	filename := fmt.Sprintf("chat-lucek-export-%s.json", time.Now().UTC().Format("2006-01-02"))
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%q", filename))
-	if err := json.NewEncoder(w).Encode(out); err != nil {
+	enc := json.NewEncoder(w)
+	enc.SetIndent("", "  ") // pretty-print so the download is readable
+	if err := enc.Encode(out); err != nil {
 		slog.ErrorContext(ctx, "export encode", "err", err)
 	}
 }

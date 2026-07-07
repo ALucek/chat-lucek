@@ -36,6 +36,9 @@ func TestAccount_ExportScopedToCaller(t *testing.T) {
 	if cd := rec.Header().Get("Content-Disposition"); !strings.Contains(cd, "attachment") {
 		t.Fatalf("want attachment disposition, got %q", cd)
 	}
+	if !strings.Contains(rec.Body.String(), "\n  ") {
+		t.Fatalf("want indented (pretty) JSON")
+	}
 
 	var out struct {
 		Profile struct {
