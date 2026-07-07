@@ -8,3 +8,18 @@ globalThis.ResizeObserver = class {
 };
 
 // jsdom localStorage; don't drop --no-experimental-webstorage in test script.
+
+// jsdom lacks matchMedia; default to no-match (mobile-first). Tests override.
+if (!window.matchMedia) {
+  window.matchMedia = (query: string) =>
+    ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      addListener: () => {},
+      removeListener: () => {},
+      dispatchEvent: () => false,
+    }) as unknown as MediaQueryList;
+}
