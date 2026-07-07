@@ -51,6 +51,11 @@
     /* no grey flash on tap */
     -webkit-tap-highlight-color: transparent;
   }
+  button:not(:disabled),
+  [role='button'] {
+    /* Tailwind v4 drops the button pointer cursor; put it back. */
+    cursor: pointer;
+  }
 }
 
 .markdown > :first-child {
