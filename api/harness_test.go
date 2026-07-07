@@ -81,8 +81,9 @@ func newTestMux(client *agentClient) http.Handler {
 func newTestMuxBudget(client *agentClient, budget int) http.Handler {
 	auth := &Auth{pool: testPool, secret: testSecret, verify: fakeGoogleVerifier(), exchange: fakeGoogleExchanger(), signupOpen: true}
 	chat := &Chat{pool: testPool, agent: client, runsBudget: budget}
+	account := &Account{pool: testPool}
 	check := func(ctx context.Context) error { return Healthy(ctx, testPool) }
-	return newMux(check, auth, chat)
+	return newMux(check, auth, chat, account)
 }
 
 // signup seeds a user directly and returns a freshly minted access token + id.

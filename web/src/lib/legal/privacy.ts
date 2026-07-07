@@ -1,7 +1,7 @@
 // chat.lucek.ai/privacy
 export const privacyMarkdown = `# Privacy Policy
 
-**Effective date: July 6, 2026**
+**Effective date: July 7, 2026**
 
 This Privacy Policy explains how Adam Lucek handles information for lucek.ai and the Lucek Chat web app.
 
@@ -54,15 +54,19 @@ I may also disclose information if required by law, to protect the service, or t
 
 ## Retention and Deletion
 
-Conversation history is stored so you can return to prior chats. You can delete individual conversations in the app, which deletes the messages associated with that conversation from the active database.
+Conversation history is stored so you can return to prior chats. In the app you can delete an individual conversation, export all of your data, or delete your entire account. Deleting your account permanently removes your profile, conversations, messages, and usage records from the active database.
 
-Account records, usage records, server logs, and backups may be kept as long as reasonably needed to operate, secure, debug, prevent abuse, or comply with legal obligations for the service. Deleted data may remain in backups for a limited time until those backups expire.
+The database keeps your data until you delete it. Account records, usage records, server logs, and backups may be kept as long as reasonably needed to operate, secure, debug, prevent abuse, or comply with legal obligations for the service. Deleted data may remain in backups for a limited time until those backups expire.
+
+Traces sent to LangSmith (see Hosting and Service Providers) are retained under its settings, currently about 14 days and no more than 400 days, and age out automatically. Deleting your account removes your data from the active database but does not retroactively purge traces already held by LangSmith; those expire on their own.
 
 ## Your Choices
 
 You can:
 
-- delete conversations in the app;
+- delete individual conversations in the app;
+- export all of your data from the app;
+- delete your entire account from the app;
 - sign out of the app;
 - clear browser storage or cookies;
 - email contact@lucek.ai to request access, correction, or deletion of your information.

@@ -74,8 +74,9 @@ func main() {
 		}
 	}
 	chat := &Chat{pool: pool, agent: agent, runsBudget: cfg.RunsBudgetDaily, ownerEmail: normalizeEmail(cfg.OwnerEmail)}
+	account := &Account{pool: pool}
 
-	mux := newMux(check, auth, chat)
+	mux := newMux(check, auth, chat, account)
 
 	handler := withRequestID(withLogging(withRecover(withSecurityHeaders(withCORS(cfg.AllowedOrigin, withOriginCheck(cfg.AllowedOrigin, withMaxBody(withMaintenance(cfg.Maintenance, mux))))))))
 	server := newServer(":"+cfg.Port, handler)
@@ -160,11 +161,17 @@ func decodeJSON(w http.ResponseWriter, r *http.Request, dst any) bool {
 }
 
 // newMux registers every route.
-func newMux(check func(context.Context) error, auth *Auth, chat *Chat) *http.ServeMux {
+func newMux(check func(context.Context) error, auth *Auth, chat *Chat, account *Account) *http.ServeMux {
 	protect := func(h http.HandlerFunc) http.Handler { return auth.Middleware(http.HandlerFunc(h)) }
 
 	chatLimiter := newLimiter(chatRatePerMin, chatRateBurst)
 	limitUser := chatLimiter.middleware(func(r *http.Request) string {
+		uid, _ := userIDFromContext(r.Context())
+		return strconv.FormatInt(uid, 10)
+	})
+
+	exportLimiter := newLimiter(exportRatePerMin, exportRateBurst)
+	limitExport := exportLimiter.middleware(func(r *http.Request) string {
 		uid, _ := userIDFromContext(r.Context())
 		return strconv.FormatInt(uid, 10)
 	})
@@ -182,6 +189,9 @@ func newMux(check func(context.Context) error, auth *Auth, chat *Chat) *http.Ser
 	mux.Handle("PATCH /api/conversations/{id}", protect(chat.Rename))
 	mux.Handle("DELETE /api/conversations/{id}", protect(chat.Delete))
 	mux.Handle("GET /api/usage", protect(chat.Usage))
+	mux.Handle("GET /api/account/export",
+		auth.Middleware(limitExport(http.HandlerFunc(account.Export))))
+	mux.Handle("DELETE /api/account", protect(account.Delete))
 	// auth first (puts user in context) → then the user-keyed limiter → handler.
 	mux.Handle("POST /api/conversations/{id}/messages",
 		auth.Middleware(limitUser(http.HandlerFunc(chat.Send))))

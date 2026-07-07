@@ -127,7 +127,7 @@ func TestSend_OwnerBypassesBudget(t *testing.T) {
 	client := fakeAgent(t, http.StatusOK, textFrames("a", "hi"), endFrame)
 	auth := &Auth{pool: testPool, secret: testSecret, verify: fakeGoogleVerifier(), exchange: fakeGoogleExchanger()}
 	chat := &Chat{pool: testPool, agent: client, runsBudget: 1, ownerEmail: "owner@gmail.com"}
-	mux := newMux(func(ctx context.Context) error { return Healthy(ctx, testPool) }, auth, chat)
+	mux := newMux(func(ctx context.Context) error { return Healthy(ctx, testPool) }, auth, chat, &Account{pool: testPool})
 
 	// Owner, already over budget → still allowed.
 	ownerTok, ownerID := signup(t, mux, "owner@gmail.com")
