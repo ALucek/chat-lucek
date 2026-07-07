@@ -50,7 +50,7 @@ export function Composer({
           disabled={sending}
           rows={1}
           placeholder="Send a message…"
-          className="max-h-40 flex-1 overflow-y-auto text-base sm:text-sm"
+          className="max-h-40 flex-1 overflow-x-hidden overflow-y-auto text-base sm:text-sm"
         />
         {sending ? (
           <Button type="button" variant="ghost" onClick={onStop}>
