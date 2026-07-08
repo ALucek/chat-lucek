@@ -7,7 +7,7 @@ import (
 
 // runMigrations (run in TestMain) must have created the full app schema.
 func TestRunMigrations_AppliesSchema(t *testing.T) {
-	want := []string{"users", "refresh_tokens", "conversations", "messages", "token_usage"}
+	want := []string{"users", "refresh_tokens", "conversations", "messages", "token_usage", "usage_marks"}
 	for _, table := range want {
 		var exists bool
 		err := testPool.QueryRow(context.Background(),
