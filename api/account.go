@@ -145,8 +145,7 @@ func (a *Account) Export(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// Delete permanently removes the caller's account after they re-type their
-// own email to confirm; all data cascades.
+// Delete removes the account after the caller re-types their email.
 func (a *Account) Delete(w http.ResponseWriter, r *http.Request) {
 	userID, _ := userIDFromContext(r.Context())
 
