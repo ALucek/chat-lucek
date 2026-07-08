@@ -25,6 +25,22 @@ describe('autoSize', () => {
     expect(el.style.height).toBe('98px');
   });
 
+  it('returns false on one line and true once content wraps', () => {
+    const make = (scrollHeight: number) => {
+      const el = document.createElement('textarea');
+      el.style.lineHeight = '20px';
+      el.style.paddingTop = '0px';
+      el.style.paddingBottom = '0px';
+      Object.defineProperty(el, 'scrollHeight', {
+        value: scrollHeight,
+        configurable: true,
+      });
+      return el;
+    };
+    expect(autoSize(make(20))).toBe(false);
+    expect(autoSize(make(200))).toBe(true);
+  });
+
   it('resets height to auto before measuring so it can shrink', () => {
     const el = document.createElement('textarea');
     // scrollHeight reads the current inline height, proving we reset first.

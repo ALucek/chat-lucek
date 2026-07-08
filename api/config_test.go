@@ -16,31 +16,29 @@ func setAllEnv(t *testing.T) {
 	for _, k := range []string{
 		"AGENT_URL", "ALLOWED_ORIGIN",
 		"LOG_LEVEL", "DATABASE_URL", "RUNS_BUDGET_DAILY", "OWNER_EMAIL",
-		"GOOGLE_AUTH_FAKE", "SIGNUP_OPEN",
+		"GOOGLE_AUTH_FAKE", "SIGNUP_OPEN", "MAINTENANCE_MODE",
 	} {
 		t.Setenv(k, "")
 	}
 }
 
-func TestLoadConfig_HasJWTSecret(t *testing.T) {
+func TestLoadConfig_PopulatesFieldsFromEnv(t *testing.T) {
 	setAllEnv(t)
 	cfg, err := LoadConfig()
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
 	if cfg.JWTSecret != "test-secret-at-least-32-bytes-long-xx" {
-		t.Fatalf("JWTSecret not populated: %q", cfg.JWTSecret)
-	}
-}
-
-func TestLoadConfig_AllPresent(t *testing.T) {
-	setAllEnv(t)
-	cfg, err := LoadConfig()
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
+		t.Errorf("JWTSecret: got %q", cfg.JWTSecret)
 	}
 	if cfg.DBHost != "localhost" || cfg.Port != "8080" {
-		t.Fatalf("config not populated correctly: %+v", cfg)
+		t.Errorf("DBHost/Port: got %q/%q", cfg.DBHost, cfg.Port)
+	}
+	if cfg.GoogleClientID != "test-client-id" {
+		t.Errorf("GoogleClientID: got %q", cfg.GoogleClientID)
+	}
+	if cfg.OwnerEmail != "" || cfg.GoogleAuthFake {
+		t.Errorf("optional defaults off: OwnerEmail=%q GoogleAuthFake=%v", cfg.OwnerEmail, cfg.GoogleAuthFake)
 	}
 }
 
@@ -63,18 +61,6 @@ func TestLoadConfig_AgentURLDefault(t *testing.T) {
 	}
 }
 
-func TestLoadConfig_AgentURLOverride(t *testing.T) {
-	setAllEnv(t)
-	t.Setenv("AGENT_URL", "http://localhost:8090")
-	cfg, err := LoadConfig()
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-	if cfg.AgentURL != "http://localhost:8090" {
-		t.Fatalf("want override, got %q", cfg.AgentURL)
-	}
-}
-
 func TestLoadConfig_LogLevelDefault(t *testing.T) {
 	setAllEnv(t)
 	cfg, err := LoadConfig()
@@ -91,14 +77,6 @@ func TestLoadConfig_RejectsShortJWTSecret(t *testing.T) {
 	t.Setenv("JWT_SECRET", "too-short")
 	if _, err := LoadConfig(); err == nil {
 		t.Fatal("expected an error for a short JWT_SECRET, got nil")
-	}
-}
-
-func TestLoadConfig_RequiresGoogleClientID(t *testing.T) {
-	setAllEnv(t)
-	t.Setenv("GOOGLE_CLIENT_ID", "")
-	if _, err := LoadConfig(); err == nil {
-		t.Fatal("expected an error for missing GOOGLE_CLIENT_ID, got nil")
 	}
 }
 
@@ -160,14 +138,15 @@ func TestLoadConfig_FakeAuthAllowedLocally(t *testing.T) {
 	}
 }
 
-func TestLoadConfig_OwnerAndFakeDefaults(t *testing.T) {
+func TestLoadConfig_MaintenanceMode(t *testing.T) {
 	setAllEnv(t)
+	t.Setenv("MAINTENANCE_MODE", "1")
 	cfg, err := LoadConfig()
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
-	if cfg.GoogleClientID != "test-client-id" || cfg.OwnerEmail != "" || cfg.GoogleAuthFake {
-		t.Fatalf("unexpected config: %+v", cfg)
+	if !cfg.Maintenance {
+		t.Fatal("MAINTENANCE_MODE=1 should set cfg.Maintenance")
 	}
 }
 

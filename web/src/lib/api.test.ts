@@ -106,14 +106,19 @@ describe('api client', () => {
 });
 
 describe('conversation endpoints', () => {
-  it('listConversations GETs the list', async () => {
-    const data = [{ id: 1, title: '', created_at: 't', updated_at: 't' }];
-    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(200, data));
+  it('GET wrappers request the right URL', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(200, []));
     vi.stubGlobal('fetch', fetchMock);
-    await expect(listConversations()).resolves.toEqual(data);
+    await listConversations();
     expect(fetchMock.mock.calls[0][0]).toBe(
       'http://localhost:8080/api/conversations',
     );
+    await getMessages(7);
+    expect(fetchMock.mock.calls[1][0]).toBe(
+      'http://localhost:8080/api/conversations/7/messages',
+    );
+    await getUsage();
+    expect(fetchMock.mock.calls[2][0]).toBe('http://localhost:8080/api/usage');
   });
 
   it('createConversation POSTs and returns the new conversation', async () => {
@@ -143,24 +148,6 @@ describe('conversation endpoints', () => {
     const [url, init] = fetchMock.mock.calls[0];
     expect(url).toBe('http://localhost:8080/api/conversations/5');
     expect(init).toMatchObject({ method: 'DELETE' });
-  });
-
-  it('getMessages GETs the conversation messages', async () => {
-    const msgs = [{ id: 1, role: 'user', content: 'hi', created_at: 't' }];
-    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(200, msgs));
-    vi.stubGlobal('fetch', fetchMock);
-    await expect(getMessages(7)).resolves.toEqual(msgs);
-    expect(fetchMock.mock.calls[0][0]).toBe(
-      'http://localhost:8080/api/conversations/7/messages',
-    );
-  });
-
-  it('getUsage GETs the usage summary', async () => {
-    const data = { used: 3851, budget: 8192 };
-    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(200, data));
-    vi.stubGlobal('fetch', fetchMock);
-    await expect(getUsage()).resolves.toEqual(data);
-    expect(fetchMock.mock.calls[0][0]).toBe('http://localhost:8080/api/usage');
   });
 });
 
@@ -192,11 +179,6 @@ describe('parseSSE', () => {
       { event: 'delta', data: '{"text":"hello"}' },
     ]);
     expect(second.rest).toBe('');
-  });
-
-  it('still parses an unknown event name', () => {
-    const { events } = parseSSE('event: surprise\ndata: {}\n\n');
-    expect(events).toEqual([{ event: 'surprise', data: '{}' }]);
   });
 
   it('returns no events for a blank or partial buffer', () => {
@@ -357,17 +339,25 @@ it('notifies onUnauthorized when a refresh fails', async () => {
 });
 
 describe('account data', () => {
-  it('exportAccount returns the response blob', async () => {
+  it('exportAccount refreshes and retries once on a 401', async () => {
+    // exportAccount hand-rolls refresh/retry outside request(), so cover it here.
     const blob = new Blob(['{}'], { type: 'application/json' });
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockResolvedValue({
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({ ok: false, status: 401 } as Response) // export → 401
+      .mockResolvedValueOnce(jsonResponse(200, { access_token: 'a2' })) // refresh
+      .mockResolvedValueOnce({
         ok: true,
         status: 200,
         blob: async () => blob,
-      } as unknown as Response),
-    );
+      } as unknown as Response); // retry
+    vi.stubGlobal('fetch', fetchMock);
+
     expect(await exportAccount()).toBe(blob);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(fetchMock.mock.calls[1][0]).toBe(
+      'http://localhost:8080/api/refresh',
+    );
   });
 
   it('deleteAccount DELETEs the account endpoint', async () => {

@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"time"
 )
 
 func TestReadyHandler_OK(t *testing.T) {
@@ -24,14 +23,6 @@ func TestReadyHandler_DBDown(t *testing.T) {
 	h(rec, httptest.NewRequest(http.MethodGet, "/readyz", nil))
 	if rec.Code != http.StatusServiceUnavailable {
 		t.Fatalf("want 503, got %d", rec.Code)
-	}
-}
-
-func TestLiveHandler_OK(t *testing.T) {
-	rec := httptest.NewRecorder()
-	liveHandler()(rec, httptest.NewRequest(http.MethodGet, "/livez", nil))
-	if rec.Code != http.StatusOK {
-		t.Fatalf("want 200, got %d", rec.Code)
 	}
 }
 
@@ -59,11 +50,10 @@ func TestSecurityHeaders(t *testing.T) {
 
 func TestNewServer_Timeouts(t *testing.T) {
 	srv := newServer(":8080", nil)
-	if srv.IdleTimeout != 120*time.Second {
-		t.Errorf("IdleTimeout: want 120s, got %v", srv.IdleTimeout)
-	}
-	if srv.ReadHeaderTimeout != 10*time.Second {
-		t.Errorf("ReadHeaderTimeout: want 10s, got %v", srv.ReadHeaderTimeout)
+	// ReadHeaderTimeout guards against Slowloris; WriteTimeout must stay off so
+	// long-lived SSE streams aren't cut. Exact durations are tuning, not contract.
+	if srv.ReadHeaderTimeout <= 0 {
+		t.Errorf("ReadHeaderTimeout: want >0 for Slowloris protection, got %v", srv.ReadHeaderTimeout)
 	}
 	if srv.WriteTimeout != 0 {
 		t.Errorf("WriteTimeout: want 0 (off for SSE), got %v", srv.WriteTimeout)

@@ -115,35 +115,15 @@ describe('AppLayout guard', () => {
     expect(backdrop.className).toContain('opacity-0');
   });
 
-  it('keeps desktop and mobile toggles as separate controls', () => {
+  it('sizes the shell, drawer, and backdrop to the dynamic viewport height', () => {
+    // Guards the settled native h-dvh keyboard flow (PR #48): no visualViewport JS.
     vi.mocked(useAuth).mockReturnValue(authValue('authed'));
     render(
       <AppLayout>
         <div>secret</div>
       </AppLayout>,
     );
-    expect(screen.getByLabelText('Toggle sidebar')).toBeInTheDocument();
-    expect(screen.getByLabelText('Toggle menu')).toBeInTheDocument();
-  });
-
-  it('sizes the shell to the dynamic viewport height', () => {
-    vi.mocked(useAuth).mockReturnValue(authValue('authed'));
-    render(
-      <AppLayout>
-        <div>secret</div>
-      </AppLayout>,
-    );
-    const shell = screen.getByTestId('app-shell');
-    expect(shell.className).toContain('h-dvh');
-  });
-
-  it('sizes the drawer and backdrop to the viewport', () => {
-    vi.mocked(useAuth).mockReturnValue(authValue('authed'));
-    render(
-      <AppLayout>
-        <div>secret</div>
-      </AppLayout>,
-    );
+    expect(screen.getByTestId('app-shell').className).toContain('h-dvh');
     const drawer = screen.getByText('sidebar').parentElement as HTMLElement;
     expect(drawer.className).toContain('h-dvh');
     expect(screen.getByTestId('backdrop').className).toContain('h-dvh');

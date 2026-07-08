@@ -139,15 +139,5 @@ func TestSend_OwnerBypassesBudget(t *testing.T) {
 		map[string]string{"content": "hi"}); rec.Code == http.StatusTooManyRequests {
 		t.Fatal("owner should bypass the daily budget, got 429")
 	}
-
-	// Non-owner, over budget → blocked.
-	otherTok, otherID := signup(t, mux, "other@gmail.com")
-	if err := recordUsage(context.Background(), testPool, otherID, tokenUsage{Prompt: 1, Completion: 1}); err != nil {
-		t.Fatalf("seed other usage: %v", err)
-	}
-	otherConv := createConversation(t, mux, otherTok)
-	if rec := do(t, mux, http.MethodPost, fmt.Sprintf("/api/conversations/%d/messages", otherConv), otherTok,
-		map[string]string{"content": "hi"}); rec.Code != http.StatusTooManyRequests {
-		t.Fatalf("non-owner over budget should be 429, got %d", rec.Code)
-	}
+	// The non-owner-over-budget → 429 path is covered by TestSend_OverRunBudget.
 }

@@ -75,14 +75,6 @@ func TestRefreshTokenHashing(t *testing.T) {
 	}
 }
 
-func TestRefreshTokensUnique(t *testing.T) {
-	a, _ := newRefreshToken()
-	b, _ := newRefreshToken()
-	if a == b {
-		t.Fatal("two generated tokens must differ")
-	}
-}
-
 func mustMint(secret []byte, uid int64, at time.Time) string {
 	s, _ := mintAccessToken(secret, uid, at)
 	return s

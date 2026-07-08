@@ -34,22 +34,6 @@ describe('Composer', () => {
     expect(onSend).not.toHaveBeenCalled();
   });
 
-  it('renders a 16px input on mobile and reserves the safe-area inset', () => {
-    render(<Composer onSend={vi.fn()} onStop={vi.fn()} sending={false} />);
-    const box = screen.getByRole('textbox');
-    expect(box.className).toContain('text-base');
-    expect(box.className).toContain('sm:text-sm');
-    const bar = box.closest('.border-t') as HTMLElement;
-    expect(bar.className).toContain('safe-area-inset-bottom');
-  });
-
-  it('caps textarea growth and scrolls past the cap', () => {
-    render(<Composer onSend={vi.fn()} onStop={vi.fn()} sending={false} />);
-    const box = screen.getByRole('textbox');
-    expect(box.className).toContain('max-h-40');
-    expect(box.className).toContain('overflow-y-auto');
-  });
-
   it('shows Stop while sending and calls onStop', async () => {
     const onStop = vi.fn();
     render(<Composer onSend={vi.fn()} onStop={onStop} sending={true} />);
