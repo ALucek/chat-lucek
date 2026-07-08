@@ -23,15 +23,9 @@ afterEach(() => {
 });
 
 describe('useMediaQuery', () => {
-  it('reports a match after mount', () => {
-    stubMatchMedia(true);
+  it.each([true, false])('returns the matchMedia result (%s)', (matches) => {
+    stubMatchMedia(matches);
     const { result } = renderHook(() => useMediaQuery('(min-width: 768px)'));
-    expect(result.current).toBe(true);
-  });
-
-  it('reports no match when the query does not match', () => {
-    stubMatchMedia(false);
-    const { result } = renderHook(() => useMediaQuery('(min-width: 768px)'));
-    expect(result.current).toBe(false);
+    expect(result.current).toBe(matches);
   });
 });
