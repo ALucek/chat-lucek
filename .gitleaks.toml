@@ -5,6 +5,7 @@ useDefault = true
 description = "test fixtures / known non-secrets"
 regexes = [
   '''test-secret-at-least-32-bytes-long-xx''', # JWT_SECRET used in tests + CI
+  '''test-usage-secret-at-least-32-bytes-xx''', # USAGE_HASH_SECRET used in tests + CI
 ]
 # Path excludes: gitignored, never-committed files that `gitleaks dir` reads off
 # disk anyway. Excluded by path only — real secret *values* are never allowlisted.

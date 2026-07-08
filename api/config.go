@@ -16,6 +16,7 @@ type Config struct {
 	DBName             string
 	Port               string
 	JWTSecret          string
+	UsageHashSecret    string
 	AgentURL           string
 	AllowedOrigin      string
 	DatabaseURL        string
@@ -39,6 +40,7 @@ func LoadConfig() (Config, error) {
 		DBName:             os.Getenv("DB_NAME"),
 		Port:               os.Getenv("PORT"),
 		JWTSecret:          os.Getenv("JWT_SECRET"),
+		UsageHashSecret:    os.Getenv("USAGE_HASH_SECRET"),
 		AgentURL:           getenvDefault("AGENT_URL", "http://localhost:8081"),
 		AllowedOrigin:      getenvDefault("ALLOWED_ORIGIN", "http://localhost:3000"),
 		LogLevel:           getenvDefault("LOG_LEVEL", "info"),
@@ -61,6 +63,7 @@ func LoadConfig() (Config, error) {
 		{"PORT", cfg.Port},
 		{"JWT_SECRET", cfg.JWTSecret},
 		{"GOOGLE_CLIENT_ID", cfg.GoogleClientID},
+		{"USAGE_HASH_SECRET", cfg.UsageHashSecret},
 	}
 	for _, r := range required {
 		if r.value == "" {
@@ -81,6 +84,11 @@ func LoadConfig() (Config, error) {
 	// A too-short JWT_SECRET makes session tokens forgeable.
 	if len(cfg.JWTSecret) < 32 {
 		return Config{}, fmt.Errorf("JWT_SECRET must be at least 32 characters, got %d", len(cfg.JWTSecret))
+	}
+
+	// The usage-ledger HMAC key; short keys weaken the pseudonym.
+	if len(cfg.UsageHashSecret) < 32 {
+		return Config{}, fmt.Errorf("USAGE_HASH_SECRET must be at least 32 characters, got %d", len(cfg.UsageHashSecret))
 	}
 
 	return cfg, nil

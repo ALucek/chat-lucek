@@ -27,6 +27,7 @@ The database defaults already match the local Postgres container. You need to se
 
 - `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `NEXT_PUBLIC_GOOGLE_CLIENT_ID` — a Google OAuth 2.0 Web client with `http://localhost:3000` as an authorized origin (see [deployment.md](deployment.md))
 - `JWT_SECRET` — generate with `openssl rand -hex 32`
+- `USAGE_HASH_SECRET` — keys the usage ledger; generate with `openssl rand -hex 32`
 - `SIGNUP_OPEN=true` — accounts are closed by default; set this to create yours locally
 
 `AGENT_URL` defaults to `http://localhost:8081`, where `make agent-run` serves.
