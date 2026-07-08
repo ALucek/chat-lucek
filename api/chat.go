@@ -15,10 +15,11 @@ import (
 
 // Chat holds the conversation/message handlers and their dependencies.
 type Chat struct {
-	pool       *pgxpool.Pool
-	agent      *agentClient
-	runsBudget int
-	ownerEmail string
+	pool        *pgxpool.Pool
+	agent       *agentClient
+	runsBudget  int
+	ownerEmail  string
+	usageSecret []byte
 }
 
 type conversation struct {
@@ -243,15 +244,16 @@ func (c *Chat) Send(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	owner := false
-	if c.ownerEmail != "" {
-		var email string
-		if c.pool.QueryRow(r.Context(), `select email from users where id = $1`, userID).Scan(&email) == nil {
-			owner = email == c.ownerEmail
-		}
+	var email, googleSub string
+	if err := c.pool.QueryRow(r.Context(),
+		`select email, google_sub from users where id = $1`, userID).Scan(&email, &googleSub); err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "usage check failed"})
+		return
 	}
+	subject := subjectHash(c.usageSecret, googleSub)
+	owner := c.ownerEmail != "" && email == c.ownerEmail
 	if !owner {
-		used, err := runsSince(r.Context(), c.pool, userID, time.Now().Add(-24*time.Hour))
+		used, err := countMarks(r.Context(), c.pool, subject, time.Now().Add(-budgetWindow))
 		if err != nil {
 			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "usage check failed"})
 			return
@@ -361,6 +363,9 @@ func (c *Chat) Send(w http.ResponseWriter, r *http.Request) {
 
 	if err := recordUsage(r.Context(), c.pool, userID, usage); err != nil {
 		slog.ErrorContext(r.Context(), "record usage", "err", err)
+	}
+	if err := recordMark(r.Context(), c.pool, subject); err != nil {
+		slog.ErrorContext(r.Context(), "record mark", "err", err)
 	}
 	writeSSE(w, "done", map[string]int64{"message_id": msgID})
 	flusher.Flush()

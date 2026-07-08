@@ -22,6 +22,8 @@ var testPool *pgxpool.Pool
 
 var testSecret = []byte("test-secret-at-least-32-bytes-long-xx")
 
+var testUsageSecret = []byte("test-usage-secret-at-least-32-bytes-xx")
+
 const testRunsBudget = 1_000_000
 
 // TestMain starts one Postgres container, migrates, then runs all tests.
@@ -66,7 +68,7 @@ func TestMain(m *testing.M) {
 func resetDB(t *testing.T) {
 	t.Helper()
 	_, err := testPool.Exec(context.Background(),
-		`truncate users, refresh_tokens, conversations, messages, token_usage restart identity cascade`)
+		`truncate users, refresh_tokens, conversations, messages, token_usage, usage_marks restart identity cascade`)
 	if err != nil {
 		t.Fatalf("reset db: %v", err)
 	}
@@ -80,7 +82,7 @@ func newTestMux(client *agentClient) http.Handler {
 // newTestMuxBudget builds the router with an explicit daily run budget.
 func newTestMuxBudget(client *agentClient, budget int) http.Handler {
 	auth := &Auth{pool: testPool, secret: testSecret, verify: fakeGoogleVerifier(), exchange: fakeGoogleExchanger(), signupOpen: true}
-	chat := &Chat{pool: testPool, agent: client, runsBudget: budget}
+	chat := &Chat{pool: testPool, agent: client, runsBudget: budget, usageSecret: testUsageSecret}
 	account := &Account{pool: testPool}
 	check := func(ctx context.Context) error { return Healthy(ctx, testPool) }
 	return newMux(check, auth, chat, account)
@@ -100,6 +102,18 @@ func signup(t *testing.T, _ http.Handler, email string) (token string, userID in
 		t.Fatalf("mint token: %v", err)
 	}
 	return token, userID
+}
+
+// seedMarks inserts n run marks for the account created by signup(email).
+func seedMarks(t *testing.T, email string, n int) {
+	t.Helper()
+	sh := subjectHash(testUsageSecret, "sub:"+email)
+	for i := 0; i < n; i++ {
+		if _, err := testPool.Exec(context.Background(),
+			`insert into usage_marks (subject_hash) values ($1)`, sh); err != nil {
+			t.Fatalf("seed mark: %v", err)
+		}
+	}
 }
 
 // do sends a request through the mux; body is JSON-encoded when non-nil.
