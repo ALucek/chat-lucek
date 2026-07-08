@@ -375,9 +375,12 @@ describe('account data', () => {
       .fn()
       .mockResolvedValue({ ok: true, status: 204 } as Response);
     vi.stubGlobal('fetch', fetchMock);
-    await deleteAccount();
+    await deleteAccount('user@example.com');
     const [url, opts] = fetchMock.mock.calls[0];
     expect(String(url)).toContain('/api/account');
     expect((opts as RequestInit).method).toBe('DELETE');
+    expect(JSON.parse((opts as RequestInit).body as string)).toEqual({
+      confirm_email: 'user@example.com',
+    });
   });
 });
