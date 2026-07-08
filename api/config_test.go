@@ -12,6 +12,7 @@ func setAllEnv(t *testing.T) {
 	t.Setenv("JWT_SECRET", "test-secret-at-least-32-bytes-long-xx")
 	t.Setenv("GOOGLE_CLIENT_ID", "test-client-id")
 	t.Setenv("GOOGLE_CLIENT_SECRET", "test-client-secret")
+	t.Setenv("USAGE_HASH_SECRET", "test-usage-secret-at-least-32-bytes-xx")
 	// Clear optional vars so a developer's .env can't leak into default assertions.
 	for _, k := range []string{
 		"AGENT_URL", "ALLOWED_ORIGIN",
@@ -77,6 +78,14 @@ func TestLoadConfig_RejectsShortJWTSecret(t *testing.T) {
 	t.Setenv("JWT_SECRET", "too-short")
 	if _, err := LoadConfig(); err == nil {
 		t.Fatal("expected an error for a short JWT_SECRET, got nil")
+	}
+}
+
+func TestLoadConfig_RejectsShortUsageHashSecret(t *testing.T) {
+	setAllEnv(t)
+	t.Setenv("USAGE_HASH_SECRET", "too-short")
+	if _, err := LoadConfig(); err == nil {
+		t.Fatal("expected an error for a short USAGE_HASH_SECRET, got nil")
 	}
 }
 

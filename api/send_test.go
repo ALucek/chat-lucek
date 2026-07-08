@@ -227,13 +227,11 @@ func TestSend_OverRunBudget(t *testing.T) {
 	resetDB(t)
 	client := fakeAgent(t, http.StatusOK, textFrames("a", "hi"), endFrame)
 	mux := newTestMuxBudget(client, 1)
-	ta, uid := signup(t, mux, "a@x.com")
+	ta, _ := signup(t, mux, "a@x.com")
 	cid := createConversation(t, mux, ta)
 
-	// Seed one run (one usage row) to reach the budget of 1.
-	if err := recordUsage(context.Background(), testPool, uid, tokenUsage{Prompt: 1, Completion: 1}); err != nil {
-		t.Fatalf("seed usage: %v", err)
-	}
+	// Seed one run mark to reach the budget of 1.
+	seedMarks(t, "a@x.com", 1)
 
 	rec := do(t, mux, http.MethodPost, fmt.Sprintf("/api/conversations/%d/messages", cid), ta,
 		map[string]string{"content": "hi"})

@@ -83,10 +83,11 @@ This creates everything else: Cloud SQL, the Cloud Run services and migrate job,
 
 ### 7. Secrets and database password
 
-Set the six secret values, and set the database user's password to match the `db-password` secret. The agent reads `openrouter-api-key`, `tavily-api-key`, and `langsmith-api-key`; the API reads the rest:
+Set the seven secret values, and set the database user's password to match the `db-password` secret. The agent reads `openrouter-api-key`, `tavily-api-key`, and `langsmith-api-key`; the API reads the rest. `usage-hash-secret` keys the usage ledger and must never be rotated (rotating it resets every user's budget window):
 
 ```bash
 openssl rand -hex 32 | tr -d '\n' | gcloud secrets versions add jwt-secret --data-file=-
+openssl rand -hex 32 | tr -d '\n' | gcloud secrets versions add usage-hash-secret --data-file=-
 printf '%s' '<openrouter-key>'    | gcloud secrets versions add openrouter-api-key --data-file=-
 printf '%s' '<tavily-key>'        | gcloud secrets versions add tavily-api-key --data-file=-
 printf '%s' '<langsmith-key>'     | gcloud secrets versions add langsmith-api-key --data-file=-

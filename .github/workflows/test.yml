@@ -68,6 +68,7 @@ jobs:
       DB_NAME: chat
       PORT: '8080'
       JWT_SECRET: test-secret-at-least-32-bytes-long-xx
+      USAGE_HASH_SECRET: test-usage-secret-at-least-32-bytes-xx
       GOOGLE_CLIENT_ID: e2e-dummy
       GOOGLE_AUTH_FAKE: '1'
       SIGNUP_OPEN: 'true'

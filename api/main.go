@@ -73,7 +73,7 @@ func main() {
 			return t.AccessToken, nil
 		}
 	}
-	chat := &Chat{pool: pool, agent: agent, runsBudget: cfg.RunsBudgetDaily, ownerEmail: normalizeEmail(cfg.OwnerEmail)}
+	chat := &Chat{pool: pool, agent: agent, runsBudget: cfg.RunsBudgetDaily, ownerEmail: normalizeEmail(cfg.OwnerEmail), usageSecret: []byte(cfg.UsageHashSecret)}
 	account := &Account{pool: pool}
 
 	mux := newMux(check, auth, chat, account)

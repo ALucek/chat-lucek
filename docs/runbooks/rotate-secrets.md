@@ -1,6 +1,6 @@
 # Rotate secrets
 
-The JWT signing key has its own one-click ([rotate JWT](rotate-jwt.md)). The rest are rotated by hand, since each touches an external system or the live database. For the Cloud Run services the shape is the same: put the new value in Secret Manager, then restart the service that reads it. chat-api reads `db-password` and `google-client-secret`; chat-agent reads `openrouter-api-key`, `tavily-api-key`, and `langsmith-api-key`. Some keys also live outside Secret Manager, in Terraform vars or GitHub Actions secrets, so rotating one means replacing every copy (see [Keys outside Secret Manager](#keys-outside-secret-manager)).
+The JWT signing key has its own one-click ([rotate JWT](rotate-jwt.md)). The rest are rotated by hand, since each touches an external system or the live database. For the Cloud Run services the shape is the same: put the new value in Secret Manager, then restart the service that reads it. chat-api reads `db-password`, `google-client-secret`, and `usage-hash-secret` (see [Usage ledger key](#usage-ledger-key), which is not rotated); chat-agent reads `openrouter-api-key`, `tavily-api-key`, and `langsmith-api-key`. Some keys also live outside Secret Manager, in Terraform vars or GitHub Actions secrets, so rotating one means replacing every copy (see [Keys outside Secret Manager](#keys-outside-secret-manager)).
 
 ## Database password
 
@@ -34,6 +34,14 @@ The agent reads three provider keys. Rotate each at its dashboard (OpenRouter, T
 ver=$(printf '%s' '<new-key>' | gcloud secrets versions add <secret> --data-file=- --format='value(name)')
 gcloud run services update chat-agent --region=us-central1 \
   --update-secrets "<ENV>=<secret>:${ver##*/}"
+```
+
+## Usage ledger key
+
+Do NOT rotate `usage-hash-secret`. It keys the HMAC that pins each user's daily run budget to a stable account identifier, so rotating it recomputes every hash and resets everyone's budget window. It never appears in a token or leaves the server, so it has no reason to rotate. It is seeded once at bootstrap:
+
+```
+printf %s "$(openssl rand -hex 32)" | gcloud secrets versions add usage-hash-secret --data-file=-
 ```
 
 ## Keys outside Secret Manager

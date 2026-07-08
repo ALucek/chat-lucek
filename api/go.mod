@@ -1,6 +1,6 @@
 module github.com/ALucek/simple-ai-chatbot/api
 
-go 1.26.4
+go 1.26.5
 
 require (
 	github.com/golang-jwt/jwt/v4 v4.5.2
