@@ -38,7 +38,7 @@ gcloud run services update chat-agent --region=us-central1 \
 
 ## Usage ledger key
 
-Do NOT rotate `usage-hash-secret`. It keys the HMAC that pins each user's daily run budget to their Google identity, so rotating it recomputes every hash and resets everyone's budget window. It never appears in a token or leaves the server, so it has no reason to rotate. It is seeded once at bootstrap:
+Do NOT rotate `usage-hash-secret`. It keys the HMAC that pins each user's daily run budget to a stable account identifier, so rotating it recomputes every hash and resets everyone's budget window. It never appears in a token or leaves the server, so it has no reason to rotate. It is seeded once at bootstrap:
 
 ```
 printf %s "$(openssl rand -hex 32)" | gcloud secrets versions add usage-hash-secret --data-file=-

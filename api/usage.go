@@ -26,9 +26,7 @@ func recordUsage(ctx context.Context, pool *pgxpool.Pool, userID int64, u tokenU
 	return err
 }
 
-// subjectHash is a stable, pseudonymous key for a Google identity. It is not
-// stored on any row that cascades on account deletion, so deleting and
-// re-creating an account cannot reset a user's usage.
+// subjectHash is a stable per-user key that survives account deletion.
 func subjectHash(secret []byte, googleSub string) []byte {
 	mac := hmac.New(sha256.New, secret)
 	mac.Write([]byte(googleSub))
