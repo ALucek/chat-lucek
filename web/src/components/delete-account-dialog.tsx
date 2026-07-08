@@ -27,7 +27,7 @@ export function DeleteAccountDialog({
   async function onDelete() {
     setBusy(true);
     try {
-      await deleteAccount();
+      await deleteAccount(confirm.trim());
     } catch {
       setBusy(false);
       toast('Could not delete your account');

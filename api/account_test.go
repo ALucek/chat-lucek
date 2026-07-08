@@ -99,7 +99,8 @@ func TestAccount_DeleteCascades(t *testing.T) {
 		t.Fatalf("seed refresh token: %v", err)
 	}
 
-	rec := do(t, mux, http.MethodDelete, "/api/account", ta, nil)
+	rec := do(t, mux, http.MethodDelete, "/api/account", ta,
+		map[string]string{"confirm_email": "a@x.com"})
 	if rec.Code != http.StatusNoContent {
 		t.Fatalf("want 204, got %d", rec.Code)
 	}
@@ -125,5 +126,26 @@ func TestAccount_DeleteRequiresAuth(t *testing.T) {
 	rec := do(t, mux, http.MethodDelete, "/api/account", "", nil)
 	if rec.Code != http.StatusUnauthorized {
 		t.Fatalf("want 401, got %d", rec.Code)
+	}
+}
+
+func TestAccount_DeleteRejectsWrongEmail(t *testing.T) {
+	resetDB(t)
+	mux := newTestMux(nil)
+	ta, _ := signup(t, mux, "a@x.com")
+
+	rec := do(t, mux, http.MethodDelete, "/api/account", ta,
+		map[string]string{"confirm_email": "b@x.com"})
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("want 400, got %d", rec.Code)
+	}
+
+	var n int
+	if err := testPool.QueryRow(context.Background(),
+		"select count(*) from users").Scan(&n); err != nil {
+		t.Fatalf("count users: %v", err)
+	}
+	if n != 1 {
+		t.Fatalf("want user still present, got %d rows", n)
 	}
 }

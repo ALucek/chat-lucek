@@ -53,7 +53,7 @@ type accountExport struct {
 	Usage         []exportUsage        `json:"usage"`
 }
 
-// Export streams the caller's full stored data as a JSON attachment.
+// Export writes the caller's full stored data as a JSON attachment.
 func (a *Account) Export(w http.ResponseWriter, r *http.Request) {
 	userID, _ := userIDFromContext(r.Context())
 	ctx := r.Context()
@@ -145,12 +145,27 @@ func (a *Account) Export(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// Delete permanently removes the caller's account; all data cascades.
+// Delete removes the account after the caller re-types their email.
 func (a *Account) Delete(w http.ResponseWriter, r *http.Request) {
 	userID, _ := userIDFromContext(r.Context())
-	if _, err := a.pool.Exec(r.Context(),
-		`delete from users where id = $1`, userID); err != nil {
+
+	var body struct {
+		ConfirmEmail string `json:"confirm_email"`
+	}
+	if !decodeJSON(w, r, &body) {
+		return
+	}
+
+	// Match on id AND email so the confirmation is enforced server-side.
+	tag, err := a.pool.Exec(r.Context(),
+		`delete from users where id = $1 and email = $2`,
+		userID, normalizeEmail(body.ConfirmEmail))
+	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "could not delete account"})
+		return
+	}
+	if tag.RowsAffected() == 0 {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "email confirmation does not match"})
 		return
 	}
 	http.SetCookie(w, refreshCookie("", -1)) // clear the refresh cookie

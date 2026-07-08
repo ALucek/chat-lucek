@@ -146,8 +146,11 @@ export async function exportAccount(): Promise<Blob> {
   return res.blob();
 }
 
-export async function deleteAccount(): Promise<void> {
-  await request<null>('/api/account', { method: 'DELETE' });
+export async function deleteAccount(confirmEmail: string): Promise<void> {
+  await request<null>('/api/account', {
+    method: 'DELETE',
+    body: { confirm_email: confirmEmail },
+  });
 }
 
 export interface Usage {
