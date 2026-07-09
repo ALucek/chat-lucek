@@ -357,7 +357,7 @@ requires-dist = [
 dev = [
     { name = "bandit", specifier = ">=1.9.4" },
     { name = "httpx", specifier = ">=0.28.1" },
-    { name = "langgraph-api", specifier = ">=0.10.0" },
+    { name = "langgraph-api", specifier = ">=0.10.2" },
     { name = "langgraph-cli", extras = ["inmem"], specifier = ">=0.4.30" },
     { name = "pip-audit", specifier = ">=2.10.1" },
     { name = "pytest", specifier = ">=9.1.1" },
@@ -1041,7 +1041,7 @@ wheels = [
 
 [[package]]
 name = "langgraph-api"
-version = "0.10.0"
+version = "0.10.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "cloudpickle" },
@@ -1077,9 +1077,9 @@ dependencies = [
     { name = "websockets" },
     { name = "zstandard" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/7d/17/a23ecdad3de7e48209bc8d534312ba83e332126ec60da9e6487461b02597/langgraph_api-0.10.0.tar.gz", hash = "sha256:f594a160857e2cd7fb2352bba585111177a4a394625ad0cf5898814754fb7bc1", size = 713903, upload-time = "2026-06-11T14:36:50.469Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/62/cf/0687c1b590067b2862064dfd315019b7d59412a906058a1a3867c660ace0/langgraph_api-0.10.2.tar.gz", hash = "sha256:154402d5701bbbf6fdbf1038245ed1c874600d86a3b861ceb67903076c0c7a39", size = 713920, upload-time = "2026-07-08T20:27:51.93Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/0e/38/6b0cdcaaed9b3105102b452a5a70fb08894a9511458cf00c061c4725347c/langgraph_api-0.10.0-py3-none-any.whl", hash = "sha256:f4b545bf1936c4e90bed1cc07a6852b1be37e1667007ab4736d800cc18e9f9b3", size = 577475, upload-time = "2026-06-11T14:36:48.838Z" },
+    { url = "https://files.pythonhosted.org/packages/49/33/35df5b1d2a678819653b11ab963695c1e02ae08b88002aad2be9b9452a0c/langgraph_api-0.10.2-py3-none-any.whl", hash = "sha256:a04f236e2e4fd6e5868e09aab6376fbb09e3e36183bcf07d6aed8b5715eb088d", size = 577475, upload-time = "2026-07-08T20:27:50.217Z" },
 ]
 
 [[package]]
