@@ -6,7 +6,7 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "langchain-tavily>=0.2.18",
-    "langgraph>=1.2.7",
+    "langgraph>=1.2.8",
     "pydantic>=2.13.4",
     "langchain-openrouter>=0.2.5",
     "fastapi>=0.139.0",
