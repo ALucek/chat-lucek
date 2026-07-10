@@ -107,7 +107,7 @@ func signup(t *testing.T, _ http.Handler, email string) (token string, userID in
 // seedMarks inserts n run marks for the account created by signup(email).
 func seedMarks(t *testing.T, email string, n int) {
 	t.Helper()
-	sh := subjectHash(testUsageSecret, "sub:"+email)
+	sh := subjectHash(testUsageSecret, canonicalizeEmail(email))
 	for i := 0; i < n; i++ {
 		if _, err := testPool.Exec(context.Background(),
 			`insert into usage_marks (subject_hash) values ($1)`, sh); err != nil {

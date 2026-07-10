@@ -244,13 +244,13 @@ func (c *Chat) Send(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var email, googleSub string
+	var email string
 	if err := c.pool.QueryRow(r.Context(),
-		`select email, google_sub from users where id = $1`, userID).Scan(&email, &googleSub); err != nil {
+		`select email from users where id = $1`, userID).Scan(&email); err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "usage check failed"})
 		return
 	}
-	subject := subjectHash(c.usageSecret, googleSub)
+	subject := subjectHash(c.usageSecret, canonicalizeEmail(email))
 	owner := c.ownerEmail != "" && email == c.ownerEmail
 	if !owner {
 		used, err := countMarks(r.Context(), c.pool, subject, time.Now().Add(-budgetWindow))
