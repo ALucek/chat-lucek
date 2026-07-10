@@ -72,10 +72,8 @@ export function ConversationItem({ conversation, rename, remove }: Props) {
 
   return (
     <div
-      className={`group flex h-12 items-center gap-1.5 rounded-[var(--radius)] border-l-2 px-2 md:h-8 ${
-        isOpen
-          ? 'border-fg-strong bg-surface-muted'
-          : 'hover:bg-hover border-transparent'
+      className={`group flex h-12 items-center gap-1.5 rounded-[var(--radius)] px-2 md:h-8 ${
+        isOpen ? 'bg-black/[0.06]' : 'hover:bg-hover'
       }`}
     >
       <span
@@ -105,7 +103,6 @@ export function ConversationItem({ conversation, rename, remove }: Props) {
       >
         {({ close }) => (
           <MenuContent
-            title={conversation.title}
             onRename={() => {
               close();
               setEditing(true);
@@ -119,11 +116,9 @@ export function ConversationItem({ conversation, rename, remove }: Props) {
 }
 
 function MenuContent({
-  title,
   onRename,
   onDelete,
 }: {
-  title: string;
   onRename: () => void;
   onDelete: () => Promise<boolean>;
 }) {
@@ -158,14 +153,6 @@ function MenuContent({
 
   return (
     <div className="flex flex-col">
-      <div className="border-border border-b px-2 py-2 md:hidden">
-        <span className="text-subtle block text-[11px] tracking-[0.16em] uppercase">
-          Conversation
-        </span>
-        <span className="text-fg-strong block truncate text-sm">
-          {title || 'New conversation'}
-        </span>
-      </div>
       <button
         onClick={onRename}
         className="hover:bg-hover text-fg flex h-11 items-center rounded px-2 text-sm md:h-8"

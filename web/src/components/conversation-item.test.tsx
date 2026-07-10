@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ConversationItem } from './conversation-item';
 import { ToastProvider } from '@/lib/toast-context';
@@ -129,20 +129,6 @@ describe('ConversationItem', () => {
     expect(screen.getByRole('link', { name: 'Hello' })).not.toHaveAttribute(
       'aria-current',
     );
-  });
-
-  it('names the conversation in the actions menu', async () => {
-    render(
-      <ConversationItem
-        conversation={convo}
-        rename={vi.fn()}
-        remove={vi.fn()}
-      />,
-      { wrapper },
-    );
-    await openMenu();
-    const dialog = screen.getByRole('dialog', { name: 'Conversation actions' });
-    expect(within(dialog).getByText('Hello')).toBeInTheDocument();
   });
 
   it('navigates home when deleting the open conversation', async () => {
