@@ -2,8 +2,11 @@ package main
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"time"
+
+	"github.com/jackc/pgx/v5"
 )
 
 const refreshTokenTTL = 30 * 24 * time.Hour
@@ -83,6 +86,36 @@ func (a *Auth) Me(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"id": userID, "email": email})
+}
+
+// completeLogin finds-or-creates the user by email and issues a session.
+func (a *Auth) completeLogin(w http.ResponseWriter, r *http.Request, verifiedEmail string) {
+	email := normalizeEmail(verifiedEmail)
+	var userID int64
+	err := a.pool.QueryRow(r.Context(),
+		`select id from users where email = $1`, email).Scan(&userID)
+	switch {
+	case err == nil:
+	case errors.Is(err, pgx.ErrNoRows):
+		if !a.signupOpen {
+			writeJSON(w, http.StatusForbidden, map[string]string{"error": "signups are closed"})
+			return
+		}
+		if err := a.pool.QueryRow(r.Context(),
+			`insert into users (email) values ($1) returning id`, email).Scan(&userID); err != nil {
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "could not create user"})
+			return
+		}
+	default:
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "could not create user"})
+		return
+	}
+	family, err := newFamilyID()
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "could not start session"})
+		return
+	}
+	a.issueTokens(w, r, userID, family, http.StatusOK)
 }
 
 // issueTokens mints an access token + a hashed refresh token, writes both.

@@ -55,7 +55,7 @@ func TestGoogle_NewUserIssuesTokens(t *testing.T) {
 	}
 }
 
-func TestGoogle_ReturningUserUpdatesEmail(t *testing.T) {
+func TestGoogle_ReturningUserReusesRow(t *testing.T) {
 	resetDB(t)
 	mux := newTestMux(nil)
 	do(t, mux, http.MethodPost, "/api/google", "", map[string]string{"code": "e2e:same@gmail.com"})
@@ -94,8 +94,7 @@ func TestGoogle_SignupsClosedRejectsNewUser(t *testing.T) {
 func TestGoogle_SignupsClosedAllowsExistingUser(t *testing.T) {
 	resetDB(t)
 	if _, err := testPool.Exec(context.Background(),
-		`insert into users (google_sub, email) values ($1, $2)`,
-		"e2e:existing@gmail.com", "existing@gmail.com"); err != nil {
+		`insert into users (email) values ($1)`, "existing@gmail.com"); err != nil {
 		t.Fatalf("seed: %v", err)
 	}
 	auth := &Auth{pool: testPool, secret: testSecret, verify: fakeGoogleVerifier(), exchange: fakeGoogleExchanger(), signupOpen: false}
