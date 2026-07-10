@@ -13,7 +13,7 @@ async function loginViaMagicLink(
 ) {
   await page.goto('/login');
   await page.getByLabel('Email').fill(email);
-  await page.getByRole('button', { name: /sign-in link/i }).click();
+  await page.getByRole('button', { name: /sign in link/i }).click();
   const res = await page.request.get(
     `${API}/api/magic/latest?email=${encodeURIComponent(email)}`,
   );

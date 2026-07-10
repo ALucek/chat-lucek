@@ -120,7 +120,7 @@ export default function LoginPage() {
           <div className="bg-border h-px w-full" />
           {sent ? (
             <p className="text-fg text-center text-sm">
-              Check your inbox for a sign-in link.
+              Check your inbox for a sign in link.
             </p>
           ) : (
             <form
@@ -160,7 +160,7 @@ export default function LoginPage() {
                 disabled={sending}
                 className="border-border bg-surface text-fg hover:bg-surface-muted h-10 rounded-[var(--radius)] border text-sm transition-colors disabled:opacity-50"
               >
-                {sending ? 'Sending…' : 'Email me a sign-in link'}
+                {sending ? 'Sending…' : 'Email me a sign in link'}
               </button>
             </form>
           )}

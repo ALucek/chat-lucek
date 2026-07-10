@@ -110,7 +110,7 @@ describe('LoginPage', () => {
     render(<LoginPage />);
     await userEvent.type(screen.getByLabelText('Email'), 'me@example.com');
     await userEvent.click(
-      screen.getByRole('button', { name: /sign-in link/i }),
+      screen.getByRole('button', { name: /sign in link/i }),
     );
     await waitFor(() =>
       expect(requestMagicLink).toHaveBeenCalledWith('me@example.com'),

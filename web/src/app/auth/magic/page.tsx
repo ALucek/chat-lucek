@@ -25,7 +25,7 @@ function Verify() {
     return (
       <div className="flex flex-col items-center gap-3">
         <p role="alert" className="text-danger text-sm">
-          This sign-in link is invalid or expired.
+          This sign in link is invalid or expired.
         </p>
         <Link href="/login" className="text-sm underline">
           Back to sign in
