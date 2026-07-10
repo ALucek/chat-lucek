@@ -101,7 +101,7 @@ variable "thread_helpfulness_prompt_commit" {
 
 variable "resend_api_key" {
   type        = string
-  description = "Resend API key (send-scoped) for delivering online-eval alerts."
+  description = "Resend API key (send-scoped) for eval alerts and magic-link sign-in."
   sensitive   = true
 }
 

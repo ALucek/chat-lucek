@@ -83,7 +83,7 @@ This creates everything else: Cloud SQL, the Cloud Run services and migrate job,
 
 ### 7. Secrets and database password
 
-Set the eight secret values, and set the database user's password to match the `db-password` secret. The agent reads `openrouter-api-key`, `tavily-api-key`, and `langsmith-api-key`; the API reads the rest. `usage-hash-secret` keys the usage ledger and must never be rotated (rotating it resets every user's budget window). `resend-api-key` lets the API send magic-link sign-in emails and is freely rotatable; the sender address is the `magic_link_from` tfvar (default `login@lucek.ai`):
+Set the seven secret values, and set the database user's password to match the `db-password` secret. The agent reads `openrouter-api-key`, `tavily-api-key`, and `langsmith-api-key`; the API reads the rest. `usage-hash-secret` keys the usage ledger and must never be rotated (rotating it resets every user's budget window). The API's magic-link Resend key is not seeded here: Terraform sets `resend-api-key` from the `resend_api_key` tfvar (the same key the eval alerts use), with the sender in the `magic_link_from` tfvar (default `login@lucek.ai`):
 
 ```bash
 openssl rand -hex 32 | tr -d '\n' | gcloud secrets versions add jwt-secret --data-file=-
@@ -92,7 +92,6 @@ printf '%s' '<openrouter-key>'    | gcloud secrets versions add openrouter-api-k
 printf '%s' '<tavily-key>'        | gcloud secrets versions add tavily-api-key --data-file=-
 printf '%s' '<langsmith-key>'     | gcloud secrets versions add langsmith-api-key --data-file=-
 printf '%s' '<google-client-secret>' | gcloud secrets versions add google-client-secret --data-file=-
-printf '%s' '<resend-key>'        | gcloud secrets versions add resend-api-key --data-file=-
 
 DB_PW=$(openssl rand -hex 24)
 printf '%s' "$DB_PW" | gcloud secrets versions add db-password --data-file=-
