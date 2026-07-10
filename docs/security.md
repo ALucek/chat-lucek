@@ -26,7 +26,7 @@ CI runs these in [security.yml](../.github/workflows/security.yml) on every push
 
 ## Application
 
-- **Authentication:** users sign in with Google or an email magic link; both resolve to a verified email, which is the sole account identity. Magic-link tokens are single-use, 15-minute, and stored only as a hash. The API issues a short-lived HS256 access token whose algorithm is pinned on verify, rejecting forgeries like `alg: none`.
+- **Authentication:** sign-in is Google or an email magic link; both resolve to a verified email, the sole account identity. Magic-link tokens are single-use, expire in 15 minutes, and are stored only as a hash. The API issues a short-lived HS256 access token whose algorithm is pinned on verify, rejecting forgeries like `alg: none`.
 - **Refresh tokens:** stored hashed, delivered in an httpOnly, Secure, SameSite=Strict cookie scoped to `/api`. Each refresh rotates the token within a family; reusing a revoked token revokes the whole family as suspected theft.
 - **Origin checks:** state-changing requests (POST, PATCH, DELETE) with a mismatched Origin are refused.
 - **Security headers:** CSP, HSTS, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, and Permissions-Policy on every response.
