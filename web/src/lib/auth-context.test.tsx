@@ -7,12 +7,13 @@ import * as api from './api';
 vi.mock('./api');
 
 function Probe() {
-  const { user, status, loginWithGoogle, logout } = useAuth();
+  const { user, status, loginWithGoogle, verifyMagicLink, logout } = useAuth();
   return (
     <div>
       <span data-testid="status">{status}</span>
       <span data-testid="email">{user?.email ?? ''}</span>
       <button onClick={() => loginWithGoogle('tok')}>login</button>
+      <button onClick={() => verifyMagicLink('mtok')}>verify-magic</button>
       <button onClick={() => logout()}>logout</button>
     </div>
   );
@@ -67,6 +68,26 @@ describe('AuthProvider', () => {
     await userEvent.click(screen.getByText('login'));
     await waitFor(() =>
       expect(screen.getByTestId('email')).toHaveTextContent('c@d.co'),
+    );
+  });
+
+  it('verifyMagicLink verifies then loads the user', async () => {
+    vi.mocked(api.refreshAccess).mockResolvedValue(null);
+    vi.mocked(api.verifyMagicLink).mockResolvedValue();
+    vi.mocked(api.me).mockResolvedValue({ id: 3, email: 'm@n.co' });
+
+    render(
+      <AuthProvider>
+        <Probe />
+      </AuthProvider>,
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId('status')).toHaveTextContent('anon'),
+    );
+    await userEvent.click(screen.getByText('verify-magic'));
+    expect(api.verifyMagicLink).toHaveBeenCalledWith('mtok');
+    await waitFor(() =>
+      expect(screen.getByTestId('email')).toHaveTextContent('m@n.co'),
     );
   });
 
