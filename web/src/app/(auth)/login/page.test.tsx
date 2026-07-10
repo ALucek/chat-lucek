@@ -21,6 +21,8 @@ beforeEach(() => {
     user: null,
     status: 'anon',
     loginWithGoogle,
+    requestMagicLink: vi.fn().mockResolvedValue(undefined),
+    verifyMagicLink: vi.fn(),
     logout: vi.fn(),
   } as unknown as ReturnType<typeof useAuth>);
   // Fake Google Identity Services OAuth2 code client.
@@ -93,6 +95,27 @@ describe('LoginPage', () => {
     await act(async () => {
       resolve();
     });
+  });
+
+  it('emails a sign-in link and shows a confirmation', async () => {
+    const requestMagicLink = vi.fn().mockResolvedValue(undefined);
+    vi.mocked(useAuth).mockReturnValue({
+      user: null,
+      status: 'anon',
+      loginWithGoogle,
+      requestMagicLink,
+      verifyMagicLink: vi.fn(),
+      logout: vi.fn(),
+    } as unknown as ReturnType<typeof useAuth>);
+    render(<LoginPage />);
+    await userEvent.type(screen.getByLabelText('Email'), 'me@example.com');
+    await userEvent.click(
+      screen.getByRole('button', { name: /sign-in link/i }),
+    );
+    await waitFor(() =>
+      expect(requestMagicLink).toHaveBeenCalledWith('me@example.com'),
+    );
+    expect(screen.getByText(/check your inbox/i)).toBeInTheDocument();
   });
 
   it('shows the server error message when sign-in fails', async () => {
