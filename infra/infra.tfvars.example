@@ -4,6 +4,7 @@ google_client_id = "your-oauth-client-id"
 owner_email      = "your-email"
 billing_account  = "XXXXXX-XXXXXX-XXXXXX"
 # signup_open    = false   # close new-user registration (default: true)
+# magic_link_from = "login@lucek.ai"   # Resend sender for sign-in links (default)
 
 
 # LangSmith online evals

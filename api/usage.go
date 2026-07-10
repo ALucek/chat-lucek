@@ -56,12 +56,12 @@ func recordMark(ctx context.Context, pool *pgxpool.Pool, subject []byte) error {
 
 // runsUsed counts a user's marks in the window, resolving their subject hash.
 func runsUsed(ctx context.Context, pool *pgxpool.Pool, secret []byte, userID int64, since time.Time) (int, error) {
-	var googleSub string
+	var email string
 	if err := pool.QueryRow(ctx,
-		`select google_sub from users where id = $1`, userID).Scan(&googleSub); err != nil {
+		`select email from users where id = $1`, userID).Scan(&email); err != nil {
 		return 0, err
 	}
-	return countMarks(ctx, pool, subjectHash(secret, googleSub), since)
+	return countMarks(ctx, pool, subjectHash(secret, canonicalizeEmail(email)), since)
 }
 
 // Usage reports the caller's rolling-24h run count against the daily budget.

@@ -33,6 +33,8 @@ services:
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
       OWNER_EMAIL: ${OWNER_EMAIL:-}
       SIGNUP_OPEN: ${SIGNUP_OPEN:-}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      MAGIC_LINK_FROM: ${MAGIC_LINK_FROM:-}
     ports:
       - "${PORT:-8080}:${PORT:-8080}"
     depends_on:

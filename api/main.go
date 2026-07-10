@@ -57,7 +57,7 @@ func main() {
 
 	check := func(ctx context.Context) error { return Healthy(ctx, pool) }
 
-	auth := &Auth{pool: pool, secret: []byte(cfg.JWTSecret), verify: selectGoogleVerifier(cfg), exchange: selectGoogleExchanger(cfg), signupOpen: cfg.SignupOpen}
+	auth := &Auth{pool: pool, secret: []byte(cfg.JWTSecret), verify: selectGoogleVerifier(cfg), exchange: selectGoogleExchanger(cfg), signupOpen: cfg.SignupOpen, mailer: selectMailer(cfg), linkBase: cfg.AllowedOrigin}
 	agent := &agentClient{baseURL: cfg.AgentURL, http: newAgentHTTPClient()}
 	if strings.HasPrefix(cfg.AgentURL, "https") {
 		ts, err := idtoken.NewTokenSource(ctx, cfg.AgentURL)
@@ -176,10 +176,15 @@ func newMux(check func(context.Context) error, auth *Auth, chat *Chat, account *
 		return strconv.FormatInt(uid, 10)
 	})
 
+	auth.magicLimiter = newLimiter(magicRatePerMin, magicRateBurst)
+
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /livez", liveHandler())
 	mux.HandleFunc("GET /readyz", readyHandler(check))
 	mux.Handle("POST /api/google", http.HandlerFunc(auth.Google))
+	mux.Handle("POST /api/magic/request", http.HandlerFunc(auth.MagicRequest))
+	mux.Handle("POST /api/magic/verify", http.HandlerFunc(auth.MagicVerify))
+	mux.Handle("GET /api/magic/latest", http.HandlerFunc(auth.MagicLatest))
 	mux.Handle("POST /api/refresh", http.HandlerFunc(auth.Refresh))
 	mux.HandleFunc("POST /api/logout", auth.Logout)
 	mux.Handle("GET /api/me", auth.Middleware(http.HandlerFunc(auth.Me)))

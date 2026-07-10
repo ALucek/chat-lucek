@@ -24,7 +24,7 @@ A clean plan means the flag is applied:
 cd infra && terraform plan
 ```
 
-When closed, a brand-new Google account is refused at sign-in.
+When closed, a brand-new account (Google or magic link) is refused at sign-in; both paths share the `completeLogin` gate.
 
 ## Notes
 

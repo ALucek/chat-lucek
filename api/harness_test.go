@@ -68,7 +68,7 @@ func TestMain(m *testing.M) {
 func resetDB(t *testing.T) {
 	t.Helper()
 	_, err := testPool.Exec(context.Background(),
-		`truncate users, refresh_tokens, conversations, messages, token_usage, usage_marks restart identity cascade`)
+		`truncate users, refresh_tokens, conversations, messages, token_usage, usage_marks, magic_links restart identity cascade`)
 	if err != nil {
 		t.Fatalf("reset db: %v", err)
 	}
@@ -81,7 +81,7 @@ func newTestMux(client *agentClient) http.Handler {
 
 // newTestMuxBudget builds the router with an explicit daily run budget.
 func newTestMuxBudget(client *agentClient, budget int) http.Handler {
-	auth := &Auth{pool: testPool, secret: testSecret, verify: fakeGoogleVerifier(), exchange: fakeGoogleExchanger(), signupOpen: true}
+	auth := &Auth{pool: testPool, secret: testSecret, verify: fakeGoogleVerifier(), exchange: fakeGoogleExchanger(), signupOpen: true, mailer: newFakeMailer(), linkBase: "http://localhost:3000"}
 	chat := &Chat{pool: testPool, agent: client, runsBudget: budget, usageSecret: testUsageSecret}
 	account := &Account{pool: testPool}
 	check := func(ctx context.Context) error { return Healthy(ctx, testPool) }
@@ -92,8 +92,8 @@ func newTestMuxBudget(client *agentClient, budget int) http.Handler {
 func signup(t *testing.T, _ http.Handler, email string) (token string, userID int64) {
 	t.Helper()
 	err := testPool.QueryRow(context.Background(),
-		`insert into users (google_sub, email) values ($1, $2) returning id`,
-		"sub:"+email, normalizeEmail(email)).Scan(&userID)
+		`insert into users (email) values ($1) returning id`,
+		normalizeEmail(email)).Scan(&userID)
 	if err != nil {
 		t.Fatalf("seed user %s: %v", email, err)
 	}
@@ -107,7 +107,7 @@ func signup(t *testing.T, _ http.Handler, email string) (token string, userID in
 // seedMarks inserts n run marks for the account created by signup(email).
 func seedMarks(t *testing.T, email string, n int) {
 	t.Helper()
-	sh := subjectHash(testUsageSecret, "sub:"+email)
+	sh := subjectHash(testUsageSecret, canonicalizeEmail(email))
 	for i := 0; i < n; i++ {
 		if _, err := testPool.Exec(context.Background(),
 			`insert into usage_marks (subject_hash) values ($1)`, sh); err != nil {

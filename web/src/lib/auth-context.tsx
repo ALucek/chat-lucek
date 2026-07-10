@@ -9,6 +9,8 @@ interface AuthValue {
   user: api.User | null;
   status: Status;
   loginWithGoogle: (code: string) => Promise<void>;
+  requestMagicLink: (email: string) => Promise<void>;
+  verifyMagicLink: (token: string) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -57,6 +59,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setStatus('authed');
   }
 
+  async function requestMagicLink(email: string) {
+    await api.requestMagicLink(email);
+  }
+
+  async function verifyMagicLink(token: string) {
+    await api.verifyMagicLink(token);
+    setUser(await api.me());
+    setStatus('authed');
+  }
+
   async function logout() {
     await api.logout();
     setUser(null);
@@ -64,7 +76,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, status, loginWithGoogle, logout }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        status,
+        loginWithGoogle,
+        requestMagicLink,
+        verifyMagicLink,
+        logout,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

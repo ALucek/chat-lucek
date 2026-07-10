@@ -211,3 +211,30 @@ func TestLogout_DeletesWithoutRevokingOthers(t *testing.T) {
 		t.Fatalf("other session after logout: want 200, got %d", rr.Code)
 	}
 }
+
+func TestCompleteLogin_CreatesThenReusesUser(t *testing.T) {
+	resetDB(t)
+	a := &Auth{pool: testPool, secret: testSecret, signupOpen: true}
+	rec := httptest.NewRecorder()
+	a.completeLogin(rec, httptest.NewRequest(http.MethodPost, "/", nil), "New.User@gmail.com")
+	if rec.Code != http.StatusOK {
+		t.Fatalf("first login want 200, got %d (%s)", rec.Code, rec.Body)
+	}
+	a.completeLogin(httptest.NewRecorder(),
+		httptest.NewRequest(http.MethodPost, "/", nil), "new.user@gmail.com")
+	var n int
+	testPool.QueryRow(context.Background(), `select count(*) from users`).Scan(&n)
+	if n != 1 {
+		t.Fatalf("want 1 user after repeat login, got %d", n)
+	}
+}
+
+func TestCompleteLogin_ClosedSignupRejectsNewUser(t *testing.T) {
+	resetDB(t)
+	a := &Auth{pool: testPool, secret: testSecret, signupOpen: false}
+	rec := httptest.NewRecorder()
+	a.completeLogin(rec, httptest.NewRequest(http.MethodPost, "/", nil), "stranger@gmail.com")
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("want 403, got %d (%s)", rec.Code, rec.Body)
+	}
+}

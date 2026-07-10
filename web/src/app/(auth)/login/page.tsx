@@ -52,13 +52,16 @@ function GoogleG({ className }: { className?: string }) {
 }
 
 export default function LoginPage() {
-  const { status, loginWithGoogle } = useAuth();
+  const { status, loginWithGoogle, requestMagicLink } = useAuth();
   const router = useRouter();
   const client = useRef<CodeClient | null>(null);
   const initialized = useRef(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [ready, setReady] = useState(false);
+  const [email, setEmail] = useState('');
+  const [sent, setSent] = useState(false);
+  const [sending, setSending] = useState(false);
 
   useEffect(() => {
     if (status === 'authed') router.replace('/');
@@ -114,8 +117,55 @@ export default function LoginPage() {
             <GoogleG className="h-4 w-4" />
             {loading ? 'Signing in…' : 'Sign in with Google'}
           </button>
+          <div className="bg-border h-px w-full" />
+          {sent ? (
+            <p className="text-fg text-center text-sm">
+              Check your inbox for a sign in link.
+            </p>
+          ) : (
+            <form
+              className="flex w-[280px] flex-col gap-2"
+              onSubmit={async (e) => {
+                e.preventDefault();
+                setError('');
+                setSending(true);
+                try {
+                  await requestMagicLink(email);
+                  setSent(true);
+                } catch (err) {
+                  setError(
+                    err instanceof ApiError
+                      ? err.message
+                      : 'Could not send link',
+                  );
+                } finally {
+                  setSending(false);
+                }
+              }}
+            >
+              <label htmlFor="email" className="sr-only">
+                Email
+              </label>
+              <input
+                id="email"
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="your@email.com"
+                className="border-border bg-surface text-fg h-10 rounded-[var(--radius)] border px-3 text-sm"
+              />
+              <button
+                type="submit"
+                disabled={sending}
+                className="border-border bg-surface text-fg hover:bg-surface-muted h-10 rounded-[var(--radius)] border text-sm transition-colors disabled:opacity-50"
+              >
+                {sending ? 'Sending…' : 'Email me a sign in link'}
+              </button>
+            </form>
+          )}
           {error && (
-            <p role="alert" className="text-danger text-sm">
+            <p role="alert" className="text-danger text-center text-sm">
               {error}
             </p>
           )}

@@ -1,6 +1,6 @@
 # Rotate secrets
 
-The JWT signing key has its own one-click ([rotate JWT](rotate-jwt.md)). The rest are rotated by hand, since each touches an external system or the live database. For the Cloud Run services the shape is the same: put the new value in Secret Manager, then restart the service that reads it. chat-api reads `db-password`, `google-client-secret`, and `usage-hash-secret` (see [Usage ledger key](#usage-ledger-key), which is not rotated); chat-agent reads `openrouter-api-key`, `tavily-api-key`, and `langsmith-api-key`. Some keys also live outside Secret Manager, in Terraform vars or GitHub Actions secrets, so rotating one means replacing every copy (see [Keys outside Secret Manager](#keys-outside-secret-manager)).
+The JWT signing key has its own one-click ([rotate JWT](rotate-jwt.md)). The rest are rotated by hand, since each touches an external system or the live database. For the Cloud Run services the shape is the same: put the new value in Secret Manager, then restart the service that reads it. chat-api reads `db-password`, `google-client-secret`, `usage-hash-secret` (see [Usage ledger key](#usage-ledger-key), which is not rotated), and `resend-api-key`; chat-agent reads `openrouter-api-key`, `tavily-api-key`, and `langsmith-api-key`. Some keys also live outside Secret Manager, in Terraform vars or GitHub Actions secrets, so rotating one means replacing every copy (see [Keys outside Secret Manager](#keys-outside-secret-manager)).
 
 ## Database password
 
@@ -36,6 +36,16 @@ gcloud run services update chat-agent --region=us-central1 \
   --update-secrets "<ENV>=<secret>:${ver##*/}"
 ```
 
+## Magic-link mailer key
+
+`resend-api-key` is the Resend key chat-api uses to send sign-in links. It is the same key as the eval alerts: Terraform sets it from the one `resend_api_key` tfvar. Rotate by creating a new key in the Resend dashboard, updating `resend_api_key` in `infra/infra.tfvars`, applying, then redeploying chat-api to pick up the new version.
+
+```
+cd infra && terraform apply
+gcloud run services update chat-api --region us-central1 \
+  --update-secrets "RESEND_API_KEY=resend-api-key:latest"
+```
+
 ## Usage ledger key
 
 Do NOT rotate `usage-hash-secret`. It keys the HMAC that pins each user's daily run budget to a stable account identifier, so rotating it recomputes every hash and resets everyone's budget window. It never appears in a token or leaves the server, so it has no reason to rotate. It is seeded once at bootstrap:
@@ -53,7 +63,7 @@ The LangSmith online-eval infra ([langsmith.tf](../../infra/langsmith.tf)) and t
 | LangSmith | `langsmith-api-key` (Secret Manager), `langsmith_api_key` (tfvars), `LANGSMITH_API_KEY` (Actions) |
 | OpenRouter | `openrouter-api-key` (Secret Manager), `OPENROUTER_API_KEY` (Actions) |
 | Tavily | `tavily-api-key` (Secret Manager), `TAVILY_API_KEY` (Actions) |
-| Resend | `resend_api_key` (tfvars), `RESEND_API_KEY` (Actions) |
+| Resend | `resend_api_key` (tfvars; also feeds the `resend-api-key` secret), `RESEND_API_KEY` (Actions) |
 
 Rotate the Secret Manager copies as above. For the rest, create the new key at its dashboard, update both homes, then revoke the old one. None of these serve live traffic, so ordering is not sensitive.
 

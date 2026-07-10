@@ -116,6 +116,22 @@ export async function loginWithGoogle(code: string): Promise<void> {
   );
 }
 
+export async function requestMagicLink(email: string): Promise<void> {
+  await request<{ status: string }>('/api/magic/request', {
+    method: 'POST',
+    body: { email },
+  });
+}
+
+export async function verifyMagicLink(token: string): Promise<void> {
+  setSession(
+    await request<Tokens>('/api/magic/verify', {
+      method: 'POST',
+      body: { token },
+    }),
+  );
+}
+
 export async function logout(): Promise<void> {
   try {
     await fetch(`${API_URL}/api/logout`, {

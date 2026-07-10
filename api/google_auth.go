@@ -10,7 +10,6 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/jackc/pgx/v5"
 	"google.golang.org/api/idtoken"
 )
 
@@ -19,7 +18,6 @@ var googleTokenURL = "https://oauth2.googleapis.com/token"
 
 // googleClaims is the subset of a verified Google ID token we use.
 type googleClaims struct {
-	Sub           string
 	Email         string
 	EmailVerified bool
 }
@@ -34,7 +32,7 @@ func realGoogleVerifier(clientID string) googleVerifier {
 		if err != nil {
 			return googleClaims{}, err
 		}
-		c := googleClaims{Sub: p.Subject}
+		c := googleClaims{}
 		if e, ok := p.Claims["email"].(string); ok {
 			c.Email = e
 		}
@@ -52,7 +50,7 @@ func fakeGoogleVerifier() googleVerifier {
 		if !ok || email == "" {
 			return googleClaims{}, errors.New("fake verifier: expected e2e:<email>")
 		}
-		return googleClaims{Sub: "e2e:" + email, Email: email, EmailVerified: true}, nil
+		return googleClaims{Email: email, EmailVerified: true}, nil
 	}
 }
 
@@ -118,7 +116,7 @@ func selectGoogleExchanger(cfg Config) googleExchanger {
 	return realGoogleExchanger(cfg.GoogleClientID, cfg.GoogleClientSecret)
 }
 
-// Google exchanges the code, verifies it, upserts the user, issues a session.
+// Google exchanges the code, verifies it, then starts a session by email.
 func (a *Auth) Google(w http.ResponseWriter, r *http.Request) {
 	var body struct {
 		Code string `json:"code"`
@@ -140,32 +138,5 @@ func (a *Auth) Google(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "invalid google token"})
 		return
 	}
-	email := normalizeEmail(claims.Email)
-	var userID int64
-	err = a.pool.QueryRow(r.Context(),
-		`select id from users where google_sub = $1`, claims.Sub).Scan(&userID)
-	switch {
-	case err == nil:
-		_, _ = a.pool.Exec(r.Context(), `update users set email = $2 where google_sub = $1`, claims.Sub, email)
-	case errors.Is(err, pgx.ErrNoRows):
-		if !a.signupOpen {
-			writeJSON(w, http.StatusForbidden, map[string]string{"error": "signups are closed"})
-			return
-		}
-		if err := a.pool.QueryRow(r.Context(),
-			`insert into users (google_sub, email) values ($1, $2) returning id`,
-			claims.Sub, email).Scan(&userID); err != nil {
-			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "could not create user"})
-			return
-		}
-	default:
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "could not create user"})
-		return
-	}
-	family, err := newFamilyID()
-	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "could not start session"})
-		return
-	}
-	a.issueTokens(w, r, userID, family, http.StatusOK)
+	a.completeLogin(w, r, claims.Email)
 }

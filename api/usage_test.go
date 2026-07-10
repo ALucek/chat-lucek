@@ -12,8 +12,8 @@ import (
 func TestCountMarks_ExcludesOldAndOtherSubjects(t *testing.T) {
 	resetDB(t)
 	ctx := context.Background()
-	sh := subjectHash(testUsageSecret, "sub:a@x.com")
-	other := subjectHash(testUsageSecret, "sub:b@x.com")
+	sh := subjectHash(testUsageSecret, canonicalizeEmail("a@x.com"))
+	other := subjectHash(testUsageSecret, canonicalizeEmail("b@x.com"))
 	if _, err := testPool.Exec(ctx,
 		`insert into usage_marks (subject_hash) values ($1), ($1)`, sh); err != nil {
 		t.Fatalf("seed: %v", err)
@@ -48,7 +48,7 @@ func TestBudget_SurvivesAccountDeleteAndResignup(t *testing.T) {
 		t.Fatalf("delete user: %v", err)
 	}
 
-	// Re-signup: new user id, same google_sub, so the same subject_hash.
+	// Re-signup: new user id, same email, so the same subject_hash.
 	ta, _ := signup(t, mux, "churn@x.com")
 	conv := createConversation(t, mux, ta)
 	rec := do(t, mux, http.MethodPost,
@@ -69,7 +69,7 @@ func TestUsage_Endpoint(t *testing.T) {
 	// A mark older than the 24h window must not count.
 	if _, err := testPool.Exec(ctx,
 		`insert into usage_marks (subject_hash, created_at) values ($1, now() - interval '25 hours')`,
-		subjectHash(testUsageSecret, "sub:a@x.com")); err != nil {
+		subjectHash(testUsageSecret, canonicalizeEmail("a@x.com"))); err != nil {
 		t.Fatalf("seed old: %v", err)
 	}
 

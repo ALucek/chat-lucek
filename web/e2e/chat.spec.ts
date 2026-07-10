@@ -4,6 +4,24 @@ import path from 'node:path';
 
 const FAKE_GSI = readFileSync(path.join(__dirname, 'fake-gsi.js'), 'utf8');
 
+const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080';
+
+// loginViaMagicLink drives the real request/verify flow using the fake mailer.
+async function loginViaMagicLink(
+  page: import('@playwright/test').Page,
+  email: string,
+) {
+  await page.goto('/login');
+  await page.getByLabel('Email').fill(email);
+  await page.getByRole('button', { name: /sign in link/i }).click();
+  const res = await page.request.get(
+    `${API}/api/magic/latest?email=${encodeURIComponent(email)}`,
+  );
+  const { link } = (await res.json()) as { link: string };
+  await page.goto(link);
+  await expect(page).toHaveURL('/');
+}
+
 test('sign in with Google, send a message, stream a reply, persist on reload', async ({
   page,
 }) => {
@@ -58,18 +76,7 @@ test('sign in with Google, send a message, stream a reply, persist on reload', a
 test('composer grows with content up to a max, then stops', async ({
   page,
 }) => {
-  const email = `e2e-grow-${Date.now()}@gmail.com`;
-
-  await page.route('https://accounts.google.com/gsi/client', (route) =>
-    route.fulfill({ contentType: 'application/javascript', body: FAKE_GSI }),
-  );
-  await page.addInitScript((e) => {
-    (window as unknown as { __E2E_EMAIL__: string }).__E2E_EMAIL__ = e;
-  }, email);
-
-  await page.goto('/login');
-  await page.getByRole('button', { name: 'Sign in with Google' }).click();
-  await expect(page).toHaveURL('/');
+  await loginViaMagicLink(page, `e2e-grow-${Date.now()}@gmail.com`);
 
   const box = page.getByPlaceholder('Send a message…');
   const send = page.getByRole('button', { name: 'Send' });
