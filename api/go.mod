@@ -8,6 +8,7 @@ require (
 	github.com/jackc/pgx/v5 v5.10.0
 	github.com/lindell/go-burner-email-providers v1.0.119
 	github.com/pressly/goose/v3 v3.27.2
+	github.com/resend/resend-go/v2 v2.28.0
 	github.com/testcontainers/testcontainers-go v0.43.0
 	github.com/testcontainers/testcontainers-go/modules/postgres v0.43.0
 	google.golang.org/api v0.287.0

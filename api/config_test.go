@@ -18,6 +18,7 @@ func setAllEnv(t *testing.T) {
 		"AGENT_URL", "ALLOWED_ORIGIN",
 		"LOG_LEVEL", "DATABASE_URL", "RUNS_BUDGET_DAILY", "OWNER_EMAIL",
 		"GOOGLE_AUTH_FAKE", "SIGNUP_OPEN", "MAINTENANCE_MODE",
+		"RESEND_API_KEY", "MAGIC_LINK_FROM",
 	} {
 		t.Setenv(k, "")
 	}
@@ -144,6 +145,22 @@ func TestLoadConfig_FakeAuthAllowedLocally(t *testing.T) {
 	t.Setenv("ALLOWED_ORIGIN", "http://localhost:3000")
 	if _, err := LoadConfig(); err != nil {
 		t.Fatalf("fake auth under http should be allowed, got %v", err)
+	}
+}
+
+func TestLoadConfig_RequiresResendKeyUnderHTTPS(t *testing.T) {
+	setAllEnv(t)
+	t.Setenv("ALLOWED_ORIGIN", "https://chat.lucek.ai")
+	if _, err := LoadConfig(); err == nil {
+		t.Fatal("expected an error for empty RESEND_API_KEY under https, got nil")
+	}
+}
+
+func TestLoadConfig_RequiresSenderWhenResendSet(t *testing.T) {
+	setAllEnv(t)
+	t.Setenv("RESEND_API_KEY", "re_test_key")
+	if _, err := LoadConfig(); err == nil {
+		t.Fatal("expected an error for a set RESEND_API_KEY without MAGIC_LINK_FROM, got nil")
 	}
 }
 

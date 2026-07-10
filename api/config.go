@@ -17,6 +17,8 @@ type Config struct {
 	Port               string
 	JWTSecret          string
 	UsageHashSecret    string
+	ResendAPIKey       string
+	MagicLinkFrom      string
 	AgentURL           string
 	AllowedOrigin      string
 	DatabaseURL        string
@@ -41,6 +43,8 @@ func LoadConfig() (Config, error) {
 		Port:               os.Getenv("PORT"),
 		JWTSecret:          os.Getenv("JWT_SECRET"),
 		UsageHashSecret:    os.Getenv("USAGE_HASH_SECRET"),
+		ResendAPIKey:       os.Getenv("RESEND_API_KEY"),
+		MagicLinkFrom:      os.Getenv("MAGIC_LINK_FROM"),
 		AgentURL:           getenvDefault("AGENT_URL", "http://localhost:8081"),
 		AllowedOrigin:      getenvDefault("ALLOWED_ORIGIN", "http://localhost:3000"),
 		LogLevel:           getenvDefault("LOG_LEVEL", "info"),
@@ -89,6 +93,15 @@ func LoadConfig() (Config, error) {
 	// The usage-ledger HMAC key; short keys weaken the pseudonym.
 	if len(cfg.UsageHashSecret) < 32 {
 		return Config{}, fmt.Errorf("USAGE_HASH_SECRET must be at least 32 characters, got %d", len(cfg.UsageHashSecret))
+	}
+
+	// Magic-link email needs a real mailer in production.
+	if cfg.ResendAPIKey == "" && strings.HasPrefix(cfg.AllowedOrigin, "https://") {
+		return Config{}, fmt.Errorf("RESEND_API_KEY must be set when ALLOWED_ORIGIN is https")
+	}
+	// The real mailer needs a verified sender address.
+	if cfg.ResendAPIKey != "" && cfg.MagicLinkFrom == "" {
+		return Config{}, fmt.Errorf("MAGIC_LINK_FROM must be set when RESEND_API_KEY is set")
 	}
 
 	return cfg, nil
