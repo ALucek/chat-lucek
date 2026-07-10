@@ -11,7 +11,7 @@ Three test layers, all runnable with `make`. CI runs the same targets you run lo
 | Agent (python) | `make agent-test` | pytest: graph wiring, the `/run` SSE stream shape, and usage aggregation |
 | End-to-end | `make e2e-local` | Playwright drives the full stack in a real browser |
 
-The Go suite starts one Postgres container, migrates it, and truncates tables between tests, so no local database is required. The e2e suite uses **fake** Google Sign-In and agent servers, so it needs no real credentials or network.
+The Go suite starts one Postgres container, migrates it, and truncates tables between tests, so no local database is required. The e2e suite logs in through the real magic-link flow against a **fake** mailer (links are read back from a test-only endpoint), keeps one test on **fake** Google Sign-In for the Google button, and uses a **fake** agent server, so it needs no real credentials or network.
 
 First-time e2e run needs the browser installed once:
 

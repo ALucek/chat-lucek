@@ -1,6 +1,6 @@
 # Rotate secrets
 
-The JWT signing key has its own one-click ([rotate JWT](rotate-jwt.md)). The rest are rotated by hand, since each touches an external system or the live database. For the Cloud Run services the shape is the same: put the new value in Secret Manager, then restart the service that reads it. chat-api reads `db-password`, `google-client-secret`, and `usage-hash-secret` (see [Usage ledger key](#usage-ledger-key), which is not rotated); chat-agent reads `openrouter-api-key`, `tavily-api-key`, and `langsmith-api-key`. Some keys also live outside Secret Manager, in Terraform vars or GitHub Actions secrets, so rotating one means replacing every copy (see [Keys outside Secret Manager](#keys-outside-secret-manager)).
+The JWT signing key has its own one-click ([rotate JWT](rotate-jwt.md)). The rest are rotated by hand, since each touches an external system or the live database. For the Cloud Run services the shape is the same: put the new value in Secret Manager, then restart the service that reads it. chat-api reads `db-password`, `google-client-secret`, `usage-hash-secret` (see [Usage ledger key](#usage-ledger-key), which is not rotated), and `resend-api-key`; chat-agent reads `openrouter-api-key`, `tavily-api-key`, and `langsmith-api-key`. Some keys also live outside Secret Manager, in Terraform vars or GitHub Actions secrets, so rotating one means replacing every copy (see [Keys outside Secret Manager](#keys-outside-secret-manager)).
 
 ## Database password
 
@@ -34,6 +34,16 @@ The agent reads three provider keys. Rotate each at its dashboard (OpenRouter, T
 ver=$(printf '%s' '<new-key>' | gcloud secrets versions add <secret> --data-file=- --format='value(name)')
 gcloud run services update chat-agent --region=us-central1 \
   --update-secrets "<ENV>=<secret>:${ver##*/}"
+```
+
+## Magic-link mailer key
+
+`resend-api-key` is the Resend key chat-api uses to send sign-in links. It is a normal rotatable secret: create a new key in the Resend dashboard, add a version, and restart chat-api. It is distinct from the `resend_api_key` tfvar that LangSmith uses for alert emails (see [Keys outside Secret Manager](#keys-outside-secret-manager)); the two can be the same key or separate.
+
+```
+ver=$(printf '%s' '<new-resend-key>' | gcloud secrets versions add resend-api-key --data-file=- --format='value(name)')
+gcloud run services update chat-api --region us-central1 \
+  --update-secrets "RESEND_API_KEY=resend-api-key:${ver##*/}"
 ```
 
 ## Usage ledger key

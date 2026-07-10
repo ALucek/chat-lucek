@@ -20,6 +20,8 @@ Everything under `/api/` requires an `Authorization: Bearer <access token>` head
 | `GET` | `/livez` | Liveness probe |
 | `GET` | `/readyz` | Readiness probe (checks the database) |
 | `POST` | `/api/google` | Sign in with a Google auth code, returns tokens |
+| `POST` | `/api/magic/request` | Email a single-use magic sign-in link |
+| `POST` | `/api/magic/verify` | Verify a magic-link token, returns tokens |
 | `POST` | `/api/refresh` | Exchange a refresh token for a new access token |
 | `POST` | `/api/logout` | Revoke the refresh token |
 | `GET` | `/api/me` | Current user |
@@ -35,10 +37,12 @@ Everything under `/api/` requires an `Authorization: Bearer <access token>` head
 
 | Table | Columns |
 | --- | --- |
-| `users` | `id`, `google_sub`, `email`, `created_at` |
+| `users` | `id`, `email`, `created_at` |
 | `refresh_tokens` | `token_hash`, `user_id`, `family_id`, `expires_at`, `revoked`, `created_at` |
+| `magic_links` | `token_hash`, `email`, `expires_at`, `created_at` |
 | `conversations` | `id`, `user_id`, `title`, `created_at`, `updated_at` |
 | `messages` | `id`, `conversation_id`, `role`, `content`, `trace`, `created_at` |
 | `token_usage` | `id`, `user_id`, `prompt_tokens`, `completion_tokens`, `created_at` |
+| `usage_marks` | `id`, `subject_hash`, `created_at` |
 
 The `user_id` and `conversation_id` columns are foreign keys to their parent tables. Deletes cascade down the `users` > `conversations` > `messages` chain.

@@ -18,7 +18,7 @@ flowchart LR
 ## Components
 
 - **web** serves the Next.js App Router UI. It holds no data of its own; every dynamic action calls the API.
-- **api** owns all state and auth: sign-in, conversation storage, and the chat endpoint, which runs the agent and relays its stream to the browser.
+- **api** owns all state and auth: sign-in (Google or an email magic link), conversation storage, and the chat endpoint, which runs the agent and relays its stream to the browser.
 - **agent** is a LangGraph agent behind one streaming `/run` endpoint. It runs the model loop and emits its run as an ordered event stream.
 - **Cloud SQL** is the single Postgres instance backing the API.
 - **OpenRouter** is the upstream LLM provider, and **Tavily** backs the agent's web search.
