@@ -81,7 +81,7 @@ func newTestMux(client *agentClient) http.Handler {
 
 // newTestMuxBudget builds the router with an explicit daily run budget.
 func newTestMuxBudget(client *agentClient, budget int) http.Handler {
-	auth := &Auth{pool: testPool, secret: testSecret, verify: fakeGoogleVerifier(), exchange: fakeGoogleExchanger(), signupOpen: true}
+	auth := &Auth{pool: testPool, secret: testSecret, verify: fakeGoogleVerifier(), exchange: fakeGoogleExchanger(), signupOpen: true, mailer: newFakeMailer(), linkBase: "http://localhost:3000"}
 	chat := &Chat{pool: testPool, agent: client, runsBudget: budget, usageSecret: testUsageSecret}
 	account := &Account{pool: testPool}
 	check := func(ctx context.Context) error { return Healthy(ctx, testPool) }
