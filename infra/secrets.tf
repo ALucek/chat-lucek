@@ -1,5 +1,5 @@
 locals {
-  secret_ids = ["jwt-secret", "openrouter-api-key", "db-password", "google-client-secret", "tavily-api-key", "langsmith-api-key", "usage-hash-secret"]
+  secret_ids = ["jwt-secret", "openrouter-api-key", "db-password", "google-client-secret", "tavily-api-key", "langsmith-api-key", "usage-hash-secret", "resend-api-key"]
 }
 
 resource "google_secret_manager_secret" "app" {

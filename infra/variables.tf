@@ -43,6 +43,12 @@ variable "signup_open" {
   default     = true
 }
 
+variable "magic_link_from" {
+  type        = string
+  description = "Verified Resend sender address for magic-link sign-in emails."
+  default     = "login@lucek.ai"
+}
+
 variable "billing_account" {
   type        = string
   description = "Billing account ID the project is linked to, for the budget."
