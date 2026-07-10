@@ -107,69 +107,68 @@ export default function LoginPage() {
       <div className="flex flex-col items-center gap-6">
         <Wordmark />
         <div className="border-border bg-surface flex w-full max-w-sm flex-col items-center gap-4 rounded-[var(--radius)] border p-8">
-          <div className="flex w-[280px] flex-col gap-2">
-            {sent ? (
-              <p className="text-fg text-center text-sm">
-                Check your inbox for a sign-in link.
-              </p>
-            ) : (
-              <form
-                className="flex flex-col gap-2"
-                onSubmit={async (e) => {
-                  e.preventDefault();
-                  setError('');
-                  setSending(true);
-                  try {
-                    await requestMagicLink(email);
-                    setSent(true);
-                  } catch (err) {
-                    setError(
-                      err instanceof ApiError
-                        ? err.message
-                        : 'Could not send link',
-                    );
-                  } finally {
-                    setSending(false);
-                  }
-                }}
-              >
-                <label htmlFor="email" className="sr-only">
-                  Email
-                </label>
-                <input
-                  id="email"
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="your@email.com"
-                  className="border-border bg-surface text-fg h-10 rounded-[var(--radius)] border px-3 text-sm"
-                />
-                <button
-                  type="submit"
-                  disabled={sending}
-                  className="border-border bg-surface text-fg hover:bg-surface-muted h-10 rounded-[var(--radius)] border text-sm transition-colors disabled:opacity-50"
-                >
-                  {sending ? 'Sending…' : 'Email me a sign-in link'}
-                </button>
-              </form>
-            )}
-            <button
-              type="button"
-              data-testid="google-signin"
-              onClick={() => client.current?.requestCode()}
-              disabled={!ready || loading}
-              className="border-border bg-surface text-fg hover:bg-surface-muted flex h-10 w-full items-center justify-center gap-2.5 rounded-[var(--radius)] border text-sm transition-colors disabled:opacity-50"
+          <button
+            type="button"
+            data-testid="google-signin"
+            onClick={() => client.current?.requestCode()}
+            disabled={!ready || loading}
+            className="border-border bg-surface text-fg hover:bg-surface-muted flex h-10 w-[280px] items-center justify-center gap-2.5 rounded-[var(--radius)] border text-sm transition-colors disabled:opacity-50"
+          >
+            <GoogleG className="h-4 w-4" />
+            {loading ? 'Signing in…' : 'Sign in with Google'}
+          </button>
+          {error && (
+            <p role="alert" className="text-danger text-sm">
+              {error}
+            </p>
+          )}
+          <div className="bg-border h-px w-full" />
+          {sent ? (
+            <p className="text-fg text-center text-sm">
+              Check your inbox for a sign-in link.
+            </p>
+          ) : (
+            <form
+              className="flex w-[280px] flex-col gap-2"
+              onSubmit={async (e) => {
+                e.preventDefault();
+                setError('');
+                setSending(true);
+                try {
+                  await requestMagicLink(email);
+                  setSent(true);
+                } catch (err) {
+                  setError(
+                    err instanceof ApiError
+                      ? err.message
+                      : 'Could not send link',
+                  );
+                } finally {
+                  setSending(false);
+                }
+              }}
             >
-              <GoogleG className="h-4 w-4" />
-              {loading ? 'Signing in…' : 'Sign in with Google'}
-            </button>
-            {error && (
-              <p role="alert" className="text-danger text-sm">
-                {error}
-              </p>
-            )}
-          </div>
+              <label htmlFor="email" className="sr-only">
+                Email
+              </label>
+              <input
+                id="email"
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="your@email.com"
+                className="border-border bg-surface text-fg h-10 rounded-[var(--radius)] border px-3 text-sm"
+              />
+              <button
+                type="submit"
+                disabled={sending}
+                className="border-border bg-surface text-fg hover:bg-surface-muted h-10 rounded-[var(--radius)] border text-sm transition-colors disabled:opacity-50"
+              >
+                {sending ? 'Sending…' : 'Email me a sign-in link'}
+              </button>
+            </form>
+          )}
           <div className="bg-border h-px w-full" />
           <p className="text-subtle text-center text-xs leading-relaxed">
             By continuing you agree to the{' '}
