@@ -113,7 +113,7 @@ export default function LoginPage() {
             </p>
           ) : (
             <form
-              className="flex w-[280px] flex-col gap-2"
+              className="flex w-[280px] flex-col gap-4"
               onSubmit={async (e) => {
                 e.preventDefault();
                 setError('');
