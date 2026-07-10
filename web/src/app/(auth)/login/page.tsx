@@ -117,11 +117,6 @@ export default function LoginPage() {
             <GoogleG className="h-4 w-4" />
             {loading ? 'Signing in…' : 'Sign in with Google'}
           </button>
-          {error && (
-            <p role="alert" className="text-danger text-sm">
-              {error}
-            </p>
-          )}
           <div className="bg-border h-px w-full" />
           {sent ? (
             <p className="text-fg text-center text-sm">
@@ -168,6 +163,11 @@ export default function LoginPage() {
                 {sending ? 'Sending…' : 'Email me a sign-in link'}
               </button>
             </form>
+          )}
+          {error && (
+            <p role="alert" className="text-danger text-center text-sm">
+              {error}
+            </p>
           )}
           <div className="bg-border h-px w-full" />
           <p className="text-subtle text-center text-xs leading-relaxed">
