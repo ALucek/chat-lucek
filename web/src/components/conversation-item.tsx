@@ -72,8 +72,10 @@ export function ConversationItem({ conversation, rename, remove }: Props) {
 
   return (
     <div
-      className={`group hover:bg-hover flex h-8 items-center gap-1.5 rounded-[var(--radius)] px-2 ${
-        isOpen ? 'bg-hover' : ''
+      className={`group flex h-8 items-center gap-1.5 rounded-[var(--radius)] border-l-2 px-2 ${
+        isOpen
+          ? 'border-fg-strong bg-surface-muted'
+          : 'hover:bg-hover border-transparent'
       }`}
     >
       <span
@@ -83,6 +85,7 @@ export function ConversationItem({ conversation, rename, remove }: Props) {
       </span>
       <Link
         href={`/c/${conversation.id}`}
+        aria-current={isOpen ? 'page' : undefined}
         className={`flex-1 truncate text-sm ${isOpen ? 'text-fg-strong' : 'text-muted'}`}
       >
         {conversation.title || 'New conversation'}
@@ -102,6 +105,7 @@ export function ConversationItem({ conversation, rename, remove }: Props) {
       >
         {({ close }) => (
           <MenuContent
+            title={conversation.title}
             onRename={() => {
               close();
               setEditing(true);
@@ -115,9 +119,11 @@ export function ConversationItem({ conversation, rename, remove }: Props) {
 }
 
 function MenuContent({
+  title,
   onRename,
   onDelete,
 }: {
+  title: string;
   onRename: () => void;
   onDelete: () => Promise<boolean>;
 }) {
@@ -152,6 +158,14 @@ function MenuContent({
 
   return (
     <div className="flex flex-col">
+      <div className="border-border border-b px-2 py-2 md:hidden">
+        <span className="text-subtle block text-[11px] tracking-[0.16em] uppercase">
+          Conversation
+        </span>
+        <span className="text-fg-strong block truncate text-sm">
+          {title || 'New conversation'}
+        </span>
+      </div>
       <button
         onClick={onRename}
         className="hover:bg-hover text-fg flex h-9 items-center rounded px-2 text-sm md:h-8"
