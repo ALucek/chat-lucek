@@ -47,7 +47,7 @@ func (m *resendMailer) SendMagicLink(ctx context.Context, to, link string) error
 	_, err := m.client.Emails.SendWithContext(ctx, &resend.SendEmailRequest{
 		From:    m.from,
 		To:      []string{to},
-		Subject: "Your sign-in link",
+		Subject: "Sign in to Chat Lucek",
 		Html:    fmt.Sprintf(`<p>Click to sign in:</p><p><a href="%s">%s</a></p><p>This link expires in 15 minutes. Ignore this email if you did not request it.</p>`, link, link),
 		Text:    fmt.Sprintf("Sign in: %s\n\nThis link expires in 15 minutes. Ignore this email if you did not request it.", link),
 	})
