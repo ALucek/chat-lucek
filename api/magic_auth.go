@@ -84,6 +84,29 @@ func (a *Auth) MagicRequest(w http.ResponseWriter, r *http.Request) {
 	sent()
 }
 
+// MagicVerify claims a single-use token and starts a session for its email.
+func (a *Auth) MagicVerify(w http.ResponseWriter, r *http.Request) {
+	var body struct {
+		Token string `json:"token"`
+	}
+	if !decodeJSON(w, r, &body) {
+		return
+	}
+	if body.Token == "" {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "token required"})
+		return
+	}
+	var email string
+	err := a.pool.QueryRow(r.Context(),
+		`delete from magic_links where token_hash = $1 and expires_at > now() returning email`,
+		hashToken(body.Token)).Scan(&email)
+	if err != nil {
+		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "invalid or expired link"})
+		return
+	}
+	a.completeLogin(w, r, email)
+}
+
 // MagicLatest returns the last captured link; only works with the fake mailer.
 func (a *Auth) MagicLatest(w http.ResponseWriter, r *http.Request) {
 	fm, ok := a.mailer.(*fakeMailer)

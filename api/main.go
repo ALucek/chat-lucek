@@ -183,6 +183,7 @@ func newMux(check func(context.Context) error, auth *Auth, chat *Chat, account *
 	mux.HandleFunc("GET /readyz", readyHandler(check))
 	mux.Handle("POST /api/google", http.HandlerFunc(auth.Google))
 	mux.Handle("POST /api/magic/request", http.HandlerFunc(auth.MagicRequest))
+	mux.Handle("POST /api/magic/verify", http.HandlerFunc(auth.MagicVerify))
 	mux.Handle("GET /api/magic/latest", http.HandlerFunc(auth.MagicLatest))
 	mux.Handle("POST /api/refresh", http.HandlerFunc(auth.Refresh))
 	mux.HandleFunc("POST /api/logout", auth.Logout)
