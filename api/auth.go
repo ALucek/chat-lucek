@@ -63,8 +63,8 @@ func parseAccessToken(secret []byte, tokenStr string) (int64, error) {
 	return userID, nil
 }
 
-// newRefreshToken returns a 32-byte crypto-random token, hex-encoded.
-func newRefreshToken() (string, error) {
+// randomToken returns a 32-byte crypto-random token, hex-encoded.
+func randomToken() (string, error) {
 	b := make([]byte, 32)
 	if _, err := rand.Read(b); err != nil {
 		return "", err

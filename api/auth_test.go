@@ -59,9 +59,9 @@ func TestAccessTokenAlgNoneRejected(t *testing.T) {
 }
 
 func TestRefreshTokenHashing(t *testing.T) {
-	raw, err := newRefreshToken()
+	raw, err := randomToken()
 	if err != nil {
-		t.Fatalf("newRefreshToken: %v", err)
+		t.Fatalf("randomToken: %v", err)
 	}
 	if len(raw) != 64 {
 		t.Fatalf("want 64 hex chars, got %d", len(raw))

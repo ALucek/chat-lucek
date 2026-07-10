@@ -42,13 +42,12 @@ func (a *Auth) MagicRequest(w http.ResponseWriter, r *http.Request) {
 	}
 	id := normalizeEmail(body.Email)
 	key := canonicalizeEmail(body.Email)
-	if ok, _ := a.magicLimiter.allow("ip:" + clientIP(r)); !ok {
-		writeJSON(w, http.StatusTooManyRequests, map[string]string{"error": "rate limit exceeded"})
-		return
-	}
-	if ok, _ := a.magicLimiter.allow("email:" + key); !ok {
-		writeJSON(w, http.StatusTooManyRequests, map[string]string{"error": "rate limit exceeded"})
-		return
+	// Throttle per source IP and per canonical email (alias-proof).
+	for _, rlKey := range []string{"ip:" + clientIP(r), "email:" + key} {
+		if ok, _ := a.magicLimiter.allow(rlKey); !ok {
+			writeJSON(w, http.StatusTooManyRequests, map[string]string{"error": "rate limit exceeded"})
+			return
+		}
 	}
 
 	sent := func() { writeJSON(w, http.StatusOK, map[string]string{"status": "sent"}) }
@@ -64,7 +63,7 @@ func (a *Auth) MagicRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	raw, err := newRefreshToken()
+	raw, err := randomToken()
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "could not create link"})
 		return

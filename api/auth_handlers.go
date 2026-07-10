@@ -125,7 +125,7 @@ func (a *Auth) issueTokens(w http.ResponseWriter, r *http.Request, userID int64,
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "could not mint token"})
 		return
 	}
-	raw, err := newRefreshToken()
+	raw, err := randomToken()
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "could not create refresh token"})
 		return
