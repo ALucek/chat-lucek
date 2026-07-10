@@ -61,6 +61,7 @@ export default function LoginPage() {
   const [ready, setReady] = useState(false);
   const [email, setEmail] = useState('');
   const [sent, setSent] = useState(false);
+  const [sending, setSending] = useState(false);
 
   useEffect(() => {
     if (status === 'authed') router.replace('/');
@@ -132,7 +133,7 @@ export default function LoginPage() {
               onSubmit={async (e) => {
                 e.preventDefault();
                 setError('');
-                setLoading(true);
+                setSending(true);
                 try {
                   await requestMagicLink(email);
                   setSent(true);
@@ -143,7 +144,7 @@ export default function LoginPage() {
                       : 'Could not send link',
                   );
                 } finally {
-                  setLoading(false);
+                  setSending(false);
                 }
               }}
             >
@@ -161,10 +162,10 @@ export default function LoginPage() {
               />
               <button
                 type="submit"
-                disabled={loading}
+                disabled={sending}
                 className="border-border bg-surface text-fg hover:bg-surface-muted h-10 rounded-[var(--radius)] border text-sm transition-colors disabled:opacity-50"
               >
-                Email me a sign-in link
+                {sending ? 'Sending…' : 'Email me a sign-in link'}
               </button>
             </form>
           )}

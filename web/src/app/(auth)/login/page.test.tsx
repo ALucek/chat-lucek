@@ -115,6 +115,8 @@ describe('LoginPage', () => {
     await waitFor(() =>
       expect(requestMagicLink).toHaveBeenCalledWith('me@example.com'),
     );
+    // Sending a link must not disable the Google button.
+    expect(screen.getByTestId('google-signin')).not.toBeDisabled();
     expect(screen.getByText(/check your inbox/i)).toBeInTheDocument();
   });
 
