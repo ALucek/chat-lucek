@@ -16,7 +16,10 @@ export function Sidebar() {
   return (
     <aside className="border-border bg-surface flex h-full w-64 flex-col border-r">
       <div className="border-border border-b p-3 pl-[52px]">
-        <Button onClick={() => router.push('/')} className="w-full">
+        <Button
+          onClick={() => router.push('/')}
+          className="w-full py-3 md:py-2"
+        >
           New conversation
         </Button>
       </div>
