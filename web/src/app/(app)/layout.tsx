@@ -4,12 +4,37 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
 import { Sidebar } from '@/components/sidebar';
-import { Button } from '@/components/ui/button';
 import { ConversationsProvider } from '@/lib/conversations-context';
 import { UsageProvider } from '@/lib/usage-context';
 import { MessagesProvider } from '@/lib/messages-context';
 import { useSidebarCollapsed } from '@/lib/use-sidebar-collapsed';
 import { useMobileDrawer } from '@/lib/use-mobile-drawer';
+
+// Edge handle that rides the sidebar's right edge; chevron points the action.
+function SidebarHandle({
+  shown,
+  onToggle,
+  label,
+  className,
+}: {
+  shown: boolean;
+  onToggle: () => void;
+  label: string;
+  className?: string;
+}) {
+  return (
+    <button
+      onClick={onToggle}
+      aria-label={label}
+      aria-expanded={shown}
+      className={`border-border bg-surface text-fg-strong absolute top-3 items-center justify-center rounded-l-none rounded-r-[var(--radius)] border border-l-0 leading-none transition-[left] duration-200 ${
+        shown ? 'left-64' : 'left-0'
+      } ${className ?? ''}`}
+    >
+      {shown ? '‹' : '›'}
+    </button>
+  );
+}
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { status } = useAuth();
@@ -27,28 +52,19 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <UsageProvider>
         <MessagesProvider>
           <div data-testid="app-shell" className="bg-bg relative flex h-dvh">
-            {/* Desktop toggle: collapses the push column (md and up). */}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={toggle}
-              aria-label="Toggle sidebar"
-              aria-expanded={!collapsed}
-              className="absolute top-3 left-3 z-20 hidden h-9 w-9 items-center justify-center p-0 text-lg leading-none md:flex"
-            >
-              ☰
-            </Button>
-            {/* Mobile toggle: opens the overlay drawer (below md). */}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={toggleMobile}
-              aria-label="Toggle menu"
-              aria-expanded={open}
-              className="border-border bg-surface absolute top-3 left-3 z-40 flex h-11 w-11 items-center justify-center border p-0 text-xl leading-none md:hidden"
-            >
-              ☰
-            </Button>
+            {/* Edge handle: mobile opens the drawer, desktop collapses the column. */}
+            <SidebarHandle
+              shown={open}
+              onToggle={toggleMobile}
+              label="Toggle menu"
+              className="z-40 flex h-11 w-8 text-xl md:hidden"
+            />
+            <SidebarHandle
+              shown={!collapsed}
+              onToggle={toggle}
+              label="Toggle sidebar"
+              className="z-20 hidden h-9 w-6 text-lg md:flex"
+            />
             {/* Backdrop: mobile only; fades in/out with the drawer. */}
             <div
               data-testid="backdrop"
