@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import type { RunNode } from '@/lib/api';
 import { latestPlan, type PlanProgress } from '@/lib/run-log';
 
@@ -32,19 +32,11 @@ export function PlanDock({
 }) {
   const todos = latestPlan(nodes);
 
-  // Expanded while running, collapsed when idle; manual toggle overrides.
-  const [override, setOverride] = useState<boolean | null>(null);
-  const prevRunning = useRef(running);
-  useEffect(() => {
-    if (prevRunning.current !== running) {
-      setOverride(null);
-      prevRunning.current = running;
-    }
-  }, [running]);
+  // Collapsed by default; the header stays live. Click to expand the checklist.
+  const [open, setOpen] = useState(false);
 
   if (!todos) return null;
 
-  const open = override ?? running;
   const done = todos.filter((t) => t.progress === 'completed').length;
   const complete = done === todos.length;
   const doing = todos.find((t) => t.progress === 'in progress');
@@ -57,7 +49,7 @@ export function PlanDock({
           <button
             type="button"
             aria-expanded={open}
-            onClick={() => setOverride(!open)}
+            onClick={() => setOpen((o) => !o)}
             className="hover:bg-hover flex w-full items-center gap-2.5 px-3 py-2.5 text-left"
           >
             <span

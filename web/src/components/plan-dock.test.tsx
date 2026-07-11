@@ -28,7 +28,16 @@ describe('PlanDock', () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('renders a row per todo and the done/total count when expanded', () => {
+  it('stays collapsed by default, even while running, with a live header', () => {
+    render(<PlanDock nodes={planNodes(TODOS)} running />);
+    // body hidden, so the outstanding item is not shown
+    expect(screen.queryByText('Write tests')).not.toBeInTheDocument();
+    // header is still live
+    expect(screen.getByText('0/2')).toBeInTheDocument();
+  });
+
+  it('expands to a row per todo and the count when the header is clicked', async () => {
+    const user = userEvent.setup();
     render(
       <PlanDock
         nodes={planNodes([
@@ -39,27 +48,19 @@ describe('PlanDock', () => {
         running
       />,
     );
+    await user.click(screen.getByRole('button'));
     expect(screen.getAllByRole('listitem')).toHaveLength(3);
     expect(screen.getByText('Research')).toBeInTheDocument();
     expect(screen.getByText('Test')).toBeInTheDocument();
     expect(screen.getByText('1/3')).toBeInTheDocument();
   });
 
-  it('is collapsed when idle and expanded when running', () => {
-    const { rerender } = render(
-      <PlanDock nodes={planNodes(TODOS)} running={false} />,
-    );
-    expect(screen.queryByText('Write tests')).not.toBeInTheDocument();
-    expect(screen.getByText('0/2')).toBeInTheDocument();
-    rerender(<PlanDock nodes={planNodes(TODOS)} running />);
-    expect(screen.getByText('Write tests')).toBeInTheDocument();
-  });
-
-  it('toggles the body when the header is clicked', async () => {
+  it('toggles the body closed again on a second header click', async () => {
     const user = userEvent.setup();
     render(<PlanDock nodes={planNodes(TODOS)} running={false} />);
-    expect(screen.queryByText('Write tests')).not.toBeInTheDocument();
     await user.click(screen.getByRole('button'));
     expect(screen.getByText('Write tests')).toBeInTheDocument();
+    await user.click(screen.getByRole('button'));
+    expect(screen.queryByText('Write tests')).not.toBeInTheDocument();
   });
 });
