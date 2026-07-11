@@ -1,8 +1,13 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MessageList } from './message-list';
 import type { ChatMessage } from '@/lib/messages-context';
 import type { RunNode } from '@/lib/api';
+
+// MessageActions (rendered under assistant replies) reads the toast context.
+vi.mock('@/lib/toast-context', () => ({
+  useToast: () => ({ toast: vi.fn() }),
+}));
 
 describe('MessageList markdown', () => {
   it('renders assistant markdown (bold, link, list)', () => {
@@ -209,5 +214,33 @@ describe('MessageList timeline', () => {
     );
     // last node is the subagent, so the preamble text has no live caret
     expect(container.querySelector('.caret-blink')).toBeNull();
+  });
+});
+
+describe('MessageList actions', () => {
+  it('shows the action row under a finished assistant message', () => {
+    const msgs: ChatMessage[] = [
+      { id: 5, role: 'assistant', content: 'done', created_at: '' },
+    ];
+    render(<MessageList messages={msgs} />);
+    expect(
+      screen.getByRole('button', { name: /copy response/i }),
+    ).toBeInTheDocument();
+  });
+
+  it('hides the action row while the assistant message is streaming', () => {
+    const msgs: ChatMessage[] = [
+      {
+        id: -1,
+        role: 'assistant',
+        content: 'typing',
+        created_at: '',
+        streaming: true,
+      },
+    ];
+    render(<MessageList messages={msgs} />);
+    expect(
+      screen.queryByRole('button', { name: /copy response/i }),
+    ).not.toBeInTheDocument();
   });
 });

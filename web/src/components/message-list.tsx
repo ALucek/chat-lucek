@@ -3,6 +3,7 @@ import { remarkPlugins, rehypePlugins } from '@/lib/markdown';
 import type { ChatMessage } from '@/lib/messages-context';
 import { buildTree } from '@/lib/run-log';
 import { NodeRow } from './turn/node-row';
+import { MessageActions } from './message-actions';
 
 // AssistantMessage renders the inline run timeline, or plain content when a
 // reply has no node log (older or trivial replies).
@@ -73,7 +74,12 @@ export function MessageList({ messages }: { messages: ChatMessage[] }) {
                 {m.content}
               </span>
             ) : (
-              <AssistantMessage m={m} />
+              <>
+                <AssistantMessage m={m} />
+                {!m.streaming && (
+                  <MessageActions messageId={m.id} content={m.content} />
+                )}
+              </>
             )}
           </li>
         );
