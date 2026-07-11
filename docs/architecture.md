@@ -43,5 +43,9 @@ sequenceDiagram
     G--)L: trace the run
     G-->>A: run events (SSE)
     A-->>B: run events (SSE)
-    A->>P: save assistant message + trace
+    A->>P: save assistant message, trace, and LangSmith run id
 ```
+
+## Response feedback
+
+Each finished reply carries a copy, thumbs-up, and thumbs-down control. A thumb persists to the `message_feedback` table (one binding row per user and message, with an optional note) and, when the reply has a LangSmith run id, also attaches as feedback to that trace. The mirror is best-effort: the vote is saved regardless, and LangSmith is skipped when tracing is off.
