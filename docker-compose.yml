@@ -36,7 +36,6 @@ services:
       RESEND_API_KEY: ${RESEND_API_KEY:-}
       MAGIC_LINK_FROM: ${MAGIC_LINK_FROM:-}
       LANGSMITH_API_KEY: ${LANGSMITH_API_KEY:-}
-      LANGSMITH_ENDPOINT: ${LANGSMITH_ENDPOINT:-}
     ports:
       - "${PORT:-8080}:${PORT:-8080}"
     depends_on:
