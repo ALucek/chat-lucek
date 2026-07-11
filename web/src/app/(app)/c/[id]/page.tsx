@@ -5,6 +5,7 @@ import { useStickToBottom } from 'use-stick-to-bottom';
 import { useMessages, useSetFeedback } from '@/lib/messages-context';
 import { MessageList } from '@/components/message-list';
 import { Composer } from '@/components/composer';
+import { PlanDock } from '@/components/plan-dock';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function ConversationPage() {
@@ -44,6 +45,10 @@ export default function ConversationPage() {
         </div>
       )}
       {error && <p className="text-danger px-6 pb-4 text-sm">{error}</p>}
+      <PlanDock
+        nodes={messages.flatMap((m) => m.nodes ?? [])}
+        running={sending}
+      />
       <Composer onSend={send} onStop={stop} sending={sending} />
     </div>
   );

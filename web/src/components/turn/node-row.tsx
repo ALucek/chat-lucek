@@ -23,6 +23,8 @@ export function NodeRow({
     if (!node.text?.trim()) return null;
     return <TextBlock node={node} nested={nested} streaming={caret} />;
   }
+  // set_todos renders in the docked PlanDock, not inline.
+  if (node.name === 'set_todos') return null;
   const active = !!turnStreaming && node.output === undefined;
   if (node.children.length > 0)
     return (
