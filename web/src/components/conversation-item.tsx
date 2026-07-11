@@ -95,7 +95,7 @@ export function ConversationItem({ conversation, rename, remove }: Props) {
           <button
             {...p}
             aria-label="Conversation actions"
-            className="text-subtle hover:text-fg-strong flex h-10 w-10 shrink-0 items-center justify-center rounded text-xl leading-none focus-visible:opacity-100 aria-expanded:opacity-100 md:h-5 md:w-5 md:text-base md:opacity-0 md:group-hover:opacity-100"
+            className="text-subtle hover:text-fg-strong flex h-11 w-11 shrink-0 items-center justify-center rounded text-xl leading-none focus-visible:opacity-100 aria-expanded:opacity-100 md:h-5 md:w-5 md:text-base md:opacity-0 md:group-hover:opacity-100"
           >
             ⋮
           </button>

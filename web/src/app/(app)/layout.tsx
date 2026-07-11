@@ -45,7 +45,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               onClick={toggleMobile}
               aria-label="Toggle menu"
               aria-expanded={open}
-              className="border-border bg-surface absolute top-3 left-3 z-40 flex h-9 w-9 items-center justify-center border p-0 text-lg leading-none md:hidden"
+              className="border-border bg-surface absolute top-3 left-3 z-40 flex h-11 w-11 items-center justify-center border p-0 text-xl leading-none md:hidden"
             >
               ☰
             </Button>
