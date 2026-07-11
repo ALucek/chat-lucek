@@ -61,14 +61,6 @@ export function MessageList({ messages }: { messages: ChatMessage[] }) {
             key={m.id}
             className={`flex flex-col gap-1.5 ${isUser ? 'items-end' : 'items-start'}`}
           >
-            <div
-              className={`flex items-center gap-1.5 ${isUser ? 'flex-row-reverse' : ''}`}
-            >
-              <span className="text-subtle">&gt;</span>
-              <span className="text-subtle text-[11px] tracking-[0.12em] uppercase">
-                {isUser ? 'you' : 'assistant'}
-              </span>
-            </div>
             {isUser ? (
               <span className="border-border bg-surface-muted text-fg max-w-[80%] min-w-0 rounded-[var(--radius)] border px-3 py-2 text-sm break-words whitespace-pre-wrap">
                 {m.content}
