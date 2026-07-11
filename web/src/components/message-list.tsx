@@ -48,7 +48,13 @@ function AssistantMessage({ m }: { m: ChatMessage }) {
   );
 }
 
-export function MessageList({ messages }: { messages: ChatMessage[] }) {
+export function MessageList({
+  messages,
+  onRateMessage,
+}: {
+  messages: ChatMessage[];
+  onRateMessage?: (messageId: number, rating: -1 | 1) => void;
+}) {
   return (
     <ul
       aria-live="polite"
@@ -73,6 +79,7 @@ export function MessageList({ messages }: { messages: ChatMessage[] }) {
                     messageId={m.id}
                     content={m.content}
                     initialRating={m.feedback?.rating ?? null}
+                    onRate={(r) => onRateMessage?.(m.id, r)}
                   />
                 )}
               </>

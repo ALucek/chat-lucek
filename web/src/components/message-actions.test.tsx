@@ -73,6 +73,22 @@ describe('MessageActions', () => {
     expect(sendFeedback).toHaveBeenCalledTimes(1); // empty Send is a no-op
   });
 
+  it('sends the note when Enter is pressed in the editor', async () => {
+    const user = userEvent.setup();
+    render(<MessageActions messageId={7} content="x" />);
+    await user.click(screen.getByRole('button', { name: /good response/i }));
+    await user.type(screen.getByRole('textbox'), 'looks right{Enter}');
+    expect(sendFeedback).toHaveBeenLastCalledWith(7, 1, 'looks right');
+  });
+
+  it('calls onRate with the rating after a confirmed vote', async () => {
+    const onRate = vi.fn();
+    const user = userEvent.setup();
+    render(<MessageActions messageId={7} content="x" onRate={onRate} />);
+    await user.click(screen.getByRole('button', { name: /bad response/i }));
+    await waitFor(() => expect(onRate).toHaveBeenCalledWith(-1));
+  });
+
   it('reflects a prior rating on mount without a click', () => {
     render(<MessageActions messageId={7} content="x" initialRating={-1} />);
     expect(

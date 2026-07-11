@@ -77,10 +77,12 @@ export function MessageActions({
   messageId,
   content,
   initialRating = null,
+  onRate,
 }: {
   messageId: number;
   content: string;
   initialRating?: Rating | null;
+  onRate?: (rating: Rating) => void;
 }) {
   const [rating, setRating] = useState<Rating | null>(initialRating);
   const [note, setNote] = useState('');
@@ -137,6 +139,7 @@ export function MessageActions({
     setNoteOpen(true);
     try {
       await sendFeedback(messageId, next, note || undefined);
+      onRate?.(next); // keep the cached vote in sync so it survives navigation
     } catch {
       setRating(prev);
       setNoteOpen(false);
@@ -208,6 +211,12 @@ export function MessageActions({
             rows={2}
             placeholder="optional"
             className="border-border bg-bg text-fg max-h-36 w-full resize-none rounded-[var(--radius)] border p-2 text-sm outline-none"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                submitNote();
+              }
+            }}
             onInput={(e) => {
               const el = e.currentTarget;
               el.style.height = 'auto';

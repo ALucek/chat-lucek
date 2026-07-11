@@ -2,7 +2,7 @@
 
 import { useParams } from 'next/navigation';
 import { useStickToBottom } from 'use-stick-to-bottom';
-import { useMessages } from '@/lib/messages-context';
+import { useMessages, useSetFeedback } from '@/lib/messages-context';
 import { MessageList } from '@/components/message-list';
 import { Composer } from '@/components/composer';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -12,6 +12,7 @@ export default function ConversationPage() {
   const id = Number(params.id);
   const { messages, loading, error, notFound, send, sending, stop } =
     useMessages(id);
+  const setFeedback = useSetFeedback();
   const { scrollRef, contentRef } = useStickToBottom({ initial: 'instant' });
 
   if (notFound)
@@ -35,7 +36,10 @@ export default function ConversationPage() {
       ) : (
         <div ref={scrollRef} className="flex-1 overflow-y-auto">
           <div ref={contentRef}>
-            <MessageList messages={messages} />
+            <MessageList
+              messages={messages}
+              onRateMessage={(mid, r) => setFeedback(id, mid, r)}
+            />
           </div>
         </div>
       )}
