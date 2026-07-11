@@ -5,6 +5,8 @@ import (
 	"strconv"
 	"sync"
 	"time"
+
+	"golang.org/x/time/rate"
 )
 
 const (
@@ -12,18 +14,18 @@ const (
 	chatRateBurst  = 20
 )
 
-// bucket is one key's token bucket.
-type bucket struct {
-	tokens float64
-	last   time.Time
+// entry is one key's limiter plus its last-seen time, tracked for eviction.
+type entry struct {
+	*rate.Limiter
+	lastSeen time.Time
 }
 
 // limiter is a per-key token-bucket rate limiter; a sweep evicts idle keys.
 type limiter struct {
 	mu      sync.Mutex
-	buckets map[string]*bucket
-	rate    float64 // tokens per second
-	burst   float64
+	entries map[string]*entry
+	rate    rate.Limit // tokens per second
+	burst   int
 	now     func() time.Time
 	idleTTL time.Duration
 }
@@ -31,9 +33,9 @@ type limiter struct {
 // newLimiter allows perMinute requests with burst, and starts the sweep.
 func newLimiter(perMinute, burst int) *limiter {
 	l := &limiter{
-		buckets: make(map[string]*bucket),
-		rate:    float64(perMinute) / 60.0,
-		burst:   float64(burst),
+		entries: make(map[string]*entry),
+		rate:    rate.Limit(float64(perMinute) / 60.0),
+		burst:   burst,
 		now:     time.Now,
 		idleTTL: 10 * time.Minute,
 	}
@@ -41,26 +43,25 @@ func newLimiter(perMinute, burst int) *limiter {
 	return l
 }
 
-// allow consumes one token for key.
+// allow consumes one token for key, reporting the wait until the next token.
 func (l *limiter) allow(key string) (bool, time.Duration) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 
 	now := l.now()
-	b, ok := l.buckets[key]
+	e, ok := l.entries[key]
 	if !ok {
-		b = &bucket{tokens: l.burst, last: now}
-		l.buckets[key] = b
+		e = &entry{Limiter: rate.NewLimiter(l.rate, l.burst)}
+		l.entries[key] = e
 	}
-	b.tokens = min(l.burst, b.tokens+now.Sub(b.last).Seconds()*l.rate)
-	b.last = now
+	e.lastSeen = now
 
-	if b.tokens >= 1 {
-		b.tokens--
-		return true, 0
+	res := e.ReserveN(now, 1)
+	if wait := res.DelayFrom(now); wait > 0 {
+		res.CancelAt(now)
+		return false, wait
 	}
-	wait := time.Duration((1 - b.tokens) / l.rate * float64(time.Second))
-	return false, wait
+	return true, 0
 }
 
 // sweep periodically evicts idle keys for the life of the process.
@@ -71,14 +72,14 @@ func (l *limiter) sweep() {
 	}
 }
 
-// evict drops buckets untouched for longer than idleTTL.
+// evict drops entries untouched for longer than idleTTL.
 func (l *limiter) evict() {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	cutoff := l.now().Add(-l.idleTTL)
-	for k, b := range l.buckets {
-		if b.last.Before(cutoff) {
-			delete(l.buckets, k)
+	for k, e := range l.entries {
+		if e.lastSeen.Before(cutoff) {
+			delete(l.entries, k)
 		}
 	}
 }
