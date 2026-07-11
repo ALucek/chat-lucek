@@ -206,6 +206,7 @@ export interface Message {
   content: string;
   created_at: string;
   trace?: RunTrace | null;
+  feedback?: { rating: -1 | 1 } | null;
 }
 
 export function listConversations(): Promise<Conversation[]> {

@@ -73,6 +73,14 @@ describe('MessageActions', () => {
     expect(sendFeedback).toHaveBeenCalledTimes(1); // empty Send is a no-op
   });
 
+  it('reflects a prior rating on mount without a click', () => {
+    render(<MessageActions messageId={7} content="x" initialRating={-1} />);
+    expect(
+      screen.getByRole('button', { name: /bad response/i }),
+    ).toHaveAttribute('aria-pressed', 'true');
+    expect(sendFeedback).not.toHaveBeenCalled();
+  });
+
   it('reverts the thumb and toasts on failure', async () => {
     (sendFeedback as ReturnType<typeof vi.fn>).mockRejectedValueOnce(
       new Error('nope'),
