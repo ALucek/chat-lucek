@@ -11,6 +11,7 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -402,8 +403,7 @@ func (c *Chat) Send(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// Feedback upserts the caller's binding thumb rating (and optional note) on a
-// message, then best-effort mirrors it to LangSmith. 204 on success.
+// Feedback upserts the caller's rating and note, then mirrors to LangSmith.
 func (c *Chat) Feedback(w http.ResponseWriter, r *http.Request) {
 	userID, _ := userIDFromContext(r.Context())
 	msgID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
@@ -442,11 +442,7 @@ func (c *Chat) Feedback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	feedbackID, err := newUUID()
-	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "feedback failed"})
-		return
-	}
+	feedbackID := uuid.NewString()
 	var comment any
 	if body.Comment != "" {
 		comment = body.Comment
@@ -470,7 +466,7 @@ func (c *Chat) Feedback(w http.ResponseWriter, r *http.Request) {
 		}
 		c.mirror.upsertScore(savedFeedbackID, *runID, score)
 		// The note rides its own key, with a stable id derived from the score's.
-		commentID := deriveUUID(savedFeedbackID, langsmithCommentKey)
+		commentID := commentFeedbackID(savedFeedbackID)
 		if body.Comment != "" {
 			c.mirror.upsertComment(commentID, *runID, body.Comment)
 		} else {

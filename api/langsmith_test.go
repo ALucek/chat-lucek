@@ -110,24 +110,13 @@ func TestLangsmithEnabled(t *testing.T) {
 	}
 }
 
-func TestNewUUID_Format(t *testing.T) {
-	u, err := newUUID()
-	if err != nil {
-		t.Fatalf("newUUID: %v", err)
+func TestCommentFeedbackID_StableAndDistinct(t *testing.T) {
+	a := commentFeedbackID("score-1")
+	if a != commentFeedbackID("score-1") {
+		t.Fatal("comment feedback id should be stable for the same score id")
 	}
-	re := `^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$`
-	if ok, _ := regexp.MatchString(re, u); !ok {
-		t.Fatalf("bad uuid: %s", u)
-	}
-}
-
-func TestDeriveUUID_Deterministic(t *testing.T) {
-	a := deriveUUID("base-id", "user_feedback")
-	if a != deriveUUID("base-id", "user_feedback") {
-		t.Fatal("deriveUUID should be stable for the same inputs")
-	}
-	if a == deriveUUID("base-id", "other") {
-		t.Fatal("deriveUUID should differ by name")
+	if a == commentFeedbackID("score-2") {
+		t.Fatal("comment feedback id should differ by score id")
 	}
 	re := `^[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$`
 	if ok, _ := regexp.MatchString(re, a); !ok {

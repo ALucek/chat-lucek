@@ -3,13 +3,13 @@ package main
 import (
 	"bytes"
 	"context"
-	"crypto/rand"
-	"crypto/sha1"
 	"encoding/json"
 	"fmt"
 	"log/slog"
 	"net/http"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 const (
@@ -120,24 +120,7 @@ func (c *langsmithClient) del(ctx context.Context, feedbackID string) error {
 	return nil
 }
 
-// newUUID returns a random RFC-4122 v4 UUID string.
-func newUUID() (string, error) {
-	var b [16]byte
-	if _, err := rand.Read(b[:]); err != nil {
-		return "", err
-	}
-	b[6] = (b[6] & 0x0f) | 0x40
-	b[8] = (b[8] & 0x3f) | 0x80
-	return fmt.Sprintf("%x-%x-%x-%x-%x", b[0:4], b[4:6], b[6:8], b[8:10], b[10:16]), nil
-}
-
-// deriveUUID makes a stable v5 UUID from base+name (no second id to store).
-func deriveUUID(base, name string) string {
-	h := sha1.New()
-	h.Write([]byte(base))
-	h.Write([]byte(name))
-	b := h.Sum(nil)[:16]
-	b[6] = (b[6] & 0x0f) | 0x50
-	b[8] = (b[8] & 0x3f) | 0x80
-	return fmt.Sprintf("%x-%x-%x-%x-%x", b[0:4], b[4:6], b[6:8], b[8:10], b[10:16])
+// commentFeedbackID derives the note's stable feedback id from the score's.
+func commentFeedbackID(scoreID string) string {
+	return uuid.NewSHA1(uuid.NameSpaceURL, []byte(scoreID+":"+langsmithCommentKey)).String()
 }
