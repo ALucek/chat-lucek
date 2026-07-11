@@ -120,6 +120,23 @@ def test_tool_message_output_uses_content():
     assert out == [{"event": "node_end", "data": {"id": "SA", "output": "the summary"}}]
 
 
+def test_captures_root_run_id_and_builds_meta_event():
+    tr = Translator()
+    # The root event has empty parent_ids; its run_id is the trace root.
+    tr.handle(_stream("root-run", [], _chunk(content="hi")))
+    assert tr.meta_event() == {
+        "event": "meta",
+        "data": {"langsmith_run_id": "root-run"},
+    }
+
+
+def test_meta_event_is_none_without_a_root_event():
+    tr = Translator()
+    # Only nested events (non-empty parent_ids) -> no root captured.
+    tr.handle(_stream("r1", ["root", "n"], _chunk(content="hi")))
+    assert tr.meta_event() is None
+
+
 def test_usage_tally_across_two_model_runs():
     tr = Translator()
     for tok in (10, 5):
