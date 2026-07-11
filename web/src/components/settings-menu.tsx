@@ -29,7 +29,7 @@ export function SettingsMenu() {
   }
 
   const rowClass =
-    'hover:bg-hover text-fg flex h-11 w-full items-center rounded px-2 text-sm md:h-8';
+    'hover:bg-hover text-fg flex h-12 w-full items-center rounded px-2 text-base md:h-8 md:text-sm';
   const labelClass =
     'text-subtle px-2 pt-1 pb-1.5 text-[11px] tracking-[0.16em] uppercase';
 
@@ -58,7 +58,7 @@ export function SettingsMenu() {
             </div>
             <div className="p-1">
               <p className={labelClass}>Account</p>
-              <p className="text-fg-strong truncate px-2 pb-2 text-sm">
+              <p className="text-fg-strong truncate px-2 pb-2 text-base md:text-sm">
                 {user?.email}
               </p>
               <button
