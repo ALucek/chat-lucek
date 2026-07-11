@@ -33,11 +33,17 @@ type conversation struct {
 }
 
 type message struct {
-	ID        int64           `json:"id"`
-	Role      string          `json:"role"`
-	Content   string          `json:"content"`
-	CreatedAt time.Time       `json:"created_at"`
-	Trace     json.RawMessage `json:"trace,omitempty"`
+	ID        int64                `json:"id"`
+	Role      string               `json:"role"`
+	Content   string               `json:"content"`
+	CreatedAt time.Time            `json:"created_at"`
+	Trace     json.RawMessage      `json:"trace,omitempty"`
+	Feedback  *messageFeedbackView `json:"feedback,omitempty"`
+}
+
+// messageFeedbackView is the caller's own rating on a message, for rehydration.
+type messageFeedbackView struct {
+	Rating int `json:"rating"`
 }
 
 // traceNode is one node in a run's event log (persisted and streamed).
@@ -137,8 +143,10 @@ func (c *Chat) Messages(w http.ResponseWriter, r *http.Request) {
 	}
 
 	rows, err := c.pool.Query(r.Context(),
-		`select id, role, content, created_at, trace from messages
-		 where conversation_id = $1 order by id`, id)
+		`select m.id, m.role, m.content, m.created_at, m.trace, mf.rating
+		 from messages m
+		 left join message_feedback mf on mf.message_id = m.id and mf.user_id = $2
+		 where m.conversation_id = $1 order by m.id`, id, userID)
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "could not load messages"})
 		return
@@ -148,9 +156,13 @@ func (c *Chat) Messages(w http.ResponseWriter, r *http.Request) {
 	msgs := []message{}
 	for rows.Next() {
 		var m message
-		if err := rows.Scan(&m.ID, &m.Role, &m.Content, &m.CreatedAt, &m.Trace); err != nil {
+		var rating *int
+		if err := rows.Scan(&m.ID, &m.Role, &m.Content, &m.CreatedAt, &m.Trace, &rating); err != nil {
 			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "scan failed"})
 			return
+		}
+		if rating != nil {
+			m.Feedback = &messageFeedbackView{Rating: *rating}
 		}
 		msgs = append(msgs, m)
 	}

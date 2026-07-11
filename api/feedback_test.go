@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
@@ -110,6 +111,48 @@ func TestFeedback_CommentTooLong(t *testing.T) {
 		map[string]any{"rating": 1, "comment": strings.Repeat("x", maxFeedbackChars+1)})
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("want 400, got %d", rec.Code)
+	}
+}
+
+func TestMessages_IncludesCallerRating(t *testing.T) {
+	resetDB(t)
+	mux := newTestMuxFull(nil, testRunsBudget, &fakeMirror{})
+	ta, _ := signup(t, mux, "a@x.com")
+	cid := createConversation(t, mux, ta)
+	mid := seedAssistantMessage(t, cid, "run-1")
+	unrated := seedAssistantMessage(t, cid, "run-2")
+
+	do(t, mux, http.MethodPost, fmt.Sprintf("/api/messages/%d/feedback", mid), ta,
+		map[string]any{"rating": -1})
+
+	body := do(t, mux, http.MethodGet,
+		fmt.Sprintf("/api/conversations/%d/messages", cid), ta, nil).Body.Bytes()
+	var msgs []struct {
+		ID       int64 `json:"id"`
+		Feedback *struct {
+			Rating int `json:"rating"`
+		} `json:"feedback"`
+	}
+	if err := json.Unmarshal(body, &msgs); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	var rated, plain bool
+	for _, m := range msgs {
+		if m.ID == mid {
+			if m.Feedback == nil || m.Feedback.Rating != -1 {
+				t.Fatalf("rated message feedback: %+v", m.Feedback)
+			}
+			rated = true
+		}
+		if m.ID == unrated {
+			if m.Feedback != nil {
+				t.Fatalf("unrated message should have no feedback, got %+v", m.Feedback)
+			}
+			plain = true
+		}
+	}
+	if !rated || !plain {
+		t.Fatalf("missing messages: rated=%v plain=%v", rated, plain)
 	}
 }
 
