@@ -15,6 +15,15 @@ export function buildTree(nodes: RunNode[]): TreeNode[] {
   return roots;
 }
 
+// answerText joins a reply's top-level text blocks with a blank line.
+export function answerText(nodes: RunNode[]): string {
+  return nodes
+    .filter((n) => n.type === 'text' && !n.parent_id)
+    .map((n) => (n.text ?? '').trim())
+    .filter(Boolean)
+    .join('\n\n');
+}
+
 const TOOL_LABELS: Record<string, string> = {
   run_subagent: 'subagent',
   internet_search: 'search',

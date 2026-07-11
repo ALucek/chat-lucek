@@ -1,7 +1,7 @@
 import ReactMarkdown from 'react-markdown';
 import { remarkPlugins, rehypePlugins } from '@/lib/markdown';
 import type { ChatMessage } from '@/lib/messages-context';
-import { buildTree } from '@/lib/run-log';
+import { buildTree, answerText } from '@/lib/run-log';
 import { NodeRow } from './turn/node-row';
 import { MessageActions } from './message-actions';
 
@@ -78,7 +78,7 @@ export function MessageList({
                 {!m.streaming && (
                   <MessageActions
                     messageId={m.id}
-                    content={m.content}
+                    content={m.nodes?.length ? answerText(m.nodes) : m.content}
                     initialRating={m.feedback?.rating ?? null}
                     onRate={(r) => onRateMessage?.(m.id, r)}
                   />

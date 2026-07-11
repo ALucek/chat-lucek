@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { buildTree, toolLabel, inputDetail, latestPlan } from './run-log';
+import {
+  buildTree,
+  toolLabel,
+  inputDetail,
+  latestPlan,
+  answerText,
+} from './run-log';
 import type { RunNode } from './api';
 
 describe('buildTree', () => {
@@ -120,5 +126,35 @@ describe('latestPlan', () => {
     expect(latestPlan(nodes)).toEqual([
       { description: 'a', progress: 'completed' },
     ]);
+  });
+});
+
+describe('answerText', () => {
+  it('joins separate top-level text blocks with a blank line', () => {
+    const nodes: RunNode[] = [
+      { id: 'a', parent_id: null, type: 'text', text: 'first' },
+      { id: 'SA', parent_id: null, type: 'tool', name: 'run_subagent' },
+      { id: 'b', parent_id: null, type: 'text', text: 'second' },
+    ];
+    expect(answerText(nodes)).toBe('first\n\nsecond');
+  });
+
+  it('ignores reasoning, tools, and nested text', () => {
+    const nodes: RunNode[] = [
+      { id: 'r', parent_id: null, type: 'reasoning', text: 'thinking' },
+      { id: 'SA', parent_id: null, type: 'tool', name: 'run_subagent' },
+      { id: 's', parent_id: 'SA', type: 'text', text: 'nested' },
+      { id: 'a', parent_id: null, type: 'text', text: 'answer' },
+    ];
+    expect(answerText(nodes)).toBe('answer');
+  });
+
+  it('drops whitespace-only blocks', () => {
+    const nodes: RunNode[] = [
+      { id: 'a', parent_id: null, type: 'text', text: 'one' },
+      { id: 'ws', parent_id: null, type: 'text', text: '\n ' },
+      { id: 'b', parent_id: null, type: 'text', text: 'two' },
+    ];
+    expect(answerText(nodes)).toBe('one\n\ntwo');
   });
 });
