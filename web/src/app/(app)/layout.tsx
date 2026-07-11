@@ -10,14 +10,33 @@ import { MessagesProvider } from '@/lib/messages-context';
 import { useSidebarCollapsed } from '@/lib/use-sidebar-collapsed';
 import { useMobileDrawer } from '@/lib/use-mobile-drawer';
 
-// Edge handle that rides the sidebar's right edge; chevron points the action.
+// Sidebar-panel glyph (Lucide panel-left).
+function SidebarIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      className="h-[18px] w-[18px]"
+    >
+      <rect x="3" y="3" width="18" height="18" rx="2" />
+      <path d="M9 3v18" />
+    </svg>
+  );
+}
+
+// Edge handle riding the sidebar's right edge; caller sets position and size.
 function SidebarHandle({
-  shown,
+  expanded,
   onToggle,
   label,
   className,
 }: {
-  shown: boolean;
+  expanded: boolean;
   onToggle: () => void;
   label: string;
   className?: string;
@@ -26,12 +45,10 @@ function SidebarHandle({
     <button
       onClick={onToggle}
       aria-label={label}
-      aria-expanded={shown}
-      className={`border-border bg-surface text-fg-strong absolute top-3 items-center justify-center rounded-l-none rounded-r-[var(--radius)] border border-l-0 leading-none transition-[left] duration-200 ${
-        shown ? 'left-64' : 'left-0'
-      } ${className ?? ''}`}
+      aria-expanded={expanded}
+      className={`border-border bg-surface text-fg-strong absolute top-3 items-center justify-center rounded-l-none rounded-r-[var(--radius)] border border-l-0 ${className ?? ''}`}
     >
-      {shown ? '‹' : '›'}
+      <SidebarIcon />
     </button>
   );
 }
@@ -52,18 +69,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <UsageProvider>
         <MessagesProvider>
           <div data-testid="app-shell" className="bg-bg relative flex h-dvh">
-            {/* Edge handle: mobile opens the drawer, desktop collapses the column. */}
+            {/* Desktop handle: collapses the push column; rides its right edge. */}
             <SidebarHandle
-              shown={open}
-              onToggle={toggleMobile}
-              label="Toggle menu"
-              className="z-40 flex h-11 w-8 text-xl md:hidden"
-            />
-            <SidebarHandle
-              shown={!collapsed}
+              expanded={!collapsed}
               onToggle={toggle}
               label="Toggle sidebar"
-              className="z-20 hidden h-9 w-6 text-lg md:flex"
+              className={`z-20 hidden h-9 w-6 transition-[left] duration-200 md:flex ${
+                collapsed ? 'left-0' : 'left-64'
+              }`}
             />
             {/* Backdrop: mobile only; fades in/out with the drawer. */}
             <div
@@ -81,6 +94,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               } ${collapsed ? 'md:w-0' : 'md:w-64'}`}
             >
               <Sidebar />
+              {/* Mobile handle: inside the drawer so it rides its transform 1:1. */}
+              <SidebarHandle
+                expanded={open}
+                onToggle={toggleMobile}
+                label="Toggle menu"
+                className="left-full z-40 flex h-11 w-8 md:hidden"
+              />
             </div>
             <main className="min-w-0 flex-1 overflow-hidden">{children}</main>
           </div>
