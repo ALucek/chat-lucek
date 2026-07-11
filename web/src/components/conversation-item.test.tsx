@@ -101,6 +101,36 @@ describe('ConversationItem', () => {
     expect(remove).not.toHaveBeenCalled();
   });
 
+  it('marks the open conversation with aria-current', () => {
+    const open = { id: 1, title: 'Open', created_at: 't', updated_at: 't' };
+    render(
+      <ConversationItem
+        conversation={open}
+        rename={vi.fn()}
+        remove={vi.fn()}
+      />,
+      { wrapper },
+    );
+    expect(screen.getByRole('link', { name: 'Open' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+  });
+
+  it('does not mark other conversations as current', () => {
+    render(
+      <ConversationItem
+        conversation={convo}
+        rename={vi.fn()}
+        remove={vi.fn()}
+      />,
+      { wrapper },
+    );
+    expect(screen.getByRole('link', { name: 'Hello' })).not.toHaveAttribute(
+      'aria-current',
+    );
+  });
+
   it('navigates home when deleting the open conversation', async () => {
     const remove = vi.fn().mockResolvedValue(undefined);
     const open = { id: 1, title: 'Open', created_at: 't', updated_at: 't' };

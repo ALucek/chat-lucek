@@ -29,7 +29,7 @@ export function SettingsMenu() {
   }
 
   const rowClass =
-    'hover:bg-hover text-fg flex h-9 w-full items-center rounded px-2 text-sm md:h-8';
+    'hover:bg-hover text-fg flex h-11 w-full items-center rounded px-2 text-sm md:h-8';
   const labelClass =
     'text-subtle px-2 pt-1 pb-1.5 text-[11px] tracking-[0.16em] uppercase';
 
@@ -43,7 +43,7 @@ export function SettingsMenu() {
           // mirrors Button primary; raw <button> so Menu can attach its ref
           <button
             {...p}
-            className="bg-accent text-accent-fg focus-visible:ring-accent flex-1 rounded-[var(--radius)] px-4 py-2 text-center text-sm font-medium transition-colors hover:opacity-90 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+            className="bg-accent text-accent-fg focus-visible:ring-accent flex-1 rounded-[var(--radius)] px-4 py-3 text-center text-sm font-medium transition-colors hover:opacity-90 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none md:py-2"
           >
             Settings
           </button>

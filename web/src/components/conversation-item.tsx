@@ -72,18 +72,19 @@ export function ConversationItem({ conversation, rename, remove }: Props) {
 
   return (
     <div
-      className={`group hover:bg-hover flex h-8 items-center gap-1.5 rounded-[var(--radius)] px-2 ${
-        isOpen ? 'bg-hover' : ''
+      className={`group flex h-12 items-center gap-1.5 rounded-[var(--radius)] px-2 md:h-8 ${
+        isOpen ? 'bg-black/[0.04]' : 'hover:bg-hover'
       }`}
     >
       <span
-        className={`w-2.5 shrink-0 text-sm ${isOpen ? 'text-fg-strong' : 'text-subtle'}`}
+        className={`w-2.5 shrink-0 text-base md:text-sm ${isOpen ? 'text-fg-strong' : 'text-subtle'}`}
       >
         {isOpen ? '>' : ''}
       </span>
       <Link
         href={`/c/${conversation.id}`}
-        className={`flex-1 truncate text-sm ${isOpen ? 'text-fg-strong' : 'text-muted'}`}
+        aria-current={isOpen ? 'page' : undefined}
+        className={`flex-1 truncate text-base md:text-sm ${isOpen ? 'text-fg-strong' : 'text-muted'}`}
       >
         {conversation.title || 'New conversation'}
       </Link>
@@ -94,7 +95,7 @@ export function ConversationItem({ conversation, rename, remove }: Props) {
           <button
             {...p}
             aria-label="Conversation actions"
-            className="text-subtle hover:text-fg-strong flex h-5 w-5 shrink-0 items-center justify-center rounded text-base leading-none focus-visible:opacity-100 aria-expanded:opacity-100 md:opacity-0 md:group-hover:opacity-100"
+            className="text-subtle hover:text-fg-strong flex h-10 w-10 shrink-0 items-center justify-center rounded text-xl leading-none focus-visible:opacity-100 aria-expanded:opacity-100 md:h-5 md:w-5 md:text-base md:opacity-0 md:group-hover:opacity-100"
           >
             ⋮
           </button>
@@ -132,7 +133,7 @@ function MenuContent({
         <div className="flex justify-center gap-1.5">
           <button
             onClick={() => setConfirming(false)}
-            className="border-border text-muted hover:bg-hover rounded border px-3 py-1 text-xs"
+            className="border-border text-muted hover:bg-hover rounded border px-3 py-2 text-sm md:py-1 md:text-xs"
           >
             Cancel
           </button>
@@ -141,7 +142,7 @@ function MenuContent({
               const ok = await onDelete();
               if (!ok) setConfirming(false);
             }}
-            className="bg-danger rounded px-3 py-1 text-xs text-white hover:brightness-95"
+            className="bg-danger rounded px-3 py-2 text-sm text-white hover:brightness-95 md:py-1 md:text-xs"
           >
             Delete
           </button>
@@ -154,13 +155,13 @@ function MenuContent({
     <div className="flex flex-col">
       <button
         onClick={onRename}
-        className="hover:bg-hover text-fg flex h-9 items-center rounded px-2 text-sm md:h-8"
+        className="hover:bg-hover text-fg flex h-11 items-center rounded px-2 text-sm md:h-8"
       >
         Rename
       </button>
       <button
         onClick={() => setConfirming(true)}
-        className="hover:bg-hover text-danger flex h-9 items-center rounded px-2 text-sm md:h-8"
+        className="hover:bg-hover text-danger flex h-11 items-center rounded px-2 text-sm md:h-8"
       >
         Delete
       </button>
