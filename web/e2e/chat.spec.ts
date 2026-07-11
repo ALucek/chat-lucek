@@ -14,6 +14,8 @@ async function loginViaMagicLink(
   await page.goto('/login');
   await page.getByLabel('Email').fill(email);
   await page.getByRole('button', { name: /sign in link/i }).click();
+  // Wait for the request to complete so the link is captured before we read it.
+  await expect(page.getByText(/check your inbox/i)).toBeVisible();
   const res = await page.request.get(
     `${API}/api/magic/latest?email=${encodeURIComponent(email)}`,
   );
