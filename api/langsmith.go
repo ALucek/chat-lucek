@@ -56,7 +56,7 @@ func (c *langsmithClient) post(ctx context.Context, feedbackID, runID string, sc
 	if err != nil {
 		return err
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.endpoint+"/feedback", bytes.NewReader(buf))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.endpoint+"/api/v1/feedback", bytes.NewReader(buf))
 	if err != nil {
 		return err
 	}

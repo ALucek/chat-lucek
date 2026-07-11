@@ -25,7 +25,7 @@ func TestLangsmithPost_SendsFeedback(t *testing.T) {
 	if err := c.post(context.Background(), "fb-1", "run-1", 1.0, "nice"); err != nil {
 		t.Fatalf("post: %v", err)
 	}
-	if gotPath != "/feedback" {
+	if gotPath != "/api/v1/feedback" {
 		t.Fatalf("path: %s", gotPath)
 	}
 	if gotKey != "key-123" {
