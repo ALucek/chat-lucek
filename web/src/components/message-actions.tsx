@@ -145,10 +145,11 @@ export function MessageActions({
   async function submitNote() {
     if (rating === null) return;
     const text = taRef.current?.value.trim() ?? '';
-    setNote(text);
     setNoteOpen(false);
+    if (!text) return; // empty: the rating is already saved, nothing to attach
+    setNote(text);
     try {
-      await sendFeedback(messageId, rating, text || undefined);
+      await sendFeedback(messageId, rating, text);
     } catch {
       toast('Could not save note');
     }

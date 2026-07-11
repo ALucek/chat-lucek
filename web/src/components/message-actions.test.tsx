@@ -64,6 +64,15 @@ describe('MessageActions', () => {
     expect(sendFeedback).toHaveBeenLastCalledWith(7, 1, 'clear and correct');
   });
 
+  it('does not re-send when Send is pressed with an empty note', async () => {
+    const user = userEvent.setup();
+    render(<MessageActions messageId={7} content="x" />);
+    await user.click(screen.getByRole('button', { name: /good response/i }));
+    expect(sendFeedback).toHaveBeenCalledTimes(1); // the vote itself
+    await user.click(screen.getByRole('button', { name: /^send$/i }));
+    expect(sendFeedback).toHaveBeenCalledTimes(1); // empty Send is a no-op
+  });
+
   it('reverts the thumb and toasts on failure', async () => {
     (sendFeedback as ReturnType<typeof vi.fn>).mockRejectedValueOnce(
       new Error('nope'),
