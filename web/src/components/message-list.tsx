@@ -5,44 +5,41 @@ import { buildTree, answerText } from '@/lib/run-log';
 import { NodeRow } from './turn/node-row';
 import { MessageActions } from './message-actions';
 
-// AssistantMessage renders the inline run timeline, or plain content when a
-// reply has no node log (older or trivial replies).
+// AssistantMessage renders a reply in a card: timeline or plain content.
 function AssistantMessage({ m }: { m: ChatMessage }) {
-  if (m.nodes && m.nodes.length > 0) {
-    const tree = buildTree(m.nodes);
-    // Caret marks the live edge: only when the run's last node is text.
-    const last = tree[tree.length - 1];
-    const caretId = last?.type === 'text' ? last.id : undefined;
-    return (
-      <div className="border-border bg-surface-muted flex w-full flex-col gap-2.5 rounded-[var(--radius)] border px-4 py-3">
-        {tree.map((n) => (
+  const tree = m.nodes && m.nodes.length > 0 ? buildTree(m.nodes) : null;
+  const last = tree?.[tree.length - 1];
+  const caretId = last?.type === 'text' ? last.id : undefined;
+  return (
+    <div className="border-border bg-surface-muted flex w-full flex-col gap-2.5 rounded-[var(--radius)] border px-4 py-3">
+      {tree ? (
+        tree.map((n) => (
           <NodeRow
             key={n.id}
             node={n}
             turnStreaming={m.streaming}
             caret={m.streaming && n.id === caretId}
           />
-        ))}
-      </div>
-    );
-  }
-  return (
-    <div className="markdown text-fg max-w-full min-w-0 text-sm break-words">
-      <ReactMarkdown
-        remarkPlugins={remarkPlugins}
-        rehypePlugins={rehypePlugins}
-        components={{
-          a: (props) => (
-            <a {...props} target="_blank" rel="noopener noreferrer" />
-          ),
-        }}
-      >
-        {m.content}
-      </ReactMarkdown>
-      {m.streaming && (
-        <span className="caret-blink" aria-hidden="true">
-          ▍
-        </span>
+        ))
+      ) : (
+        <div className="markdown text-fg max-w-full min-w-0 text-sm break-words">
+          <ReactMarkdown
+            remarkPlugins={remarkPlugins}
+            rehypePlugins={rehypePlugins}
+            components={{
+              a: (props) => (
+                <a {...props} target="_blank" rel="noopener noreferrer" />
+              ),
+            }}
+          >
+            {m.content}
+          </ReactMarkdown>
+          {m.streaming && (
+            <span className="caret-blink" aria-hidden="true">
+              ▍
+            </span>
+          )}
+        </div>
       )}
     </div>
   );
