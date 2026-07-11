@@ -73,7 +73,7 @@ func main() {
 			return t.AccessToken, nil
 		}
 	}
-	chat := &Chat{pool: pool, agent: agent, runsBudget: cfg.RunsBudgetDaily, ownerEmail: normalizeEmail(cfg.OwnerEmail), usageSecret: []byte(cfg.UsageHashSecret)}
+	chat := &Chat{pool: pool, agent: agent, runsBudget: cfg.RunsBudgetDaily, ownerEmail: normalizeEmail(cfg.OwnerEmail), usageSecret: []byte(cfg.UsageHashSecret), mirror: newLangsmithClient(cfg.LangsmithEndpoint, cfg.LangsmithAPIKey)}
 	account := &Account{pool: pool}
 
 	mux := newMux(check, auth, chat, account)
@@ -197,6 +197,7 @@ func newMux(check func(context.Context) error, auth *Auth, chat *Chat, account *
 	mux.Handle("GET /api/account/export",
 		auth.Middleware(limitExport(http.HandlerFunc(account.Export))))
 	mux.Handle("DELETE /api/account", protect(account.Delete))
+	mux.Handle("POST /api/messages/{id}/feedback", protect(chat.Feedback))
 	// auth first (puts user in context) → then the user-keyed limiter → handler.
 	mux.Handle("POST /api/conversations/{id}/messages",
 		auth.Middleware(limitUser(http.HandlerFunc(chat.Send))))

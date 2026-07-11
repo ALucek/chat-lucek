@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -10,6 +11,7 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -20,6 +22,7 @@ type Chat struct {
 	runsBudget  int
 	ownerEmail  string
 	usageSecret []byte
+	mirror      feedbackMirror
 }
 
 type conversation struct {
@@ -65,6 +68,7 @@ func nonTrivial(nodes []*traceNode) bool {
 }
 
 const maxMessageChars = 8000
+const maxFeedbackChars = 2000
 
 // List returns the caller's conversations, newest activity first.
 func (c *Chat) List(w http.ResponseWriter, r *http.Request) {
@@ -384,6 +388,77 @@ func (c *Chat) Send(w http.ResponseWriter, r *http.Request) {
 		writeSSE(w, "title", map[string]string{"title": title})
 		flusher.Flush()
 	}
+}
+
+// Feedback upserts the caller's binding thumb rating (and optional note) on a
+// message, then best-effort mirrors it to LangSmith. 204 on success.
+func (c *Chat) Feedback(w http.ResponseWriter, r *http.Request) {
+	userID, _ := userIDFromContext(r.Context())
+	msgID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid message id"})
+		return
+	}
+	var body struct {
+		Rating  int    `json:"rating"`
+		Comment string `json:"comment"`
+	}
+	if !decodeJSON(w, r, &body) {
+		return
+	}
+	if body.Rating != -1 && body.Rating != 1 {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "rating must be -1 or 1"})
+		return
+	}
+	if utf8.RuneCountInString(body.Comment) > maxFeedbackChars {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "comment too long (max 2000 characters)"})
+		return
+	}
+
+	// Ownership: the message must belong to one of the caller's conversations.
+	var runID *string
+	err = c.pool.QueryRow(r.Context(),
+		`select m.langsmith_run_id from messages m
+		 join conversations conv on conv.id = m.conversation_id
+		 where m.id = $1 and conv.user_id = $2`, msgID, userID).Scan(&runID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		writeJSON(w, http.StatusNotFound, map[string]string{"error": "message not found"})
+		return
+	}
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "lookup failed"})
+		return
+	}
+
+	feedbackID, err := newUUID()
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "feedback failed"})
+		return
+	}
+	var comment any
+	if body.Comment != "" {
+		comment = body.Comment
+	}
+	var savedFeedbackID string
+	if err := c.pool.QueryRow(r.Context(),
+		`insert into message_feedback (message_id, user_id, rating, comment, langsmith_feedback_id)
+		 values ($1, $2, $3, $4, $5)
+		 on conflict (message_id, user_id)
+		 do update set rating = excluded.rating, comment = excluded.comment, updated_at = now()
+		 returning langsmith_feedback_id`,
+		msgID, userID, body.Rating, comment, feedbackID).Scan(&savedFeedbackID); err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "feedback failed"})
+		return
+	}
+
+	if runID != nil && *runID != "" && c.mirror != nil && c.mirror.enabled() {
+		score := 0.0
+		if body.Rating == 1 {
+			score = 1.0
+		}
+		c.mirror.upsertFeedback(savedFeedbackID, *runID, score, body.Comment)
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
 
 // writeSSE writes one SSE frame; data is JSON so each frame is a JSON object.

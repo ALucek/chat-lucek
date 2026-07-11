@@ -81,11 +81,34 @@ func newTestMux(client *agentClient) http.Handler {
 
 // newTestMuxBudget builds the router with an explicit daily run budget.
 func newTestMuxBudget(client *agentClient, budget int) http.Handler {
+	return newTestMuxFull(client, budget, nil)
+}
+
+// newTestMuxFull builds the router with an explicit budget and feedback mirror.
+func newTestMuxFull(client *agentClient, budget int, mirror feedbackMirror) http.Handler {
 	auth := &Auth{pool: testPool, secret: testSecret, verify: fakeGoogleVerifier(), exchange: fakeGoogleExchanger(), signupOpen: true, mailer: newFakeMailer(), linkBase: "http://localhost:3000"}
-	chat := &Chat{pool: testPool, agent: client, runsBudget: budget, usageSecret: testUsageSecret}
+	chat := &Chat{pool: testPool, agent: client, runsBudget: budget, usageSecret: testUsageSecret, mirror: mirror}
 	account := &Account{pool: testPool}
 	check := func(ctx context.Context) error { return Healthy(ctx, testPool) }
 	return newMux(check, auth, chat, account)
+}
+
+// fakeMirror records upsertFeedback calls for assertions.
+type fakeMirror struct {
+	calls []mirrorCall
+}
+
+type mirrorCall struct {
+	feedbackID string
+	runID      string
+	score      float64
+	comment    string
+}
+
+func (f *fakeMirror) enabled() bool { return true }
+
+func (f *fakeMirror) upsertFeedback(feedbackID, runID string, score float64, comment string) {
+	f.calls = append(f.calls, mirrorCall{feedbackID, runID, score, comment})
 }
 
 // signup seeds a user directly and returns a freshly minted access token + id.
