@@ -4,12 +4,54 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
 import { Sidebar } from '@/components/sidebar';
-import { Button } from '@/components/ui/button';
 import { ConversationsProvider } from '@/lib/conversations-context';
 import { UsageProvider } from '@/lib/usage-context';
 import { MessagesProvider } from '@/lib/messages-context';
 import { useSidebarCollapsed } from '@/lib/use-sidebar-collapsed';
 import { useMobileDrawer } from '@/lib/use-mobile-drawer';
+
+// Sidebar-panel glyph (Lucide panel-left).
+function SidebarIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      className="h-[18px] w-[18px]"
+    >
+      <rect x="3" y="3" width="18" height="18" rx="2" />
+      <path d="M9 3v18" />
+    </svg>
+  );
+}
+
+// Edge handle riding the sidebar's right edge; caller sets position and size.
+function SidebarHandle({
+  expanded,
+  onToggle,
+  label,
+  className,
+}: {
+  expanded: boolean;
+  onToggle: () => void;
+  label: string;
+  className?: string;
+}) {
+  return (
+    <button
+      onClick={onToggle}
+      aria-label={label}
+      aria-expanded={expanded}
+      className={`border-border bg-surface text-muted hover:text-fg-strong absolute top-3 items-center justify-center rounded-l-none rounded-r-[var(--radius)] border border-l-0 ${className ?? ''}`}
+    >
+      <SidebarIcon />
+    </button>
+  );
+}
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { status } = useAuth();
@@ -27,28 +69,15 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <UsageProvider>
         <MessagesProvider>
           <div data-testid="app-shell" className="bg-bg relative flex h-dvh">
-            {/* Desktop toggle: collapses the push column (md and up). */}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={toggle}
-              aria-label="Toggle sidebar"
-              aria-expanded={!collapsed}
-              className="absolute top-3 left-3 z-20 hidden h-9 w-9 items-center justify-center p-0 text-lg leading-none md:flex"
-            >
-              ☰
-            </Button>
-            {/* Mobile toggle: opens the overlay drawer (below md). */}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={toggleMobile}
-              aria-label="Toggle menu"
-              aria-expanded={open}
-              className="border-border bg-surface absolute top-3 left-3 z-40 flex h-11 w-11 items-center justify-center border p-0 text-xl leading-none md:hidden"
-            >
-              ☰
-            </Button>
+            {/* Desktop handle: collapses the push column; rides its right edge. */}
+            <SidebarHandle
+              expanded={!collapsed}
+              onToggle={toggle}
+              label="Toggle sidebar"
+              className={`z-20 hidden h-9 w-6 transition-[left,color] duration-200 md:flex ${
+                collapsed ? 'left-0' : 'left-64'
+              }`}
+            />
             {/* Backdrop: mobile only; fades in/out with the drawer. */}
             <div
               data-testid="backdrop"
@@ -65,6 +94,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               } ${collapsed ? 'md:w-0' : 'md:w-64'}`}
             >
               <Sidebar />
+              {/* Mobile handle: inside the drawer so it rides its transform 1:1. */}
+              <SidebarHandle
+                expanded={open}
+                onToggle={toggleMobile}
+                label="Toggle menu"
+                className="left-full z-40 flex h-11 w-8 transition-colors md:hidden"
+              />
             </div>
             <main className="min-w-0 flex-1 overflow-hidden">{children}</main>
           </div>
