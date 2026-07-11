@@ -62,7 +62,7 @@ export function MessageList({
     >
       {messages.map((m, i) => {
         const isUser = m.role === 'user';
-        const topGap = i === 0 ? '' : isUser ? 'mt-2' : 'mt-4';
+        const topGap = i === 0 ? '' : isUser ? 'mt-1' : 'mt-4';
         return (
           <li
             key={m.id}
