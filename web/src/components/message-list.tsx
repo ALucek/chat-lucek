@@ -58,14 +58,15 @@ export function MessageList({
   return (
     <ul
       aria-live="polite"
-      className="mx-auto flex max-w-2xl flex-col gap-4 px-4 py-5 sm:px-5 sm:py-7"
+      className="mx-auto flex max-w-2xl flex-col px-4 py-5 sm:px-5 sm:py-7"
     >
-      {messages.map((m) => {
+      {messages.map((m, i) => {
         const isUser = m.role === 'user';
+        const topGap = i === 0 ? '' : isUser ? 'mt-1' : 'mt-4';
         return (
           <li
             key={m.id}
-            className={`flex flex-col gap-1.5 ${isUser ? 'items-end' : 'items-start'}`}
+            className={`flex flex-col gap-1.5 ${isUser ? 'items-end' : 'items-start'} ${topGap}`}
           >
             {isUser ? (
               <span className="border-border bg-surface-muted text-fg max-w-[80%] min-w-0 rounded-[var(--radius)] border px-3 py-2 text-sm break-words whitespace-pre-wrap">
