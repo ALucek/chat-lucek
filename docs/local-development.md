@@ -31,7 +31,7 @@ The database defaults already match the local Postgres container. You need to se
 - `RESEND_API_KEY` — optional locally; leave empty to use the fake mailer that logs magic links instead of sending
 - `MAGIC_LINK_FROM` — verified Resend sender for sign-in links (only used when `RESEND_API_KEY` is set)
 - `SIGNUP_OPEN=true` — accounts are closed by default; set this to create yours locally
-- `LANGSMITH_API_KEY` — optional; when set (with tracing on in `agent/.env`), thumbs feedback also attaches to the response's LangSmith trace. Empty leaves feedback DB-only
+- `LANGSMITH_API_KEY` — optional; when set (and tracing on in `agent/.env`), response feedback attaches to the run's LangSmith trace, otherwise it is DB-only
 
 `AGENT_URL` defaults to `http://localhost:8081`, where `make agent-run` serves.
 
