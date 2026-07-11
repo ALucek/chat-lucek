@@ -78,11 +78,7 @@ export function MessageList({
                 {!m.streaming && (
                   <MessageActions
                     messageId={m.id}
-                    content={
-                      m.nodes && m.nodes.length > 0
-                        ? answerText(m.nodes)
-                        : m.content
-                    }
+                    content={m.nodes?.length ? answerText(m.nodes) : m.content}
                     initialRating={m.feedback?.rating ?? null}
                     onRate={(r) => onRateMessage?.(m.id, r)}
                   />

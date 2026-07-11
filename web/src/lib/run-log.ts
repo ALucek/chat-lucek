@@ -15,13 +15,12 @@ export function buildTree(nodes: RunNode[]): TreeNode[] {
   return roots;
 }
 
-// answerText joins a reply's top-level text blocks for copying, one blank
-// line between blocks so separate turns do not run together.
+// answerText joins a reply's top-level text blocks with a blank line.
 export function answerText(nodes: RunNode[]): string {
   return nodes
-    .filter((n) => n.type === 'text' && n.parent_id === null)
+    .filter((n) => n.type === 'text' && !n.parent_id)
     .map((n) => (n.text ?? '').trim())
-    .filter((t) => t.length > 0)
+    .filter(Boolean)
     .join('\n\n');
 }
 
