@@ -45,8 +45,29 @@ func TestFeedback_UpsertAndMirror(t *testing.T) {
 	if rating != 1 || comment != "great" {
 		t.Fatalf("got rating=%d comment=%q", rating, comment)
 	}
-	if len(fm.calls) != 1 || fm.calls[0].runID != "run-1" || fm.calls[0].score != 1.0 || fm.calls[0].comment != "great" {
-		t.Fatalf("mirror calls: %+v", fm.calls)
+	if len(fm.scores) != 1 || fm.scores[0].runID != "run-1" || fm.scores[0].score != 1.0 {
+		t.Fatalf("score calls: %+v", fm.scores)
+	}
+	if len(fm.comments) != 1 || fm.comments[0].comment != "great" {
+		t.Fatalf("comment calls: %+v", fm.comments)
+	}
+}
+
+func TestFeedback_EmptyCommentDeletesNote(t *testing.T) {
+	resetDB(t)
+	fm := &fakeMirror{}
+	mux := newTestMuxFull(nil, testRunsBudget, fm)
+	ta, _ := signup(t, mux, "a@x.com")
+	cid := createConversation(t, mux, ta)
+	mid := seedAssistantMessage(t, cid, "run-1")
+
+	do(t, mux, http.MethodPost, fmt.Sprintf("/api/messages/%d/feedback", mid), ta,
+		map[string]any{"rating": 1})
+	if len(fm.comments) != 0 {
+		t.Fatalf("no note should mean no comment upsert, got %+v", fm.comments)
+	}
+	if len(fm.deletes) != 1 {
+		t.Fatalf("no note should reconcile with a delete, got %+v", fm.deletes)
 	}
 }
 
@@ -173,7 +194,7 @@ func TestFeedback_NoRunIDSkipsMirror(t *testing.T) {
 	if rec.Code != http.StatusNoContent {
 		t.Fatalf("want 204, got %d", rec.Code)
 	}
-	if len(fm.calls) != 0 {
-		t.Fatalf("mirror should be skipped without a run id, got %+v", fm.calls)
+	if len(fm.scores) != 0 || len(fm.comments) != 0 || len(fm.deletes) != 0 {
+		t.Fatalf("mirror should be skipped without a run id: %+v %+v %+v", fm.scores, fm.comments, fm.deletes)
 	}
 }

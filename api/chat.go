@@ -468,7 +468,14 @@ func (c *Chat) Feedback(w http.ResponseWriter, r *http.Request) {
 		if body.Rating == 1 {
 			score = 1.0
 		}
-		c.mirror.upsertFeedback(savedFeedbackID, *runID, score, body.Comment)
+		c.mirror.upsertScore(savedFeedbackID, *runID, score)
+		// The note rides its own key, with a stable id derived from the score's.
+		commentID := deriveUUID(savedFeedbackID, langsmithCommentKey)
+		if body.Comment != "" {
+			c.mirror.upsertComment(commentID, *runID, body.Comment)
+		} else {
+			c.mirror.deleteFeedback(commentID)
+		}
 	}
 	w.WriteHeader(http.StatusNoContent)
 }

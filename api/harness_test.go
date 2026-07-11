@@ -93,22 +93,37 @@ func newTestMuxFull(client *agentClient, budget int, mirror feedbackMirror) http
 	return newMux(check, auth, chat, account)
 }
 
-// fakeMirror records upsertFeedback calls for assertions.
+// fakeMirror records mirror calls for assertions.
 type fakeMirror struct {
-	calls []mirrorCall
+	scores   []scoreCall
+	comments []commentCall
+	deletes  []string
 }
 
-type mirrorCall struct {
+type scoreCall struct {
 	feedbackID string
 	runID      string
 	score      float64
+}
+
+type commentCall struct {
+	feedbackID string
+	runID      string
 	comment    string
 }
 
 func (f *fakeMirror) enabled() bool { return true }
 
-func (f *fakeMirror) upsertFeedback(feedbackID, runID string, score float64, comment string) {
-	f.calls = append(f.calls, mirrorCall{feedbackID, runID, score, comment})
+func (f *fakeMirror) upsertScore(feedbackID, runID string, score float64) {
+	f.scores = append(f.scores, scoreCall{feedbackID, runID, score})
+}
+
+func (f *fakeMirror) upsertComment(feedbackID, runID, comment string) {
+	f.comments = append(f.comments, commentCall{feedbackID, runID, comment})
+}
+
+func (f *fakeMirror) deleteFeedback(feedbackID string) {
+	f.deletes = append(f.deletes, feedbackID)
 }
 
 // signup seeds a user directly and returns a freshly minted access token + id.
