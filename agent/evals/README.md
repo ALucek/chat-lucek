@@ -73,4 +73,8 @@ Separate from the suite above: online evaluators that score live prod traces ser
 
 The `.js` evaluators are code that runs in LangSmith's sandbox. LLM-as-judge evaluators are each a self-contained Python file whose prompt, output schema, and model publish to the LangSmith Prompt Hub with `make push-llm-judge JUDGE=<name>`, then get referenced from Terraform by a pinned commit hash.
 
+## User feedback
+
+Traces also carry feedback from users, not just evaluators. A thumbs up/down on a reply writes `user_score` (`1` or `0`) to that response's trace, and an optional note writes `user_feedback`. The API attaches both from the run id it captured (see [agent/README.md](../README.md#run-events)); they are stored in our DB as the source of truth and mirrored to LangSmith best-effort.
+
 Some of these scores also drive email alerts to the owner; see [monitoring.md](../../docs/monitoring.md#tracing).

@@ -22,6 +22,12 @@ The judge flags the attempt, not whether it worked. Check what the agent did nex
 - Broke character: harden the system prompt against that pattern.
 - Persistent or targeted from one source: climb the [abuse ladder](abuse.md) to block the IP or close signups.
 
+## Negative feedback spike
+
+Not an evaluator: this alert fires when 5 or more replies get a thumbs-down within an hour. It is a quality signal, so triage is about the product, not security.
+
+Filter recent root runs by `user_score = 0` and read the flagged replies together. Look for a shared cause: a bad prompt change just shipped, a model or provider issue, a topic the agent handles poorly, or one frustrated user thumbing many replies. Read any `user_feedback` notes for the reason in the user's own words. The fix depends on the cause (prompt tuning, a rollback, or nothing if it is noise); there is no emergency lever.
+
 ## Notes
 
-- Neither alert has an emergency lever; the response is triage, prompt hardening, or the abuse ladder.
+- No alert here has an emergency lever; the response is triage, prompt hardening, or the abuse ladder.

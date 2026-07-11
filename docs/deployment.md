@@ -155,7 +155,7 @@ Publishing constructs the model client locally to serialize it, so `agent/.env` 
 
 ### Alert emails
 
-`infra/langsmith.tf` also provisions `langsmith_alert_rule` resources that email the owner when a security evaluator scores positive (`pii_detected` or `prompt_injection_score`). LangSmith delivers them by POSTing to Resend's send API. Set the Resend values in `terraform.tfvars`:
+`infra/langsmith.tf` also provisions `langsmith_alert_rule` resources that email the owner: two when a security evaluator scores positive (`pii_detected` or `prompt_injection_score`), and one when 5 or more replies get a thumbs-down (`user_score = 0`) in an hour. LangSmith delivers them by POSTing to Resend's send API. Set the Resend values in `terraform.tfvars`:
 
 ```hcl
 resend_api_key = "<resend-send-scoped-key>"

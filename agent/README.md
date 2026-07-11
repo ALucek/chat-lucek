@@ -32,12 +32,16 @@ Request body: `{"messages": [{"role": "user", "content": "..."}], "overrides": {
 | `delta`    | `{id, text}`                           | Text appended to a `reasoning` or `text` node  |
 | `node_end` | `{id, output?}`                        | A step completes                               |
 | `usage`    | `{input, output, total, reasoning}`    | Aggregate token usage across all model calls   |
+| `meta`     | `{langsmith_run_id}`                   | The trace's root run id, when tracing is on    |
 | `error`    | `{message}`                            | Run failed                                     |
 | `end`      | `{}`                                   | Stream complete                                |
 
 A node's `parent_id` is the `id` of the `tool` it runs inside, or `null` at the
 top level. A subagent (`run_subagent`) and its own `internet_search` calls
 nest under it, so the run reads as a tree.
+
+The `meta` event's `langsmith_run_id` is the trace root. The API keeps it on the
+saved reply so a later thumbs up/down can attach user feedback to that trace.
 
 ## Structure
 

@@ -115,8 +115,9 @@ locals {
   project_base = "https://smith.langchain.com/o/${var.langsmith_workspace_id}/projects/p/${data.langsmith_project.prod.id}"
   alert_time   = urlencode(jsonencode({ duration = "1d" }))
 
-  pii_url       = "${local.project_base}?timeModel=${local.alert_time}&searchModel=${urlencode(jsonencode({ filter = "and(eq(is_root, true), and(eq(feedback_key, \"pii_detected\"), gt(feedback_score, 0)))" }))}"
-  injection_url = "${local.project_base}?timeModel=${local.alert_time}&searchModel=${urlencode(jsonencode({ filter = "and(eq(is_root, true), and(eq(feedback_key, \"prompt_injection_score\"), gt(feedback_score, 0)))" }))}"
+  pii_url          = "${local.project_base}?timeModel=${local.alert_time}&searchModel=${urlencode(jsonencode({ filter = "and(eq(is_root, true), and(eq(feedback_key, \"pii_detected\"), gt(feedback_score, 0)))" }))}"
+  injection_url    = "${local.project_base}?timeModel=${local.alert_time}&searchModel=${urlencode(jsonencode({ filter = "and(eq(is_root, true), and(eq(feedback_key, \"prompt_injection_score\"), gt(feedback_score, 0)))" }))}"
+  neg_feedback_url = "${local.project_base}?timeModel=${local.alert_time}&searchModel=${urlencode(jsonencode({ filter = "and(eq(is_root, true), and(eq(feedback_key, \"user_score\"), eq(feedback_score, 0)))" }))}"
 
   pii_alert_html = <<-EOT
     <p>The pii evaluator flagged an assistant answer in a live conversation on ${var.langsmith_project}. The response matched a PII pattern such as an SSN, email address, phone number, card number, IP address, passport, or license number.</p>
@@ -128,6 +129,12 @@ locals {
     <p>The prompt-injection judge flagged a user's latest message as an injection or jailbreak attempt in a live conversation on ${var.langsmith_project}.</p>
     <p>Open the project in LangSmith and filter recent root runs by prompt_injection_score = 1 to review it: <a href="${local.injection_url}">${var.langsmith_project}</a></p>
     <p>This alert fires when the average prompt_injection_score rises above 0 in a 15 minute window.</p>
+  EOT
+
+  neg_feedback_alert_html = <<-EOT
+    <p>Five or more responses on ${var.langsmith_project} got a thumbs-down within the past hour.</p>
+    <p>Open the project in LangSmith and filter recent root runs by user_score = 0 to read the flagged responses: <a href="${local.neg_feedback_url}">${var.langsmith_project}</a></p>
+    <p>This alert fires when 5 or more user_score = 0 ratings land in a 60 minute window.</p>
   EOT
 }
 
@@ -184,6 +191,35 @@ resource "langsmith_alert_rule" "injection" {
         to      = [var.owner_email]
         subject = "[chat.lucek.ai] Prompt injection attempt detected"
         html    = local.injection_alert_html
+      })
+    })
+  }]
+}
+
+# Alert on a spike of thumbs-down ratings (user_score = 0) within an hour.
+resource "langsmith_alert_rule" "negative_feedback" {
+  session_id     = data.langsmith_project.prod.id
+  name           = "negative feedback spike"
+  description    = "Five or more responses got a thumbs-down in the last hour."
+  type           = "threshold"
+  attribute      = "run_count"
+  aggregation    = "sum"
+  operator       = "gte"
+  threshold      = 5
+  window_minutes = 60
+  filter         = "and(eq(feedback_key, \"user_score\"), eq(feedback_score, 0))"
+
+  actions = [{
+    target = "webhook"
+    config_json = jsonencode({
+      project_name = var.langsmith_project
+      url          = "https://api.resend.com/emails"
+      headers      = local.resend_alert_headers
+      body = jsonencode({
+        from    = var.alert_email_from
+        to      = [var.owner_email]
+        subject = "[chat.lucek.ai] Negative feedback spike"
+        html    = local.neg_feedback_alert_html
       })
     })
   }]
