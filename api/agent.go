@@ -46,6 +46,7 @@ type runHandlers struct {
 	onNode    func(nodeFrame)
 	onDelta   func(id, text string)
 	onNodeEnd func(id string, output json.RawMessage)
+	onMeta    func(runID string)
 }
 
 // run POSTs history to /run, streams events, and returns aggregate usage.
@@ -132,6 +133,13 @@ func dispatchEvent(event, data string, usage *tokenUsage, h runHandlers) error {
 		}
 		if json.Unmarshal([]byte(data), &u) == nil {
 			*usage = tokenUsage{Prompt: u.Input, Completion: u.Output}
+		}
+	case "meta":
+		var m struct {
+			RunID string `json:"langsmith_run_id"`
+		}
+		if json.Unmarshal([]byte(data), &m) == nil && h.onMeta != nil {
+			h.onMeta(m.RunID)
 		}
 	case "error":
 		var e struct {

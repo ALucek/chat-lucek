@@ -305,6 +305,7 @@ func (c *Chat) Send(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 
 	var reply strings.Builder
+	var runID string
 	nodes := []*traceNode{}
 	byID := map[string]*traceNode{}
 	usage, err := c.agent.run(r.Context(), msgs, strconv.FormatInt(id, 10), runHandlers{
@@ -332,6 +333,7 @@ func (c *Chat) Send(w http.ResponseWriter, r *http.Request) {
 			writeSSE(w, "node_end", map[string]any{"id": id, "output": output})
 			flusher.Flush()
 		},
+		onMeta: func(rid string) { runID = rid },
 	})
 	if err != nil {
 		slog.ErrorContext(r.Context(), "stream", "err", err)
@@ -349,10 +351,14 @@ func (c *Chat) Send(w http.ResponseWriter, r *http.Request) {
 		}
 		traceJSON, _ = json.Marshal(messageTrace{Version: 2, Nodes: flat})
 	}
+	var runIDArg any
+	if runID != "" {
+		runIDArg = runID
+	}
 	var msgID int64
 	if err := c.pool.QueryRow(r.Context(),
-		`insert into messages (conversation_id, role, content, trace) values ($1, 'assistant', $2, $3) returning id`,
-		id, reply.String(), traceJSON).Scan(&msgID); err != nil {
+		`insert into messages (conversation_id, role, content, trace, langsmith_run_id) values ($1, 'assistant', $2, $3, $4) returning id`,
+		id, reply.String(), traceJSON, runIDArg).Scan(&msgID); err != nil {
 		slog.ErrorContext(r.Context(), "save reply", "err", err)
 		writeSSE(w, "error", map[string]string{"error": "could not save reply"})
 		flusher.Flush()
