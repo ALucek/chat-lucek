@@ -11,7 +11,7 @@ func fixedClock(t time.Time) func() time.Time { return func() time.Time { return
 
 func TestLimiter_AllowsBurstThenBlocks(t *testing.T) {
 	now := time.Now()
-	l := &limiter{buckets: map[string]*bucket{}, rate: 1, burst: 3, now: fixedClock(now)}
+	l := &limiter{entries: map[string]*entry{}, rate: 1, burst: 3, now: fixedClock(now)}
 	for i := 0; i < 3; i++ {
 		if ok, _ := l.allow("k"); !ok {
 			t.Fatalf("request %d should be allowed", i)
@@ -29,7 +29,7 @@ func TestLimiter_AllowsBurstThenBlocks(t *testing.T) {
 func TestLimiter_RefillsOverTime(t *testing.T) {
 	now := time.Now()
 	clock := now
-	l := &limiter{buckets: map[string]*bucket{}, rate: 1, burst: 1, now: func() time.Time { return clock }}
+	l := &limiter{entries: map[string]*entry{}, rate: 1, burst: 1, now: func() time.Time { return clock }}
 	if ok, _ := l.allow("k"); !ok {
 		t.Fatal("first should be allowed")
 	}
@@ -44,7 +44,7 @@ func TestLimiter_RefillsOverTime(t *testing.T) {
 
 func TestLimiter_PerKeyIsolation(t *testing.T) {
 	now := time.Now()
-	l := &limiter{buckets: map[string]*bucket{}, rate: 1, burst: 1, now: fixedClock(now)}
+	l := &limiter{entries: map[string]*entry{}, rate: 1, burst: 1, now: fixedClock(now)}
 	l.allow("a")
 	if ok, _ := l.allow("b"); !ok {
 		t.Fatal("key b has its own bucket")
@@ -55,20 +55,20 @@ func TestLimiter_EvictsIdleKeys(t *testing.T) {
 	now := time.Now()
 	clock := now
 	l := &limiter{
-		buckets: map[string]*bucket{}, rate: 1, burst: 1,
+		entries: map[string]*entry{}, rate: 1, burst: 1,
 		now: func() time.Time { return clock }, idleTTL: time.Minute,
 	}
 	l.allow("k")
 	clock = now.Add(2 * time.Minute)
 	l.evict()
-	if len(l.buckets) != 0 {
-		t.Fatalf("idle key should be evicted, have %d", len(l.buckets))
+	if len(l.entries) != 0 {
+		t.Fatalf("idle key should be evicted, have %d", len(l.entries))
 	}
 }
 
 func TestLimiter_Middleware429WithRetryAfter(t *testing.T) {
 	now := time.Now()
-	l := &limiter{buckets: map[string]*bucket{}, rate: 1, burst: 1, now: fixedClock(now)}
+	l := &limiter{entries: map[string]*entry{}, rate: 1, burst: 1, now: fixedClock(now)}
 	h := l.middleware(func(*http.Request) string { return "k" })(
 		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(http.StatusOK) }))
 
