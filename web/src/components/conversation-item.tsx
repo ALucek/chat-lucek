@@ -127,13 +127,13 @@ function MenuContent({
   if (confirming) {
     return (
       <div className="p-1">
-        <p className="text-fg-strong mb-2 text-center text-xs">
+        <p className="text-fg-strong mb-3 text-center text-sm md:mb-2 md:text-xs">
           Delete this conversation?
         </p>
-        <div className="flex justify-center gap-1.5">
+        <div className="flex justify-center gap-2 md:gap-1.5">
           <button
             onClick={() => setConfirming(false)}
-            className="border-border text-muted hover:bg-hover rounded border px-3 py-2 text-sm md:py-1 md:text-xs"
+            className="border-border text-muted hover:bg-hover flex-1 rounded border px-3 py-2.5 text-sm md:flex-none md:py-1 md:text-xs"
           >
             Cancel
           </button>
@@ -142,7 +142,7 @@ function MenuContent({
               const ok = await onDelete();
               if (!ok) setConfirming(false);
             }}
-            className="bg-danger rounded px-3 py-2 text-sm text-white hover:brightness-95 md:py-1 md:text-xs"
+            className="bg-danger flex-1 rounded px-3 py-2.5 text-sm text-white hover:brightness-95 md:flex-none md:py-1 md:text-xs"
           >
             Delete
           </button>
@@ -155,13 +155,13 @@ function MenuContent({
     <div className="flex flex-col">
       <button
         onClick={onRename}
-        className="hover:bg-hover text-fg flex h-11 items-center rounded px-2 text-sm md:h-8"
+        className="hover:bg-hover text-fg flex h-12 items-center rounded px-2 text-base md:h-8 md:text-sm"
       >
         Rename
       </button>
       <button
         onClick={() => setConfirming(true)}
-        className="hover:bg-hover text-danger flex h-11 items-center rounded px-2 text-sm md:h-8"
+        className="hover:bg-hover text-danger flex h-12 items-center rounded px-2 text-base md:h-8 md:text-sm"
       >
         Delete
       </button>

@@ -146,7 +146,7 @@ export function Menu({
         ref={surfaceRef}
         role="dialog"
         aria-label={label}
-        className={`border-border bg-surface fixed inset-x-0 bottom-0 z-50 rounded-t-xl border-t p-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] transition-transform duration-200 ${
+        className={`border-border bg-surface fixed inset-x-0 bottom-0 z-50 rounded-t-xl border-t p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] transition-transform duration-200 ${
           shown ? 'translate-y-0' : 'translate-y-full'
         }`}
       >
