@@ -46,7 +46,7 @@ function SidebarHandle({
       onClick={onToggle}
       aria-label={label}
       aria-expanded={expanded}
-      className={`border-border bg-surface text-fg-strong absolute top-3 items-center justify-center rounded-l-none rounded-r-[var(--radius)] border border-l-0 ${className ?? ''}`}
+      className={`border-border bg-surface text-muted hover:text-fg-strong absolute top-3 items-center justify-center rounded-l-none rounded-r-[var(--radius)] border border-l-0 ${className ?? ''}`}
     >
       <SidebarIcon />
     </button>
@@ -74,7 +74,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               expanded={!collapsed}
               onToggle={toggle}
               label="Toggle sidebar"
-              className={`z-20 hidden h-9 w-6 transition-[left] duration-200 md:flex ${
+              className={`z-20 hidden h-9 w-6 transition-[left,color] duration-200 md:flex ${
                 collapsed ? 'left-0' : 'left-64'
               }`}
             />
@@ -99,7 +99,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 expanded={open}
                 onToggle={toggleMobile}
                 label="Toggle menu"
-                className="left-full z-40 flex h-11 w-8 md:hidden"
+                className="left-full z-40 flex h-11 w-8 transition-colors md:hidden"
               />
             </div>
             <main className="min-w-0 flex-1 overflow-hidden">{children}</main>
