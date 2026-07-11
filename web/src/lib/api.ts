@@ -230,6 +230,17 @@ export async function deleteConversation(id: number): Promise<void> {
   await request<null>(`/api/conversations/${id}`, { method: 'DELETE' });
 }
 
+export async function sendFeedback(
+  messageId: number,
+  rating: -1 | 1,
+  comment?: string,
+): Promise<void> {
+  await request<null>(`/api/messages/${messageId}/feedback`, {
+    method: 'POST',
+    body: { rating, comment: comment ?? '' },
+  });
+}
+
 export function getMessages(id: number): Promise<Message[]> {
   return request<Message[]>(`/api/conversations/${id}/messages`);
 }
