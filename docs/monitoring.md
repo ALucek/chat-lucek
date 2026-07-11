@@ -35,13 +35,14 @@ A monthly budget (default $20) emails the owner as spend crosses 50%, 90%, 100%,
 
 The agent traces every run to LangSmith for step-level inspection of reasoning, tool calls, and subagents beyond what the Cloud Run logs show.
 
-LangSmith online evaluators also score live prod traces (see [deployment.md](deployment.md#langsmith-online-evals)). The following email the owner through Resend when a security signal appears:
+LangSmith online evaluators score live prod traces (see [deployment.md](deployment.md#langsmith-online-evals)), and users rate replies with a thumbs up/down (see [agent/evals/README.md](../agent/evals/README.md#user-feedback)). Three alerts email the owner through Resend:
 
-| Alert | Fires when |
-| --- | --- |
-| PII in answers | a prod answer scores positive on the pii evaluator |
-| Prompt injection | a user message scores positive on the prompt-injection judge |
+| Alert | Fires when | Signal |
+| --- | --- | --- |
+| PII in answers | a prod answer scores positive on the pii evaluator | security |
+| Prompt injection | a user message scores positive on the prompt-injection judge | security |
+| Negative feedback spike | 5 or more replies get a thumbs-down in an hour | quality |
 
-Both trip on any single positive over a 15 minute window. Defined in [infra/langsmith.tf](../infra/langsmith.tf). When one fires, [triage the trace](runbooks/eval-alerts.md).
+The security alerts trip on any single positive over a 15 minute window; the feedback alert needs 5 within a 60 minute window. Defined in [infra/langsmith.tf](../infra/langsmith.tf). When one fires, [triage the trace](runbooks/eval-alerts.md).
 
 The offline eval suite also runs weekly and emails the owner its results; see [agent/evals/README.md](../agent/evals/README.md#running).
