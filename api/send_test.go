@@ -113,6 +113,47 @@ func TestSend_StreamsAndPersists(t *testing.T) {
 	}
 }
 
+func TestSend_PersistsRunID(t *testing.T) {
+	resetDB(t)
+	meta := "event: meta\ndata: {\"langsmith_run_id\":\"run-123\"}\n\n"
+	client := fakeAgent(t, http.StatusOK, textFrames("a", "hi"), meta, endFrame)
+	mux := newTestMux(client)
+	ta, _ := signup(t, mux, "a@x.com")
+	cid := createConversation(t, mux, ta)
+	do(t, mux, http.MethodPost, fmt.Sprintf("/api/conversations/%d/messages", cid), ta,
+		map[string]string{"content": "hi"})
+
+	var runID *string
+	if err := testPool.QueryRow(context.Background(),
+		`select langsmith_run_id from messages where conversation_id=$1 and role='assistant'`,
+		cid).Scan(&runID); err != nil {
+		t.Fatalf("query: %v", err)
+	}
+	if runID == nil || *runID != "run-123" {
+		t.Fatalf("want run-123, got %v", runID)
+	}
+}
+
+func TestSend_NoRunIDWhenAbsent(t *testing.T) {
+	resetDB(t)
+	client := fakeAgent(t, http.StatusOK, textFrames("a", "hi"), endFrame)
+	mux := newTestMux(client)
+	ta, _ := signup(t, mux, "a@x.com")
+	cid := createConversation(t, mux, ta)
+	do(t, mux, http.MethodPost, fmt.Sprintf("/api/conversations/%d/messages", cid), ta,
+		map[string]string{"content": "hi"})
+
+	var runID *string
+	if err := testPool.QueryRow(context.Background(),
+		`select langsmith_run_id from messages where conversation_id=$1 and role='assistant'`,
+		cid).Scan(&runID); err != nil {
+		t.Fatalf("query: %v", err)
+	}
+	if runID != nil {
+		t.Fatalf("want nil run id, got %q", *runID)
+	}
+}
+
 func TestSend_BumpsUpdatedAt(t *testing.T) {
 	resetDB(t)
 	client := fakeAgent(t, http.StatusOK, textFrames("a", "hi"), endFrame)

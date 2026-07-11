@@ -206,6 +206,7 @@ export interface Message {
   content: string;
   created_at: string;
   trace?: RunTrace | null;
+  feedback?: { rating: -1 | 1 } | null;
 }
 
 export function listConversations(): Promise<Conversation[]> {
@@ -228,6 +229,17 @@ export async function renameConversation(
 
 export async function deleteConversation(id: number): Promise<void> {
   await request<null>(`/api/conversations/${id}`, { method: 'DELETE' });
+}
+
+export async function sendFeedback(
+  messageId: number,
+  rating: -1 | 1,
+  comment?: string,
+): Promise<void> {
+  await request<null>(`/api/messages/${messageId}/feedback`, {
+    method: 'POST',
+    body: { rating, comment: comment ?? '' },
+  });
 }
 
 export function getMessages(id: number): Promise<Message[]> {

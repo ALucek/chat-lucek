@@ -96,6 +96,10 @@ async def run(req: Request) -> StreamingResponse:
                 for out in tr.handle(event):
                     yield _sse(out)
             yield _sse(tr.usage_event())
+            if tracer is not None:
+                meta = tr.meta_event()
+                if meta is not None:
+                    yield _sse(meta)
         except (asyncio.CancelledError, GeneratorExit):
             if tracer is not None:
                 _close_open_runs(tracer)

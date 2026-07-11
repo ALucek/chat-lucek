@@ -3,6 +3,7 @@ import { remarkPlugins, rehypePlugins } from '@/lib/markdown';
 import type { ChatMessage } from '@/lib/messages-context';
 import { buildTree } from '@/lib/run-log';
 import { NodeRow } from './turn/node-row';
+import { MessageActions } from './message-actions';
 
 // AssistantMessage renders the inline run timeline, or plain content when a
 // reply has no node log (older or trivial replies).
@@ -47,11 +48,17 @@ function AssistantMessage({ m }: { m: ChatMessage }) {
   );
 }
 
-export function MessageList({ messages }: { messages: ChatMessage[] }) {
+export function MessageList({
+  messages,
+  onRateMessage,
+}: {
+  messages: ChatMessage[];
+  onRateMessage?: (messageId: number, rating: -1 | 1) => void;
+}) {
   return (
     <ul
       aria-live="polite"
-      className="mx-auto flex max-w-2xl flex-col gap-5 px-4 py-5 sm:px-5 sm:py-7"
+      className="mx-auto flex max-w-2xl flex-col gap-4 px-4 py-5 sm:px-5 sm:py-7"
     >
       {messages.map((m) => {
         const isUser = m.role === 'user';
@@ -60,20 +67,22 @@ export function MessageList({ messages }: { messages: ChatMessage[] }) {
             key={m.id}
             className={`flex flex-col gap-1.5 ${isUser ? 'items-end' : 'items-start'}`}
           >
-            <div
-              className={`flex items-center gap-1.5 ${isUser ? 'flex-row-reverse' : ''}`}
-            >
-              <span className="text-subtle">&gt;</span>
-              <span className="text-subtle text-[11px] tracking-[0.12em] uppercase">
-                {isUser ? 'you' : 'assistant'}
-              </span>
-            </div>
             {isUser ? (
               <span className="border-border bg-surface-muted text-fg max-w-[80%] min-w-0 rounded-[var(--radius)] border px-3 py-2 text-sm break-words whitespace-pre-wrap">
                 {m.content}
               </span>
             ) : (
-              <AssistantMessage m={m} />
+              <>
+                <AssistantMessage m={m} />
+                {!m.streaming && (
+                  <MessageActions
+                    messageId={m.id}
+                    content={m.content}
+                    initialRating={m.feedback?.rating ?? null}
+                    onRate={(r) => onRateMessage?.(m.id, r)}
+                  />
+                )}
+              </>
             )}
           </li>
         );

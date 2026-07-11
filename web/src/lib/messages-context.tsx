@@ -48,6 +48,7 @@ interface MessagesValue {
   send: (id: number, content: string) => Promise<void>;
   sendNew: (content: string) => Promise<number>;
   stop: (id: number) => void;
+  setFeedback: (convId: number, messageId: number, rating: -1 | 1) => void;
 }
 
 const MessagesContext = createContext<MessagesValue | null>(null);
@@ -234,9 +235,21 @@ export function MessagesProvider({ children }: { children: React.ReactNode }) {
     [patch],
   );
 
+  // setFeedback keeps a cast vote in the cache so it survives navigation.
+  const setFeedback = useCallback(
+    (convId: number, messageId: number, rating: -1 | 1) =>
+      patch(convId, (s) => ({
+        ...s,
+        messages: s.messages.map((m) =>
+          m.id === messageId ? { ...m, feedback: { rating } } : m,
+        ),
+      })),
+    [patch],
+  );
+
   const value = useMemo(
-    () => ({ byId, load, send, sendNew, stop }),
-    [byId, load, send, sendNew, stop],
+    () => ({ byId, load, send, sendNew, stop, setFeedback }),
+    [byId, load, send, sendNew, stop, setFeedback],
   );
 
   return (
@@ -284,4 +297,11 @@ export function useSendNew(): (content: string) => Promise<number> {
   if (!ctx)
     throw new Error('useSendNew must be used within a MessagesProvider');
   return ctx.sendNew;
+}
+
+export function useSetFeedback(): MessagesValue['setFeedback'] {
+  const ctx = useContext(MessagesContext);
+  if (!ctx)
+    throw new Error('useSetFeedback must be used within a MessagesProvider');
+  return ctx.setFeedback;
 }

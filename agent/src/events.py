@@ -17,8 +17,13 @@ class Translator:
         self._open_tools: set[str] = set()
         self._started: set[str] = set()
         self._input = self._output = self._total = self._reasoning = 0
+        self._root_run_id: str | None = None
 
     def handle(self, event: dict[str, Any]) -> list[dict[str, Any]]:
+        if self._root_run_id is None and not event.get("parent_ids"):
+            rid = event.get("run_id")
+            if rid is not None:
+                self._root_run_id = str(rid)
         etype = event.get("event")
         if etype == "on_chat_model_stream":
             return self._on_stream(event)
@@ -99,6 +104,11 @@ class Translator:
         self._output += um.get("output_tokens", 0)
         self._total += um.get("total_tokens", 0)
         self._reasoning += (um.get("output_token_details") or {}).get("reasoning", 0)
+
+    def meta_event(self) -> dict[str, Any] | None:
+        if self._root_run_id is None:
+            return None
+        return {"event": "meta", "data": {"langsmith_run_id": self._root_run_id}}
 
     def usage_event(self) -> dict[str, Any]:
         return {

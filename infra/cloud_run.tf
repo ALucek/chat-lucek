@@ -5,7 +5,7 @@ locals {
   agent_image = "${local.registry}/agent:bootstrap"
 
   # Each runtime SA reads only the secrets it needs.
-  api_secret_ids   = ["jwt-secret", "db-password", "google-client-secret", "usage-hash-secret", "resend-api-key"]
+  api_secret_ids   = ["jwt-secret", "db-password", "google-client-secret", "usage-hash-secret", "resend-api-key", "langsmith-api-key"]
   agent_secret_ids = ["openrouter-api-key", "tavily-api-key", "langsmith-api-key"]
 }
 
@@ -187,6 +187,15 @@ resource "google_cloud_run_v2_service" "api" {
         value_source {
           secret_key_ref {
             secret  = google_secret_manager_secret.app["google-client-secret"].secret_id
+            version = "latest"
+          }
+        }
+      }
+      env {
+        name = "LANGSMITH_API_KEY"
+        value_source {
+          secret_key_ref {
+            secret  = google_secret_manager_secret.app["langsmith-api-key"].secret_id
             version = "latest"
           }
         }

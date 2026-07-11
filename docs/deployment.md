@@ -83,7 +83,7 @@ This creates everything else: Cloud SQL, the Cloud Run services and migrate job,
 
 ### 7. Secrets and database password
 
-Set the seven secret values, and set the database user's password to match the `db-password` secret. The agent reads `openrouter-api-key`, `tavily-api-key`, and `langsmith-api-key`; the API reads the rest. `usage-hash-secret` keys the usage ledger and must never be rotated (rotating it resets every user's budget window). The API's magic-link Resend key is not seeded here: Terraform sets `resend-api-key` from the `resend_api_key` tfvar (the same key the eval alerts use), with the sender in the `magic_link_from` tfvar (default `login@lucek.ai`):
+Set the seven secret values, and set the database user's password to match the `db-password` secret. The agent reads `openrouter-api-key`, `tavily-api-key`, and `langsmith-api-key`; the API reads the rest, and also `langsmith-api-key` to attach response feedback to traces. `usage-hash-secret` keys the usage ledger and must never be rotated (rotating it resets every user's budget window). The API's magic-link Resend key is not seeded here: Terraform sets `resend-api-key` from the `resend_api_key` tfvar (the same key the eval alerts use), with the sender in the `magic_link_from` tfvar (default `login@lucek.ai`):
 
 ```bash
 openssl rand -hex 32 | tr -d '\n' | gcloud secrets versions add jwt-secret --data-file=-

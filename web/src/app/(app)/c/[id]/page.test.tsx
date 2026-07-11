@@ -5,6 +5,10 @@ import * as messagesHook from '@/lib/messages-context';
 
 vi.mock('next/navigation', () => ({ useParams: () => ({ id: '5' }) }));
 vi.mock('@/lib/messages-context');
+// The assistant action row reads the toast context.
+vi.mock('@/lib/toast-context', () => ({
+  useToast: () => ({ toast: vi.fn() }),
+}));
 
 beforeEach(() => {
   vi.clearAllMocks();

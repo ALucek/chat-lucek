@@ -186,7 +186,7 @@ docker-build:
 	docker compose --profile full build
 
 stack-up:
-	docker compose --profile full up -d --wait
+	docker compose --profile full up -d --build --wait
 	$(MAKE) migrate-up
 
 stack-down:

@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -10,6 +11,8 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -20,6 +23,7 @@ type Chat struct {
 	runsBudget  int
 	ownerEmail  string
 	usageSecret []byte
+	mirror      feedbackMirror
 }
 
 type conversation struct {
@@ -30,11 +34,17 @@ type conversation struct {
 }
 
 type message struct {
-	ID        int64           `json:"id"`
-	Role      string          `json:"role"`
-	Content   string          `json:"content"`
-	CreatedAt time.Time       `json:"created_at"`
-	Trace     json.RawMessage `json:"trace,omitempty"`
+	ID        int64                `json:"id"`
+	Role      string               `json:"role"`
+	Content   string               `json:"content"`
+	CreatedAt time.Time            `json:"created_at"`
+	Trace     json.RawMessage      `json:"trace,omitempty"`
+	Feedback  *messageFeedbackView `json:"feedback,omitempty"`
+}
+
+// messageFeedbackView is the caller's own rating on a message, for rehydration.
+type messageFeedbackView struct {
+	Rating int `json:"rating"`
 }
 
 // traceNode is one node in a run's event log (persisted and streamed).
@@ -65,6 +75,7 @@ func nonTrivial(nodes []*traceNode) bool {
 }
 
 const maxMessageChars = 8000
+const maxFeedbackChars = 2000
 
 // List returns the caller's conversations, newest activity first.
 func (c *Chat) List(w http.ResponseWriter, r *http.Request) {
@@ -133,8 +144,10 @@ func (c *Chat) Messages(w http.ResponseWriter, r *http.Request) {
 	}
 
 	rows, err := c.pool.Query(r.Context(),
-		`select id, role, content, created_at, trace from messages
-		 where conversation_id = $1 order by id`, id)
+		`select m.id, m.role, m.content, m.created_at, m.trace, mf.rating
+		 from messages m
+		 left join message_feedback mf on mf.message_id = m.id and mf.user_id = $2
+		 where m.conversation_id = $1 order by m.id`, id, userID)
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "could not load messages"})
 		return
@@ -144,9 +157,13 @@ func (c *Chat) Messages(w http.ResponseWriter, r *http.Request) {
 	msgs := []message{}
 	for rows.Next() {
 		var m message
-		if err := rows.Scan(&m.ID, &m.Role, &m.Content, &m.CreatedAt, &m.Trace); err != nil {
+		var rating *int
+		if err := rows.Scan(&m.ID, &m.Role, &m.Content, &m.CreatedAt, &m.Trace, &rating); err != nil {
 			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "scan failed"})
 			return
+		}
+		if rating != nil {
+			m.Feedback = &messageFeedbackView{Rating: *rating}
 		}
 		msgs = append(msgs, m)
 	}
@@ -305,6 +322,7 @@ func (c *Chat) Send(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 
 	var reply strings.Builder
+	var runID string
 	nodes := []*traceNode{}
 	byID := map[string]*traceNode{}
 	usage, err := c.agent.run(r.Context(), msgs, strconv.FormatInt(id, 10), runHandlers{
@@ -332,6 +350,7 @@ func (c *Chat) Send(w http.ResponseWriter, r *http.Request) {
 			writeSSE(w, "node_end", map[string]any{"id": id, "output": output})
 			flusher.Flush()
 		},
+		onMeta: func(rid string) { runID = rid },
 	})
 	if err != nil {
 		slog.ErrorContext(r.Context(), "stream", "err", err)
@@ -349,10 +368,14 @@ func (c *Chat) Send(w http.ResponseWriter, r *http.Request) {
 		}
 		traceJSON, _ = json.Marshal(messageTrace{Version: 2, Nodes: flat})
 	}
+	var runIDArg any
+	if runID != "" {
+		runIDArg = runID
+	}
 	var msgID int64
 	if err := c.pool.QueryRow(r.Context(),
-		`insert into messages (conversation_id, role, content, trace) values ($1, 'assistant', $2, $3) returning id`,
-		id, reply.String(), traceJSON).Scan(&msgID); err != nil {
+		`insert into messages (conversation_id, role, content, trace, langsmith_run_id) values ($1, 'assistant', $2, $3, $4) returning id`,
+		id, reply.String(), traceJSON, runIDArg).Scan(&msgID); err != nil {
 		slog.ErrorContext(r.Context(), "save reply", "err", err)
 		writeSSE(w, "error", map[string]string{"error": "could not save reply"})
 		flusher.Flush()
@@ -378,6 +401,79 @@ func (c *Chat) Send(w http.ResponseWriter, r *http.Request) {
 		writeSSE(w, "title", map[string]string{"title": title})
 		flusher.Flush()
 	}
+}
+
+// Feedback upserts the caller's rating and note, then mirrors to LangSmith.
+func (c *Chat) Feedback(w http.ResponseWriter, r *http.Request) {
+	userID, _ := userIDFromContext(r.Context())
+	msgID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid message id"})
+		return
+	}
+	var body struct {
+		Rating  int    `json:"rating"`
+		Comment string `json:"comment"`
+	}
+	if !decodeJSON(w, r, &body) {
+		return
+	}
+	if body.Rating != -1 && body.Rating != 1 {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "rating must be -1 or 1"})
+		return
+	}
+	if utf8.RuneCountInString(body.Comment) > maxFeedbackChars {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "comment too long (max 2000 characters)"})
+		return
+	}
+
+	// Ownership: the message must belong to one of the caller's conversations.
+	var runID *string
+	err = c.pool.QueryRow(r.Context(),
+		`select m.langsmith_run_id from messages m
+		 join conversations conv on conv.id = m.conversation_id
+		 where m.id = $1 and conv.user_id = $2`, msgID, userID).Scan(&runID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		writeJSON(w, http.StatusNotFound, map[string]string{"error": "message not found"})
+		return
+	}
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "lookup failed"})
+		return
+	}
+
+	feedbackID := uuid.NewString()
+	var comment any
+	if body.Comment != "" {
+		comment = body.Comment
+	}
+	var savedFeedbackID string
+	if err := c.pool.QueryRow(r.Context(),
+		`insert into message_feedback (message_id, user_id, rating, comment, langsmith_feedback_id)
+		 values ($1, $2, $3, $4, $5)
+		 on conflict (message_id, user_id)
+		 do update set rating = excluded.rating, comment = excluded.comment, updated_at = now()
+		 returning langsmith_feedback_id`,
+		msgID, userID, body.Rating, comment, feedbackID).Scan(&savedFeedbackID); err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "feedback failed"})
+		return
+	}
+
+	if runID != nil && *runID != "" && c.mirror != nil && c.mirror.enabled() {
+		score := 0.0
+		if body.Rating == 1 {
+			score = 1.0
+		}
+		c.mirror.upsertScore(savedFeedbackID, *runID, score)
+		// The note rides its own key, with a stable id derived from the score's.
+		commentID := commentFeedbackID(savedFeedbackID)
+		if body.Comment != "" {
+			c.mirror.upsertComment(commentID, *runID, body.Comment)
+		} else {
+			c.mirror.deleteFeedback(commentID)
+		}
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
 
 // writeSSE writes one SSE frame; data is JSON so each frame is a JSON object.
