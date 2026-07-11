@@ -211,3 +211,25 @@ describe('MessageList timeline', () => {
     expect(container.querySelector('.caret-blink')).toBeNull();
   });
 });
+
+describe('MessageList set_todos suppression', () => {
+  it('does not render the set_todos plan inline in the transcript', () => {
+    const nodes: RunNode[] = [
+      {
+        id: '1',
+        parent_id: null,
+        type: 'tool',
+        name: 'set_todos',
+        input: {
+          todos: [{ description: 'Inline plan step', progress: 'in progress' }],
+        },
+      },
+    ];
+    const msgs: ChatMessage[] = [
+      { id: 1, role: 'assistant', content: '', created_at: '', nodes },
+    ];
+    render(<MessageList messages={msgs} />);
+    // The plan is hoisted to the PlanDock; its inline row (a "plan" chip) is gone.
+    expect(screen.queryByText('plan')).not.toBeInTheDocument();
+  });
+});

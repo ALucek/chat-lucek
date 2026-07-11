@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { buildTree, toolLabel, inputDetail } from './run-log';
+import { buildTree, toolLabel, inputDetail, latestPlan } from './run-log';
+import type { RunNode } from './api';
 
 describe('buildTree', () => {
   it('nests children under their parent, preserves order', () => {
@@ -35,5 +36,89 @@ describe('inputDetail', () => {
     expect(inputDetail({ a: 1, b: 2 })).toBe('{"a":1,"b":2}');
     expect(inputDetail(undefined)).toBe('');
     expect(inputDetail({})).toBe('');
+  });
+});
+
+function planNode(id: string, todos: unknown, output?: string): RunNode {
+  return {
+    id,
+    parent_id: null,
+    type: 'tool',
+    name: 'set_todos',
+    input: { todos },
+    output,
+  };
+}
+
+describe('latestPlan', () => {
+  it('returns the todos of the last set_todos node', () => {
+    const nodes: RunNode[] = [
+      planNode('1', [{ description: 'a', progress: 'in progress' }]),
+      planNode('2', [
+        { description: 'a', progress: 'completed' },
+        { description: 'b', progress: 'in progress' },
+      ]),
+    ];
+    expect(latestPlan(nodes)).toEqual([
+      { description: 'a', progress: 'completed' },
+      { description: 'b', progress: 'in progress' },
+    ]);
+  });
+
+  it('falls back to parsing output when input is absent', () => {
+    const node: RunNode = {
+      id: '1',
+      parent_id: null,
+      type: 'tool',
+      name: 'set_todos',
+      output: JSON.stringify({
+        todos: [{ description: 'x', progress: 'outstanding' }],
+      }),
+    };
+    expect(latestPlan([node])).toEqual([
+      { description: 'x', progress: 'outstanding' },
+    ]);
+  });
+
+  it('returns null when there is no set_todos node', () => {
+    const nodes: RunNode[] = [
+      {
+        id: '1',
+        parent_id: null,
+        type: 'tool',
+        name: 'internet_search',
+        input: {},
+      },
+    ];
+    expect(latestPlan(nodes)).toBeNull();
+  });
+
+  it('drops malformed items but keeps valid ones', () => {
+    const nodes = [
+      planNode('1', [
+        { description: 'good', progress: 'completed' },
+        { description: 'bad status', progress: 'nope' },
+        { description: 42, progress: 'outstanding' },
+      ]),
+    ];
+    expect(latestPlan(nodes)).toEqual([
+      { description: 'good', progress: 'completed' },
+    ]);
+  });
+
+  it('a later malformed node does not clobber an earlier valid plan', () => {
+    const nodes: RunNode[] = [
+      planNode('1', [{ description: 'a', progress: 'completed' }]),
+      {
+        id: '2',
+        parent_id: null,
+        type: 'tool',
+        name: 'set_todos',
+        output: 'not json{',
+      },
+    ];
+    expect(latestPlan(nodes)).toEqual([
+      { description: 'a', progress: 'completed' },
+    ]);
   });
 });
