@@ -19,21 +19,22 @@ def test_route_ends_when_last_message_not_ai():
     assert route_agent({"messages": [HumanMessage(content="hi")]}) == "end"
 
 
-def test_route_to_subagent():
-    assert route_agent({"messages": [_ai_with_tools(["run_subagent"])]}) == "subagent"
+def test_route_to_tools_for_subagent():
+    assert route_agent({"messages": [_ai_with_tools(["run_subagent"])]}) == "tools"
 
 
-def test_route_to_todo_list():
-    assert route_agent({"messages": [_ai_with_tools(["set_todos"])]}) == "todo_list"
+def test_route_to_tools_for_todo():
+    assert route_agent({"messages": [_ai_with_tools(["set_todos"])]}) == "tools"
 
 
-def test_subagent_takes_priority_over_todo():
+def test_route_to_tools_when_both_tools_called():
+    # Both calls in one turn must reach the tool node so neither is dropped.
     state = {"messages": [_ai_with_tools(["set_todos", "run_subagent"])]}
-    assert route_agent(state) == "subagent"
+    assert route_agent(state) == "tools"
 
 
-def test_unknown_tool_ends():
-    assert route_agent({"messages": [_ai_with_tools(["mystery"])]}) == "end"
+def test_graph_binds_both_tools():
+    assert {t.name for t in agent_mod.tools} == {"run_subagent", "set_todos"}
 
 
 class _FakeModel:
