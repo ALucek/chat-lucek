@@ -98,6 +98,7 @@ They run in two stages so commits stay fast and the slow checks gate the push:
 | `make evals` | Run the agent's live behavioral evals (real models; see [testing.md](testing.md)) |
 | `make db-reset` | Wipe, recreate, and migrate the local database |
 | `make db-psql` | Open a `psql` shell into the local database |
+| `make stack-up` / `stack-down` | Build and run, or stop, the full stack (web, api, agent, db) in containers |
 | `make health` | Curl the API's `/readyz` |
 
 For the test suites in depth, see [testing.md](testing.md).
