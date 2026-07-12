@@ -75,35 +75,52 @@ test('sign in with Google, send a message, stream a reply, persist on reload', a
   ).toBeVisible();
 });
 
-test('composer grows with content up to a max, then stops', async ({
+test('a follow-up message appends to the same conversation', async ({
   page,
 }) => {
-  await loginViaMagicLink(page, `e2e-grow-${Date.now()}@gmail.com`);
+  await loginViaMagicLink(page, `e2e-multi-${Date.now()}@gmail.com`);
 
   const box = page.getByPlaceholder('Send a message…');
   const send = page.getByRole('button', { name: 'Send' });
-  const height = async () => (await box.boundingBox())!.height;
 
-  await box.fill('one line');
-  const single = await height();
+  // First message creates the conversation and routes to it.
+  await box.fill('First question about cats');
+  await send.click();
+  await expect(page).toHaveURL(/\/c\/\d+$/);
+  const url = page.url();
+  await expect(page.getByText('Hello from the stub.')).toHaveCount(1);
 
-  // One line: input and Send are vertically centered on each other.
-  let b = (await box.boundingBox())!;
-  let s = (await send.boundingBox())!;
-  expect(
-    Math.abs(b.y + b.height / 2 - (s.y + s.height / 2)),
-  ).toBeLessThanOrEqual(2);
+  // Send returns once the stream ends; a second turn appends in place.
+  await expect(send).toBeVisible();
+  await box.fill('Second follow-up question');
+  await send.click();
+  await expect(page.getByText('Second follow-up question')).toBeVisible();
+  await expect(page.getByText('Hello from the stub.')).toHaveCount(2);
+  expect(page.url()).toBe(url); // same conversation, no new route
+});
 
-  await box.fill(Array.from({ length: 4 }, (_, i) => `line ${i}`).join('\n'));
-  expect(await height()).toBeGreaterThan(single);
+test('deleting the open conversation removes it and routes home', async ({
+  page,
+}) => {
+  await loginViaMagicLink(page, `e2e-del-${Date.now()}@gmail.com`);
 
-  // Grown: Send sticks to the bottom of the (taller) input.
-  b = (await box.boundingBox())!;
-  s = (await send.boundingBox())!;
-  expect(Math.abs(b.y + b.height - (s.y + s.height))).toBeLessThanOrEqual(2);
+  // A message creates the conversation we then delete.
+  await page
+    .getByPlaceholder('Send a message…')
+    .fill('Delete me from the sidebar');
+  await page.getByRole('button', { name: 'Send' }).click();
+  await expect(page).toHaveURL(/\/c\/\d+$/);
 
-  await box.fill(Array.from({ length: 40 }, (_, i) => `line ${i}`).join('\n'));
-  const capped = await height();
-  expect(capped).toBeLessThanOrEqual(162); // max-h-40 (160px) + borders
-  expect(capped).toBeGreaterThan(single);
+  const link = page.getByRole('link', { name: /Delete me from the/i });
+  await expect(link).toBeVisible();
+
+  // Open the row's action menu, then confirm the delete.
+  await link.hover();
+  await page.getByRole('button', { name: 'Conversation actions' }).click();
+  await page.getByRole('button', { name: 'Delete' }).click(); // menu item
+  await page.getByRole('button', { name: 'Delete' }).click(); // confirm
+
+  // It was the open conversation, so the sidebar row goes and we land home.
+  await expect(page).toHaveURL('/');
+  await expect(link).toHaveCount(0);
 });
