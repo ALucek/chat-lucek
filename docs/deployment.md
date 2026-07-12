@@ -52,7 +52,7 @@ From `infra/`, fill in the two files from their examples:
 
 ```bash
 cp backend.hcl.example backend.hcl          # bucket = "<project-id>-tfstate"
-cp terraform.tfvars.example terraform.tfvars     # project_id, google_client_id, owner_email, billing_account
+cp terraform.tfvars.example terraform.tfvars     # replace every placeholder value
 terraform init -backend-config=backend.hcl
 ```
 

@@ -15,21 +15,16 @@ How to run chat-lucek on your machine and the workflow for changing it.
 
 ## Environment
 
-Two env files. The repo root holds everything the API and web need; `agent/`
-holds the agent's own keys. The agent stays separate because it runs as its own
-service and never needs the database or auth secrets.
+Two env files. The repo root holds everything the API and web need; `agent/` holds the agent's own keys. The agent stays separate because it runs as its own service and never needs the database or auth secrets.
 
 ```bash
 cp .env.example .env
 cp agent/.env.example agent/.env
 ```
 
-The `make` targets load the root `.env` for you, including `make web-run`, so
-the web dev server reads it too. There is no separate `web/.env.local`. Database
-defaults already match the local Postgres container.
+The `make` targets load the root `.env` for you, including `make web-run`, so the web dev server reads it too. There is no separate `web/.env.local`. Database defaults already match the local Postgres container.
 
-To sign in locally: set the three Google vars, generate the two secrets, and set
-`SIGNUP_OPEN=true` to create your account.
+To sign in locally: set the three Google vars, generate the two secrets, and set `SIGNUP_OPEN=true` to create your account.
 
 ### Root `.env`
 
