@@ -48,7 +48,11 @@ interface MessagesValue {
   send: (id: number, content: string) => Promise<void>;
   sendNew: (content: string) => Promise<number>;
   stop: (id: number) => void;
-  setFeedback: (convId: number, messageId: number, rating: -1 | 1) => void;
+  setFeedback: (
+    convId: number,
+    messageId: number,
+    rating: -1 | 1 | null,
+  ) => void;
 }
 
 const MessagesContext = createContext<MessagesValue | null>(null);
@@ -237,11 +241,13 @@ export function MessagesProvider({ children }: { children: React.ReactNode }) {
 
   // setFeedback keeps a cast vote in the cache so it survives navigation.
   const setFeedback = useCallback(
-    (convId: number, messageId: number, rating: -1 | 1) =>
+    (convId: number, messageId: number, rating: -1 | 1 | null) =>
       patch(convId, (s) => ({
         ...s,
         messages: s.messages.map((m) =>
-          m.id === messageId ? { ...m, feedback: { rating } } : m,
+          m.id === messageId
+            ? { ...m, feedback: rating === null ? undefined : { rating } }
+            : m,
         ),
       })),
     [patch],

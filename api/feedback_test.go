@@ -135,6 +135,70 @@ func TestFeedback_CommentTooLong(t *testing.T) {
 	}
 }
 
+func TestClearFeedback_DeletesRowAndMirror(t *testing.T) {
+	resetDB(t)
+	fm := &fakeMirror{}
+	mux := newTestMuxFull(nil, testRunsBudget, fm)
+	ta, uid := signup(t, mux, "a@x.com")
+	cid := createConversation(t, mux, ta)
+	mid := seedAssistantMessage(t, cid, "run-1")
+
+	do(t, mux, http.MethodPost, fmt.Sprintf("/api/messages/%d/feedback", mid), ta,
+		map[string]any{"rating": 1, "comment": "great"})
+
+	rec := do(t, mux, http.MethodDelete, fmt.Sprintf("/api/messages/%d/feedback", mid), ta, nil)
+	if rec.Code != http.StatusNoContent {
+		t.Fatalf("want 204, got %d", rec.Code)
+	}
+
+	var count int
+	if err := testPool.QueryRow(context.Background(),
+		`select count(*) from message_feedback where message_id=$1 and user_id=$2`,
+		mid, uid).Scan(&count); err != nil {
+		t.Fatalf("query: %v", err)
+	}
+	if count != 0 {
+		t.Fatalf("row should be gone, got count=%d", count)
+	}
+	if len(fm.deletes) != 2 {
+		t.Fatalf("want 2 mirror deletes (score + comment), got %+v", fm.deletes)
+	}
+	if fm.deletes[1] != commentFeedbackID(fm.deletes[0]) {
+		t.Fatalf("second delete should be the derived comment id: %+v", fm.deletes)
+	}
+}
+
+func TestClearFeedback_NoRowIsNoop(t *testing.T) {
+	resetDB(t)
+	fm := &fakeMirror{}
+	mux := newTestMuxFull(nil, testRunsBudget, fm)
+	ta, _ := signup(t, mux, "a@x.com")
+	cid := createConversation(t, mux, ta)
+	mid := seedAssistantMessage(t, cid, "run-1")
+
+	rec := do(t, mux, http.MethodDelete, fmt.Sprintf("/api/messages/%d/feedback", mid), ta, nil)
+	if rec.Code != http.StatusNoContent {
+		t.Fatalf("want 204, got %d", rec.Code)
+	}
+	if len(fm.deletes) != 0 {
+		t.Fatalf("no row means no mirror deletes, got %+v", fm.deletes)
+	}
+}
+
+func TestClearFeedback_NotOwner(t *testing.T) {
+	resetDB(t)
+	mux := newTestMuxFull(nil, testRunsBudget, &fakeMirror{})
+	ta, _ := signup(t, mux, "a@x.com")
+	tb, _ := signup(t, mux, "b@x.com")
+	cid := createConversation(t, mux, ta)
+	mid := seedAssistantMessage(t, cid, "run-1")
+
+	rec := do(t, mux, http.MethodDelete, fmt.Sprintf("/api/messages/%d/feedback", mid), tb, nil)
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("want 404, got %d", rec.Code)
+	}
+}
+
 func TestMessages_IncludesCallerRating(t *testing.T) {
 	resetDB(t)
 	mux := newTestMuxFull(nil, testRunsBudget, &fakeMirror{})

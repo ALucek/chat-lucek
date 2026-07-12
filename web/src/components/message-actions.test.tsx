@@ -7,6 +7,7 @@ import { sendFeedback } from '@/lib/api';
 const toast = vi.fn();
 vi.mock('@/lib/api', () => ({
   sendFeedback: vi.fn().mockResolvedValue(undefined),
+  clearFeedback: vi.fn().mockResolvedValue(undefined),
 }));
 vi.mock('@/lib/toast-context', () => ({ useToast: () => ({ toast }) }));
 
@@ -43,7 +44,7 @@ describe('MessageActions', () => {
     const user = userEvent.setup();
     render(<MessageActions messageId={7} content="x" />);
     await user.click(screen.getByRole('button', { name: /good response/i }));
-    expect(sendFeedback).toHaveBeenCalledWith(7, 1, undefined);
+    expect(sendFeedback).toHaveBeenCalledWith(7, 1);
     expect(screen.getByRole('textbox')).toBeInTheDocument();
   });
 
@@ -52,7 +53,40 @@ describe('MessageActions', () => {
     render(<MessageActions messageId={7} content="x" />);
     await user.click(screen.getByRole('button', { name: /good response/i }));
     await user.click(screen.getByRole('button', { name: /bad response/i }));
-    expect(sendFeedback).toHaveBeenLastCalledWith(7, -1, undefined);
+    expect(sendFeedback).toHaveBeenLastCalledWith(7, -1);
+  });
+
+  it('drops the old note and reopens blank when the rating is switched', async () => {
+    const user = userEvent.setup();
+    render(<MessageActions messageId={7} content="x" />);
+    // Thumb up with a note.
+    await user.click(screen.getByRole('button', { name: /good response/i }));
+    await user.type(screen.getByRole('textbox'), 'nice one');
+    await user.click(screen.getByRole('button', { name: /send/i }));
+    expect(sendFeedback).toHaveBeenLastCalledWith(7, 1, 'nice one');
+    // Switch to down: the new rating is sent with no carried-over comment,
+    // and the note dialog reopens empty.
+    await user.click(screen.getByRole('button', { name: /bad response/i }));
+    expect(sendFeedback).toHaveBeenLastCalledWith(7, -1);
+    expect(screen.getByRole('textbox')).toHaveValue('');
+  });
+
+  it('clears feedback when the active thumb is re-clicked', async () => {
+    const { clearFeedback } = await import('@/lib/api');
+    const user = userEvent.setup();
+    render(<MessageActions messageId={7} content="x" initialRating={1} />);
+    const up = screen.getByRole('button', { name: /good response/i });
+    expect(up).toHaveAttribute('aria-pressed', 'true');
+    await user.click(up);
+    expect(clearFeedback).toHaveBeenCalledWith(7);
+    expect(up).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  it('does not open the note dialog when the active thumb is re-clicked', async () => {
+    const user = userEvent.setup();
+    render(<MessageActions messageId={7} content="x" initialRating={1} />);
+    await user.click(screen.getByRole('button', { name: /good response/i }));
+    expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
   });
 
   it('sends the note on Send', async () => {

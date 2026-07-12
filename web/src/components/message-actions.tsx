@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import { sendFeedback } from '@/lib/api';
+import { sendFeedback, clearFeedback } from '@/lib/api';
 import { useToast } from '@/lib/toast-context';
 import { Dialog } from '@/components/ui/dialog';
 
@@ -73,7 +73,7 @@ const DownIcon = ({ filled }: { filled: boolean }) => (
 const iconBtn =
   'text-subtle hover:text-fg-strong hover:bg-hover flex h-7 w-7 items-center justify-center rounded-[var(--radius)]';
 
-// MessageActions is the copy + binding thumbs row under an assistant reply.
+// MessageActions is the copy + thumbs row under an assistant reply.
 export function MessageActions({
   messageId,
   content,
@@ -83,7 +83,7 @@ export function MessageActions({
   messageId: number;
   content: string;
   initialRating?: Rating | null;
-  onRate?: (rating: Rating) => void;
+  onRate?: (rating: Rating | null) => void;
 }) {
   const [rating, setRating] = useState<Rating | null>(initialRating);
   const [note, setNote] = useState('');
@@ -103,15 +103,27 @@ export function MessageActions({
   }
 
   async function vote(next: Rating) {
+    const prev = rating;
     if (next === rating) {
-      setNoteOpen(true); // re-click the active thumb = edit the note
+      // re-click the active thumb = clear the rating and its note
+      setRating(null);
+      setNote('');
+      setNoteOpen(false);
+      try {
+        await clearFeedback(messageId);
+        onRate?.(null); // clear the cached vote so it stays cleared on navigation
+      } catch {
+        setRating(prev);
+        toast('Could not clear feedback');
+      }
       return;
     }
-    const prev = rating;
+    // Switching drops the old note (empty comment clears it from the trace).
     setRating(next);
+    setNote('');
     setNoteOpen(true);
     try {
-      await sendFeedback(messageId, next, note || undefined);
+      await sendFeedback(messageId, next);
       onRate?.(next); // keep the cached vote in sync so it survives navigation
     } catch {
       setRating(prev);

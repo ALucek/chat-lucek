@@ -476,6 +476,50 @@ func (c *Chat) Feedback(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// ClearFeedback removes the caller's rating and note, and scrubs LangSmith.
+func (c *Chat) ClearFeedback(w http.ResponseWriter, r *http.Request) {
+	userID, _ := userIDFromContext(r.Context())
+	msgID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid message id"})
+		return
+	}
+
+	// Ownership: the message must belong to one of the caller's conversations.
+	var runID *string
+	err = c.pool.QueryRow(r.Context(),
+		`select m.langsmith_run_id from messages m
+		 join conversations conv on conv.id = m.conversation_id
+		 where m.id = $1 and conv.user_id = $2`, msgID, userID).Scan(&runID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		writeJSON(w, http.StatusNotFound, map[string]string{"error": "message not found"})
+		return
+	}
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "lookup failed"})
+		return
+	}
+
+	var savedFeedbackID string
+	err = c.pool.QueryRow(r.Context(),
+		`delete from message_feedback where message_id = $1 and user_id = $2
+		 returning langsmith_feedback_id`, msgID, userID).Scan(&savedFeedbackID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		w.WriteHeader(http.StatusNoContent) // nothing to clear; idempotent
+		return
+	}
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "clear failed"})
+		return
+	}
+
+	if c.mirror != nil && c.mirror.enabled() {
+		c.mirror.deleteFeedback(savedFeedbackID)
+		c.mirror.deleteFeedback(commentFeedbackID(savedFeedbackID))
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
 // writeSSE writes one SSE frame; data is JSON so each frame is a JSON object.
 func writeSSE(w http.ResponseWriter, event string, data any) {
 	payload, _ := json.Marshal(data)
