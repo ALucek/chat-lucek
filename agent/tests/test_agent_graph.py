@@ -33,8 +33,8 @@ def test_route_to_tools_when_both_tools_called():
     assert route_agent(state) == "tools"
 
 
-def test_tool_node_handles_both_tools():
-    assert set(agent_mod.tool_node.tools_by_name) == {"run_subagent", "set_todos"}
+def test_graph_binds_both_tools():
+    assert {t.name for t in agent_mod.tools} == {"run_subagent", "set_todos"}
 
 
 class _FakeModel:

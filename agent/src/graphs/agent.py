@@ -12,7 +12,6 @@ from src.utils import build_chat_model, build_messages
 
 
 tools = [build_subagent_tool(), build_todo_tool()]
-tool_node = ToolNode(tools)
 
 
 async def agent_node(state: AgentState, config: RunnableConfig) -> dict:
@@ -32,7 +31,7 @@ def route_agent(state: AgentState) -> str:
 
 builder = StateGraph(AgentState)
 builder.add_node("agent", agent_node)
-builder.add_node("tools", tool_node)
+builder.add_node("tools", ToolNode(tools))
 
 builder.add_edge(START, "agent")
 builder.add_conditional_edges("agent", route_agent, {"tools": "tools", "end": END})
