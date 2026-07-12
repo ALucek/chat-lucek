@@ -6,6 +6,8 @@ on:
 
 permissions:
   contents: read
+  id-token: write # ceiling for the called _deploy workflow (WIF)
+  attestations: write # ceiling for the called _deploy workflow (SBOM/provenance)
 
 concurrency:
   group: deploy-production
@@ -49,144 +51,10 @@ jobs:
   deploy:
     needs: changes
     if: needs.changes.outputs.api == 'true' || needs.changes.outputs.web == 'true' || needs.changes.outputs.agent == 'true'
-    runs-on: ubuntu-latest
-    environment: production
-    permissions:
-      contents: read
-      id-token: write # WIF auth to GCP
-      attestations: write # sign build provenance + SBOM
-    env:
-      IMAGE_TAG: ${{ github.event.workflow_run.head_sha }}
-      REGISTRY: ${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT }}/chat
-    steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-        with:
-          ref: ${{ github.event.workflow_run.head_sha }}
-      - uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
-        with:
-          workload_identity_provider: ${{ vars.WIF_PROVIDER }}
-          service_account: ${{ vars.DEPLOY_SA }}
-      - uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # v3.0.1
-      - run: gcloud auth configure-docker ${{ vars.GCP_REGION }}-docker.pkg.dev --quiet
-      - name: Build and push api
-        id: build_api
-        if: needs.changes.outputs.api == 'true'
-        run: |
-          docker build -t "$REGISTRY/api:$IMAGE_TAG" ./api
-          docker push "$REGISTRY/api:$IMAGE_TAG"
-          digest=$(docker inspect --format='{{index .RepoDigests 0}}' "$REGISTRY/api:$IMAGE_TAG" | cut -d@ -f2)
-          echo "digest=$digest" >> "$GITHUB_OUTPUT"
-      - name: Build and push web
-        id: build_web
-        if: needs.changes.outputs.web == 'true'
-        run: |
-          docker build \
-            --build-arg NEXT_PUBLIC_API_URL="https://${{ vars.DOMAIN }}" \
-            --build-arg NEXT_PUBLIC_GOOGLE_CLIENT_ID="${{ vars.GOOGLE_CLIENT_ID }}" \
-            -t "$REGISTRY/web:$IMAGE_TAG" ./web
-          docker push "$REGISTRY/web:$IMAGE_TAG"
-          digest=$(docker inspect --format='{{index .RepoDigests 0}}' "$REGISTRY/web:$IMAGE_TAG" | cut -d@ -f2)
-          echo "digest=$digest" >> "$GITHUB_OUTPUT"
-      - name: Build and push agent
-        id: build_agent
-        if: needs.changes.outputs.agent == 'true'
-        run: |
-          docker build -t "$REGISTRY/agent:$IMAGE_TAG" ./agent
-          docker push "$REGISTRY/agent:$IMAGE_TAG"
-          digest=$(docker inspect --format='{{index .RepoDigests 0}}' "$REGISTRY/agent:$IMAGE_TAG" | cut -d@ -f2)
-          echo "digest=$digest" >> "$GITHUB_OUTPUT"
-      - name: Run migrations
-        if: needs.changes.outputs.api == 'true'
-        run: |
-          gcloud run jobs update chat-migrate \
-            --image "$REGISTRY/api:$IMAGE_TAG" --region "${{ vars.GCP_REGION }}"
-          gcloud run jobs execute chat-migrate --region "${{ vars.GCP_REGION }}" --wait
-      - name: Deploy agent
-        if: needs.changes.outputs.agent == 'true'
-        run: |
-          gcloud run services update chat-agent \
-            --image "$REGISTRY/agent:$IMAGE_TAG" --region "${{ vars.GCP_REGION }}"
-      - name: Deploy api
-        if: needs.changes.outputs.api == 'true'
-        run: |
-          gcloud run services update chat-api \
-            --image "$REGISTRY/api:$IMAGE_TAG" --region "${{ vars.GCP_REGION }}"
-      - name: Deploy web
-        if: needs.changes.outputs.web == 'true'
-        run: |
-          gcloud run services update chat-web \
-            --image "$REGISTRY/web:$IMAGE_TAG" --region "${{ vars.GCP_REGION }}"
-      - name: Smoke check
-        run: |
-          set -euo pipefail
-          web=$(curl -fsS -o /dev/null -w '%{http_code}' "https://${{ vars.DOMAIN }}")
-          test "$web" = "200" || { echo "web returned $web"; exit 1; }
-          api=$(curl -s -o /dev/null -w '%{http_code}' "https://${{ vars.DOMAIN }}/api/me")
-          test "$api" = "401" || { echo "api /api/me returned $api"; exit 1; }
-
-      # Run after deploy so an attestation hiccup never blocks a release.
-      - name: Generate api SBOM
-        if: needs.changes.outputs.api == 'true'
-        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
-        with:
-          image: ${{ env.REGISTRY }}/api:${{ env.IMAGE_TAG }}
-          format: spdx-json
-          output-file: api.sbom.spdx.json
-          artifact-name: api-sbom.spdx.json
-      - name: Attest api provenance
-        if: needs.changes.outputs.api == 'true'
-        uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4.1.1
-        with:
-          subject-name: ${{ env.REGISTRY }}/api
-          subject-digest: ${{ steps.build_api.outputs.digest }}
-      - name: Attest api SBOM
-        if: needs.changes.outputs.api == 'true'
-        uses: actions/attest-sbom@c604332985a26aa8cf1bdc465b92731239ec6b9e # v4.1.0
-        with:
-          subject-name: ${{ env.REGISTRY }}/api
-          subject-digest: ${{ steps.build_api.outputs.digest }}
-          sbom-path: api.sbom.spdx.json
-
-      - name: Generate web SBOM
-        if: needs.changes.outputs.web == 'true'
-        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
-        with:
-          image: ${{ env.REGISTRY }}/web:${{ env.IMAGE_TAG }}
-          format: spdx-json
-          output-file: web.sbom.spdx.json
-          artifact-name: web-sbom.spdx.json
-      - name: Attest web provenance
-        if: needs.changes.outputs.web == 'true'
-        uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4.1.1
-        with:
-          subject-name: ${{ env.REGISTRY }}/web
-          subject-digest: ${{ steps.build_web.outputs.digest }}
-      - name: Attest web SBOM
-        if: needs.changes.outputs.web == 'true'
-        uses: actions/attest-sbom@c604332985a26aa8cf1bdc465b92731239ec6b9e # v4.1.0
-        with:
-          subject-name: ${{ env.REGISTRY }}/web
-          subject-digest: ${{ steps.build_web.outputs.digest }}
-          sbom-path: web.sbom.spdx.json
-
-      - name: Generate agent SBOM
-        if: needs.changes.outputs.agent == 'true'
-        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
-        with:
-          image: ${{ env.REGISTRY }}/agent:${{ env.IMAGE_TAG }}
-          format: spdx-json
-          output-file: agent.sbom.spdx.json
-          artifact-name: agent-sbom.spdx.json
-      - name: Attest agent provenance
-        if: needs.changes.outputs.agent == 'true'
-        uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4.1.1
-        with:
-          subject-name: ${{ env.REGISTRY }}/agent
-          subject-digest: ${{ steps.build_agent.outputs.digest }}
-      - name: Attest agent SBOM
-        if: needs.changes.outputs.agent == 'true'
-        uses: actions/attest-sbom@c604332985a26aa8cf1bdc465b92731239ec6b9e # v4.1.0
-        with:
-          subject-name: ${{ env.REGISTRY }}/agent
-          subject-digest: ${{ steps.build_agent.outputs.digest }}
-          sbom-path: agent.sbom.spdx.json
+    uses: ./.github/workflows/_deploy.yml
+    with:
+      sha: ${{ github.event.workflow_run.head_sha }}
+      deploy_api: ${{ needs.changes.outputs.api == 'true' }}
+      deploy_web: ${{ needs.changes.outputs.web == 'true' }}
+      deploy_agent: ${{ needs.changes.outputs.agent == 'true' }}
+    secrets: inherit
