@@ -1,6 +1,8 @@
 -include .env
 export
 DB_DSN := postgres://$(DB_USER):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(DB_NAME)?sslmode=disable
+# Mirror the API: DATABASE_URL wins over the DB_* parts when set.
+MIGRATE_DSN := $(if $(DATABASE_URL),$(DATABASE_URL),$(DB_DSN))
 
 .PHONY: db-up db-down db-psql migrate-up migrate-down migrate-status migrate-create db-delete db-reset docker-build stack-up stack-down\
         api-run api-fmt api-fmt-check api-lint api-typecheck api-test api-vuln api-sast \
@@ -23,13 +25,13 @@ db-psql:
 	docker compose exec db psql -U $(DB_USER) -d $(DB_NAME)
 
 migrate-up:
-	@cd api && go tool goose -dir migrations postgres "$(DB_DSN)" up
+	@cd api && go tool goose -dir migrations postgres "$(MIGRATE_DSN)" up
 
 migrate-down:
-	@cd api && go tool goose -dir migrations postgres "$(DB_DSN)" down
+	@cd api && go tool goose -dir migrations postgres "$(MIGRATE_DSN)" down
 
 migrate-status:
-	@cd api && go tool goose -dir migrations postgres "$(DB_DSN)" status
+	@cd api && go tool goose -dir migrations postgres "$(MIGRATE_DSN)" status
 
 migrate-create:
 	@cd api && go tool goose -dir migrations create $(name) sql
@@ -189,8 +191,7 @@ stack-up:
 	docker compose --profile full up -d --build --wait
 	$(MAKE) migrate-up
 
-stack-down:
-	docker compose --profile full down
+stack-down: db-down
 
 # ── Quality gates (aggregates) ─────────────────────────────────────────
 
