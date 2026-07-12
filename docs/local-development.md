@@ -47,26 +47,19 @@ cp agent/.env.example agent/.env
 
 ## Run the stack
 
-Two ways. For day-to-day work, run each service directly so you get fast reloads:
+Two ways to bring it up locally: run each service directly (each in its own terminal) for fast reloads, or run the whole thing in containers.
 
-```bash
-make db-up          # Postgres in Docker
-make migrate-up     # apply migrations
-make agent-run      # agent on :8081  (separate terminal)
-make api-run        # API on :8080    (separate terminal)
-make web-run        # web on :3000    (separate terminal)
-```
+| Command | Does |
+| --- | --- |
+| `make db-up` | Start Postgres in Docker |
+| `make migrate-up` | Apply database migrations |
+| `make agent-run` | Run the agent on :8081 |
+| `make api-run` | Run the API on :8080 |
+| `make web-run` | Run the web app on :3000 |
+| `make stack-up` | Build and run web, api, agent, and db in containers |
+| `make stack-down` | Stop the container stack |
 
-Open <http://localhost:3000>.
-
-To run the whole stack in containers instead:
-
-```bash
-make stack-up       # build and run web, api, agent, and db
-make stack-down
-```
-
-The containerized agent reads its keys from `agent/.env`.
+For direct runs, start `db-up` and `migrate-up` first, then the three services, then open <http://localhost:3000>. The containerized agent reads its keys from `agent/.env`.
 
 ## Git hooks
 
@@ -98,7 +91,6 @@ They run in two stages so commits stay fast and the slow checks gate the push:
 | `make evals` | Run the agent's live behavioral evals (real models; see [testing.md](testing.md)) |
 | `make db-reset` | Wipe, recreate, and migrate the local database |
 | `make db-psql` | Open a `psql` shell into the local database |
-| `make stack-up` / `stack-down` | Build and run, or stop, the full stack (web, api, agent, db) in containers |
 | `make health` | Curl the API's `/readyz` |
 
 For the test suites in depth, see [testing.md](testing.md).
