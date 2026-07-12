@@ -5,7 +5,7 @@ Requires Terraform 1.9+ and the gcloud CLI. Authenticate, configure, and initial
 ```bash
 gcloud auth application-default login
 cp backend.hcl.example backend.hcl         # your Terraform state bucket
-cp infra.tfvars.example terraform.tfvars   # project_id, domain, etc.
+cp terraform.tfvars.example terraform.tfvars   # project_id, domain, etc.
 terraform init -backend-config=backend.hcl
 terraform plan
 ```
