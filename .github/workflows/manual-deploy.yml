@@ -1,0 +1,93 @@
+name: manual-deploy
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Branch, tag, or commit to deploy (default main)
+        type: string
+        required: false
+        default: main
+      service:
+        description: Which service to deploy
+        type: choice
+        options: [api, web, agent, all]
+        required: true
+
+permissions:
+  contents: read
+  id-token: write # ceiling for the called _deploy workflow (WIF)
+  attestations: write # ceiling for the called _deploy workflow (SBOM/provenance)
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read # gh run list reads the test workflow's runs
+    outputs:
+      sha: ${{ steps.resolve.outputs.sha }}
+      api: ${{ steps.services.outputs.api }}
+      web: ${{ steps.services.outputs.web }}
+      agent: ${{ steps.services.outputs.agent }}
+    env:
+      REF: ${{ inputs.ref }}
+      SERVICE: ${{ inputs.service }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          ref: ${{ inputs.ref }}
+          fetch-depth: 1
+      - name: Resolve ref to a commit SHA
+        id: resolve
+        run: |
+          set -euo pipefail
+          sha=$(git rev-parse HEAD)
+          echo "resolved $REF to $sha"
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+      - name: Require a successful test run for this commit
+        env:
+          SHA: ${{ steps.resolve.outputs.sha }}
+        run: |
+          set -euo pipefail
+          ok=$(gh run list --workflow test.yml --commit "$SHA" --limit 100 \
+            --json status,conclusion \
+            --jq '[.[] | select(.status == "completed" and .conclusion == "success")] | length')
+          echo "successful test runs for $SHA: $ok"
+          if [ "$ok" -lt 1 ]; then
+            echo "::error::commit $SHA has no successful test run; deploy refused"
+            exit 1
+          fi
+      - name: Map service to per-service booleans
+        id: services
+        run: |
+          set -euo pipefail
+          api=false
+          web=false
+          agent=false
+          case "$SERVICE" in
+            api) api=true ;;
+            web) web=true ;;
+            agent) agent=true ;;
+            all) api=true; web=true; agent=true ;;
+            *) echo "unknown service: $SERVICE"; exit 1 ;;
+          esac
+          {
+            echo "api=$api"
+            echo "web=$web"
+            echo "agent=$agent"
+          } >> "$GITHUB_OUTPUT"
+
+  deploy:
+    needs: preflight
+    uses: ./.github/workflows/_deploy.yml
+    with:
+      sha: ${{ needs.preflight.outputs.sha }}
+      deploy_api: ${{ needs.preflight.outputs.api == 'true' }}
+      deploy_web: ${{ needs.preflight.outputs.web == 'true' }}
+      deploy_agent: ${{ needs.preflight.outputs.agent == 'true' }}
+    secrets: inherit
