@@ -19,6 +19,8 @@ flowchart TB
 
 Images are tagged with the commit SHA, and the deploy updates each Cloud Run service to that tag. The smoke check confirms the site returns 200 and the API rejects an unauthenticated request before the run is considered successful.
 
+To deploy a branch or an earlier commit by hand without merging, dispatch [manual-deploy.yml](../.github/workflows/manual-deploy.yml); see the [manual deploy runbook](runbooks/manual-deploy.md). It refuses any commit that has not passed CI.
+
 ## First-time setup
 
 A from-scratch bootstrap. Commands use `<project-id>` for your GCP project; the region defaults to `us-central1` and the domain to `chat.lucek.ai`.

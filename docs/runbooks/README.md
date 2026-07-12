@@ -22,6 +22,7 @@ What to do to operate and recover chat-lucek. Most levers are one-click GitHub A
 ## Runbooks
 
 - [Rollback](rollback.md) — shift traffic to a prior revision
+- [Manual deploy](manual-deploy.md) — rebuild and deploy a CI-passed branch or commit on demand
 - [Maintenance mode](maintenance.md) — serve a maintenance page and 503 the API
 - [Rotate JWT](rotate-jwt.md) — rotate the signing key, invalidating live tokens
 - [Rotate secrets](rotate-secrets.md) — rotate the database, Google, and agent provider secrets
