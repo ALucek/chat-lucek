@@ -10,7 +10,8 @@ interface DialogProps {
   children: ReactNode;
 }
 
-const FOCUSABLE = 'button, [href], input, [tabindex]:not([tabindex="-1"])';
+const FOCUSABLE =
+  'textarea, button, [href], input, [tabindex]:not([tabindex="-1"])';
 
 // Centered modal; unlike Menu's bottom sheet it works with the mobile keyboard.
 export function Dialog({ open, onClose, label, children }: DialogProps) {
