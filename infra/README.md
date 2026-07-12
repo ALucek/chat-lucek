@@ -31,7 +31,7 @@ Set in `terraform.tfvars`. Required vars have no default; the rest are shown wit
 | `domain` | `chat.lucek.ai` | Public domain served by the load balancer |
 | `db_tier` | `db-f1-micro` | Cloud SQL machine tier |
 | `github_repo` | `ALucek/chat-lucek` | Repo allowed to deploy via Workload Identity |
-| `signup_open` | `true` | Whether new-user registration is allowed |
+| `signup_open` | `false` | Whether new-user registration is allowed |
 | `magic_link_from` | `login@lucek.ai` | Verified Resend sender for sign-in emails |
 | `budget_amount` | `20` | Monthly budget in USD; thresholds alert as spend crosses it |
 | `alert_email_from` | `alerts@lucek.ai` | From address for alert emails; must be a verified Resend sender |
