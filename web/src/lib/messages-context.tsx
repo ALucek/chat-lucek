@@ -65,11 +65,9 @@ export function MessagesProvider({ children }: { children: React.ReactNode }) {
   const { refresh: refreshUsage } = useUsage();
   const patchConvRef = useRef(patchConversation);
   const createRef = useRef(create);
-  const refreshUsageRef = useRef(refreshUsage);
   useEffect(() => {
     patchConvRef.current = patchConversation;
     createRef.current = create;
-    refreshUsageRef.current = refreshUsage;
   });
   const controllers = useRef<Record<number, AbortController>>({});
   const loaded = useRef<Set<number>>(new Set());
@@ -132,49 +130,28 @@ export function MessagesProvider({ children }: { children: React.ReactNode }) {
       }));
       const controller = new AbortController();
       controllers.current[id] = controller;
+      const updateNodes = (fn: (nodes: RunNode[]) => RunNode[]) =>
+        patch(id, (s) => ({
+          ...s,
+          messages: s.messages.map((m) =>
+            m.id === assistantId ? { ...m, nodes: fn(m.nodes ?? []) } : m,
+          ),
+        }));
       await sendMessage(
         id,
         content,
         {
-          onNode: (node) =>
-            patch(id, (s) => ({
-              ...s,
-              messages: s.messages.map((m) =>
-                m.id === assistantId
-                  ? { ...m, nodes: [...(m.nodes ?? []), node] }
-                  : m,
-              ),
-            })),
+          onNode: (node) => updateNodes((nodes) => [...nodes, node]),
           onDelta: (nodeId, text) =>
-            patch(id, (s) => ({
-              ...s,
-              messages: s.messages.map((m) =>
-                m.id === assistantId
-                  ? {
-                      ...m,
-                      nodes: (m.nodes ?? []).map((n) =>
-                        n.id === nodeId
-                          ? { ...n, text: (n.text ?? '') + text }
-                          : n,
-                      ),
-                    }
-                  : m,
+            updateNodes((nodes) =>
+              nodes.map((n) =>
+                n.id === nodeId ? { ...n, text: (n.text ?? '') + text } : n,
               ),
-            })),
+            ),
           onNodeEnd: (nodeId, output) =>
-            patch(id, (s) => ({
-              ...s,
-              messages: s.messages.map((m) =>
-                m.id === assistantId
-                  ? {
-                      ...m,
-                      nodes: (m.nodes ?? []).map((n) =>
-                        n.id === nodeId ? { ...n, output } : n,
-                      ),
-                    }
-                  : m,
-              ),
-            })),
+            updateNodes((nodes) =>
+              nodes.map((n) => (n.id === nodeId ? { ...n, output } : n)),
+            ),
           onDone: (messageId) => {
             patch(id, (s) => ({
               ...s,
@@ -186,7 +163,7 @@ export function MessagesProvider({ children }: { children: React.ReactNode }) {
               ),
             }));
             delete controllers.current[id];
-            refreshUsageRef.current();
+            refreshUsage();
           },
           onTitle: (title) => patchConvRef.current(id, { title }),
           onError: (message) => {
@@ -202,7 +179,7 @@ export function MessagesProvider({ children }: { children: React.ReactNode }) {
         controller.signal,
       );
     },
-    [patch],
+    [patch, refreshUsage],
   );
 
   const sendNew = useCallback(

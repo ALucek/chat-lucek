@@ -1,22 +1,5 @@
-import ReactMarkdown from 'react-markdown';
-import { remarkPlugins, rehypePlugins } from '@/lib/markdown';
+import { Markdown } from '@/components/markdown';
 import type { TreeNode } from '@/lib/run-log';
-
-function Markdown({ children }: { children: string }) {
-  return (
-    <ReactMarkdown
-      remarkPlugins={remarkPlugins}
-      rehypePlugins={rehypePlugins}
-      components={{
-        a: (props) => (
-          <a {...props} target="_blank" rel="noopener noreferrer" />
-        ),
-      }}
-    >
-      {children}
-    </ReactMarkdown>
-  );
-}
 
 // TextBlock renders answer text: full-weight at top level, smaller when nested.
 export function TextBlock({
