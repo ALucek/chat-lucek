@@ -63,9 +63,9 @@ func parseAccessToken(secret []byte, tokenStr string) (int64, error) {
 	return userID, nil
 }
 
-// randomToken returns a 32-byte crypto-random token, hex-encoded.
-func randomToken() (string, error) {
-	b := make([]byte, 32)
+// randomHex returns n crypto-random bytes, hex-encoded.
+func randomHex(n int) (string, error) {
+	b := make([]byte, n)
 	if _, err := rand.Read(b); err != nil {
 		return "", err
 	}
@@ -105,12 +105,4 @@ func userIDFromContext(ctx context.Context) (int64, bool) {
 // normalizeEmail lowercases and trims so email comparison is case-insensitive.
 func normalizeEmail(s string) string {
 	return strings.ToLower(strings.TrimSpace(s))
-}
-
-func newFamilyID() (string, error) {
-	b := make([]byte, 16)
-	if _, err := rand.Read(b); err != nil {
-		return "", err
-	}
-	return hex.EncodeToString(b), nil
 }
