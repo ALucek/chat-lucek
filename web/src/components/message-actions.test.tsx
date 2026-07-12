@@ -44,7 +44,7 @@ describe('MessageActions', () => {
     const user = userEvent.setup();
     render(<MessageActions messageId={7} content="x" />);
     await user.click(screen.getByRole('button', { name: /good response/i }));
-    expect(sendFeedback).toHaveBeenCalledWith(7, 1, undefined);
+    expect(sendFeedback).toHaveBeenCalledWith(7, 1);
     expect(screen.getByRole('textbox')).toBeInTheDocument();
   });
 
@@ -53,7 +53,22 @@ describe('MessageActions', () => {
     render(<MessageActions messageId={7} content="x" />);
     await user.click(screen.getByRole('button', { name: /good response/i }));
     await user.click(screen.getByRole('button', { name: /bad response/i }));
-    expect(sendFeedback).toHaveBeenLastCalledWith(7, -1, undefined);
+    expect(sendFeedback).toHaveBeenLastCalledWith(7, -1);
+  });
+
+  it('drops the old note and reopens blank when the rating is switched', async () => {
+    const user = userEvent.setup();
+    render(<MessageActions messageId={7} content="x" />);
+    // Thumb up with a note.
+    await user.click(screen.getByRole('button', { name: /good response/i }));
+    await user.type(screen.getByRole('textbox'), 'nice one');
+    await user.click(screen.getByRole('button', { name: /send/i }));
+    expect(sendFeedback).toHaveBeenLastCalledWith(7, 1, 'nice one');
+    // Switch to down: the new rating is sent with no carried-over comment,
+    // and the note dialog reopens empty.
+    await user.click(screen.getByRole('button', { name: /bad response/i }));
+    expect(sendFeedback).toHaveBeenLastCalledWith(7, -1);
+    expect(screen.getByRole('textbox')).toHaveValue('');
   });
 
   it('clears feedback when the active thumb is re-clicked', async () => {

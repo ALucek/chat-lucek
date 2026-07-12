@@ -118,10 +118,12 @@ export function MessageActions({
       }
       return;
     }
+    // Switching drops the old note (empty comment clears it from the trace).
     setRating(next);
+    setNote('');
     setNoteOpen(true);
     try {
-      await sendFeedback(messageId, next, note || undefined);
+      await sendFeedback(messageId, next);
       onRate?.(next); // keep the cached vote in sync so it survives navigation
     } catch {
       setRating(prev);
