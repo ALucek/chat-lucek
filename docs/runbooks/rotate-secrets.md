@@ -38,7 +38,7 @@ gcloud run services update chat-agent --region=us-central1 \
 
 ## Magic-link mailer key
 
-`resend-api-key` is the Resend key chat-api uses to send sign-in links. It is the same key as the eval alerts: Terraform sets it from the one `resend_api_key` tfvar. Rotate by creating a new key in the Resend dashboard, updating `resend_api_key` in `infra/infra.tfvars`, applying, then redeploying chat-api to pick up the new version.
+`resend-api-key` is the Resend key chat-api uses to send sign-in links. It is the same key as the eval alerts: Terraform sets it from the one `resend_api_key` tfvar. Rotate by creating a new key in the Resend dashboard, updating `resend_api_key` in `infra/terraform.tfvars`, applying, then redeploying chat-api to pick up the new version.
 
 ```
 cd infra && terraform apply
@@ -56,7 +56,7 @@ printf %s "$(openssl rand -hex 32)" | gcloud secrets versions add usage-hash-sec
 
 ## Keys outside Secret Manager
 
-The LangSmith online-eval infra ([langsmith.tf](../../infra/langsmith.tf)) and the weekly [evals workflow](../../.github/workflows/evals.yml) keep their own copies of some keys, in Terraform vars (`infra/infra.tfvars`) and GitHub Actions secrets. A provider key can live in several places at once, and rotating it means replacing every copy.
+The LangSmith online-eval infra ([langsmith.tf](../../infra/langsmith.tf)) and the weekly [evals workflow](../../.github/workflows/evals.yml) keep their own copies of some keys, in Terraform vars (`infra/terraform.tfvars`) and GitHub Actions secrets. A provider key can live in several places at once, and rotating it means replacing every copy.
 
 | Key | Where it lives |
 | --- | --- |
@@ -68,7 +68,7 @@ The LangSmith online-eval infra ([langsmith.tf](../../infra/langsmith.tf)) and t
 Rotate the Secret Manager copies as above. For the rest, create the new key at its dashboard, update both homes, then revoke the old one. None of these serve live traffic, so ordering is not sensitive.
 
 ```
-# tfvars: edit infra/infra.tfvars, then re-apply (langsmith.tf reads these)
+# tfvars: edit infra/terraform.tfvars, then re-apply (langsmith.tf reads these)
 cd infra && terraform apply
 
 # GitHub Actions secret

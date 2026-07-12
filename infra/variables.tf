@@ -39,8 +39,8 @@ variable "github_repo" {
 
 variable "signup_open" {
   type        = bool
-  description = "Whether new-user registration is allowed. Set false to close signups."
-  default     = true
+  description = "Whether new-user registration is allowed. Set true to open signups."
+  default     = false
 }
 
 variable "magic_link_from" {
@@ -75,7 +75,7 @@ variable "agent_max_searches" {
 variable "langsmith_project" {
   type        = string
   description = "LangSmith project the agent traces into."
-  default     = "simple-deep-research"
+  default     = "chat-lucek-ai-prod"
 }
 
 variable "langsmith_api_key" {

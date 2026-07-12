@@ -32,9 +32,8 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
+# env files (sourced from the repo-root .env via make)
 .env*
-!.env.local.example
 
 # vercel
 .vercel

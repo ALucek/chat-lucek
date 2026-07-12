@@ -1,17 +1,23 @@
 project_id       = "your-project-id"
-region           = "us-central1"
 google_client_id = "your-oauth-client-id"
 owner_email      = "your-email"
 billing_account  = "XXXXXX-XXXXXX-XXXXXX"
-# signup_open    = false   # close new-user registration (default: true)
-# magic_link_from = "login@lucek.ai"   # Resend sender for sign-in links (default)
 
-
-# LangSmith online evals
-langsmith_project                = "your-langsmith-project"
 langsmith_api_key                = "your-langsmith-api-key"
 langsmith_workspace_id           = "your-langsmith-workspace-id"
 injection_prompt_commit          = "your-prompt-injection-commit-hash"
 thread_helpfulness_prompt_commit = "your-thread-helpfulness-commit-hash"
 resend_api_key                   = "your-resend-send-api-key"
-# alert_email_from               = "alerts@lucek.ai"   # default: alerts@lucek.ai
+
+# Optional overrides (defaults shown)
+# region              = "us-central1"
+# domain              = "chat.lucek.ai"
+# db_tier             = "db-f1-micro"
+# github_repo         = "ALucek/chat-lucek"
+# budget_amount       = 20
+# signup_open         = false
+# magic_link_from     = "login@lucek.ai"
+# alert_email_from    = "alerts@lucek.ai"
+# langsmith_project   = "chat-lucek-ai-prod"
+# agent_default_model = "deepseek/deepseek-v4-flash"
+# agent_max_searches  = 5

@@ -15,35 +15,54 @@ How to run chat-lucek on your machine and the workflow for changing it.
 
 ## Environment
 
-Two env files: the repo root for the API and web, and `agent/` for the agent.
-
-Root `.env` (API and web):
+Two env files. The repo root holds everything the API and web need; `agent/` holds the agent's own keys. The agent stays separate because it runs as its own service and never needs the database or auth secrets.
 
 ```bash
 cp .env.example .env
-```
-
-The database defaults already match the local Postgres container. You need to set:
-
-- `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `NEXT_PUBLIC_GOOGLE_CLIENT_ID` — a Google OAuth 2.0 Web client with `http://localhost:3000` as an authorized origin (see [deployment.md](deployment.md))
-- `JWT_SECRET` — generate with `openssl rand -hex 32`
-- `USAGE_HASH_SECRET` — keys the usage ledger; generate with `openssl rand -hex 32`
-- `RESEND_API_KEY` — optional locally; leave empty to use the fake mailer that logs magic links instead of sending
-- `MAGIC_LINK_FROM` — verified Resend sender for sign-in links (only used when `RESEND_API_KEY` is set)
-- `SIGNUP_OPEN=true` — accounts are closed by default; set this to create yours locally
-- `LANGSMITH_API_KEY` — optional; when set (and tracing on in `agent/.env`), response feedback attaches to the run's LangSmith trace, otherwise it is DB-only
-
-`AGENT_URL` defaults to `http://localhost:8081`, where `make agent-run` serves.
-
-Agent `.env` (model and search keys):
-
-```bash
 cp agent/.env.example agent/.env
 ```
 
-- `OPENROUTER_API_KEY` — chat completions ([openrouter.ai](https://openrouter.ai))
-- `TAVILY_API_KEY` — web search ([tavily.com](https://tavily.com))
-- `LANGSMITH_API_KEY` — optional run tracing ([smith.langchain.com](https://smith.langchain.com))
+The `make` targets load the root `.env` for you, including `make web-run`, so the web dev server reads it too. There is no separate `web/.env.local`. Database defaults already match the local Postgres container.
+
+To sign in locally: set the three Google vars, generate the two secrets, and set `SIGNUP_OPEN=true` to create your account.
+
+### Root `.env`
+
+| Variable | Required | Purpose |
+| --- | --- | --- |
+| `DB_HOST` `DB_PORT` `DB_USER` `DB_PASSWORD` `DB_NAME` | yes | Local Postgres; defaults match the container |
+| `DATABASE_URL` | no | Full DSN; overrides the `DB_*` parts when set |
+| `PORT` | yes | API port (default 8080) |
+| `ALLOWED_ORIGIN` | no | CORS origin (default `http://localhost:3000`) |
+| `AGENT_URL` | no | Agent base URL (default `http://localhost:8081`, where `make agent-run` serves) |
+| `LOG_LEVEL` | no | debug, info, warn, error (default info) |
+| `RUNS_BUDGET_DAILY` | no | Per-user rolling-24h run cap (default 20) |
+| `JWT_SECRET` | yes | Signs session tokens; `openssl rand -hex 32` |
+| `USAGE_HASH_SECRET` | yes | Keys the usage ledger; `openssl rand -hex 32` |
+| `GOOGLE_CLIENT_ID` `GOOGLE_CLIENT_SECRET` | yes | Google OAuth 2.0 web client with `http://localhost:3000` as an authorized origin (see [deployment.md](deployment.md)) |
+| `OWNER_EMAIL` | no | This email gets an unlimited daily run budget |
+| `SIGNUP_OPEN` | no | `true` to allow new accounts (closed by default) |
+| `RESEND_API_KEY` | no | Magic-link email; empty uses the fake mailer that logs links |
+| `MAGIC_LINK_FROM` | no | Verified Resend sender; required when `RESEND_API_KEY` is set |
+| `NEXT_PUBLIC_API_URL` | yes | Where the browser calls the API (default `http://localhost:8080`) |
+| `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | yes | Same value as `GOOGLE_CLIENT_ID`, exposed to the browser |
+| `LANGSMITH_API_KEY` | no | Attaches response feedback to the run's LangSmith trace; empty keeps it DB-only |
+
+### Agent `.env`
+
+| Variable | Required | Purpose |
+| --- | --- | --- |
+| `OPENROUTER_API_KEY` | yes | Chat completions ([openrouter.ai](https://openrouter.ai)) |
+| `TAVILY_API_KEY` | yes | Web search ([tavily.com](https://tavily.com)) |
+| `LANGSMITH_API_KEY` | no | Run tracing ([smith.langchain.com](https://smith.langchain.com)); same value as the root `.env` key |
+| `LANGSMITH_TRACING` | no | `true` to send traces |
+| `LANGSMITH_ENDPOINT` `LANGSMITH_PROJECT` | no | Tracing destination |
+| `OPENAI_API_KEY` | no | Only to publish online LLM-judge evaluators; any placeholder works |
+| `DEFAULT_MODEL` | no | Agent model (default `deepseek/deepseek-v4-flash`) |
+| `MAX_SEARCHES` | no | Web searches per agent run (default 5) |
+| `MAX_TOKENS` | no | Max output tokens per model call (default 8192) |
+| `RECURSION_LIMIT` `SUBAGENT_RECURSION_LIMIT` | no | LangGraph recursion caps (defaults 100 and 50) |
+| `MODEL_MAX_RETRIES` | no | Retries per model call (default 3) |
 
 ## Run the stack
 
