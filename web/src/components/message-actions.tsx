@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { sendFeedback } from '@/lib/api';
 import { useToast } from '@/lib/toast-context';
+import { Dialog } from '@/components/ui/dialog';
 
 type Rating = -1 | 1;
 
@@ -89,35 +90,7 @@ export function MessageActions({
   const [noteOpen, setNoteOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const { toast } = useToast();
-  const barRef = useRef<HTMLDivElement>(null);
   const taRef = useRef<HTMLTextAreaElement>(null);
-
-  useEffect(() => {
-    if (!noteOpen) return;
-    const onDown = (e: MouseEvent) => {
-      if (barRef.current && !barRef.current.contains(e.target as Node)) {
-        setNoteOpen(false);
-      }
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setNoteOpen(false);
-    };
-    document.addEventListener('mousedown', onDown);
-    document.addEventListener('keydown', onKey);
-    return () => {
-      document.removeEventListener('mousedown', onDown);
-      document.removeEventListener('keydown', onKey);
-    };
-  }, [noteOpen]);
-
-  useEffect(() => {
-    const ta = taRef.current;
-    if (noteOpen && ta) {
-      ta.style.height = 'auto';
-      ta.style.height = `${ta.scrollHeight}px`;
-      ta.focus();
-    }
-  }, [noteOpen]);
 
   async function copy() {
     try {
@@ -148,10 +121,9 @@ export function MessageActions({
   }
 
   async function submitNote() {
-    if (rating === null) return;
     const text = taRef.current?.value.trim() ?? '';
     setNoteOpen(false);
-    if (!text) return; // empty: the rating is already saved, nothing to attach
+    if (rating === null || !text) return; // empty: the rating is already saved
     setNote(text);
     try {
       await sendFeedback(messageId, rating, text);
@@ -161,7 +133,7 @@ export function MessageActions({
   }
 
   return (
-    <div ref={barRef} className="relative mt-1 flex items-center gap-0.5">
+    <div className="mt-1 flex items-center gap-0.5">
       <button
         type="button"
         aria-label={copied ? 'Copied' : 'Copy response'}
@@ -190,50 +162,54 @@ export function MessageActions({
         <DownIcon filled={rating === -1} />
       </button>
 
-      {noteOpen && (
-        <div className="border-border bg-surface absolute top-full left-0 z-10 mt-1.5 w-80 max-w-[calc(100vw-2rem)] rounded-[var(--radius)] border p-2.5 shadow-lg">
-          <div className="mb-2 flex items-center justify-between">
-            <span className="text-subtle text-[10px] tracking-[0.14em] uppercase">
-              Add a note
-            </span>
-            <button
-              type="button"
-              aria-label="Dismiss note"
-              className="text-subtle hover:text-fg-strong rounded px-1 text-xs"
-              onClick={() => setNoteOpen(false)}
-            >
-              ✕
-            </button>
-          </div>
-          <textarea
-            ref={taRef}
-            defaultValue={note}
-            rows={2}
-            placeholder="optional"
-            className="border-border bg-bg text-fg max-h-36 w-full resize-none rounded-[var(--radius)] border p-2 text-sm outline-none"
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                submitNote();
-              }
-            }}
-            onInput={(e) => {
-              const el = e.currentTarget;
-              el.style.height = 'auto';
-              el.style.height = `${el.scrollHeight}px`;
-            }}
-          />
-          <div className="mt-2 flex justify-end">
-            <button
-              type="button"
-              className="bg-accent text-accent-fg rounded-[var(--radius)] px-3 py-1 text-xs"
-              onClick={submitNote}
-            >
-              Send
-            </button>
-          </div>
+      <Dialog
+        open={noteOpen}
+        onClose={() => setNoteOpen(false)}
+        label="Add a note"
+      >
+        <h2 className="text-fg-strong mb-3 flex items-center gap-1.5 text-sm">
+          <span className="relative -top-px flex">
+            {rating === -1 ? (
+              <DownIcon filled={false} />
+            ) : (
+              <UpIcon filled={false} />
+            )}
+          </span>
+          Add a note
+        </h2>
+        <textarea
+          ref={taRef}
+          defaultValue={note}
+          rows={3}
+          placeholder={rating === -1 ? 'What went wrong?' : 'What worked well?'}
+          className="border-border bg-bg text-fg focus:border-fg-strong w-full resize-none rounded-[var(--radius)] border p-2.5 text-sm outline-none"
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault();
+              submitNote();
+            }
+          }}
+        />
+        <p className="text-subtle mt-2 text-xs">
+          Your note helps improve responses.
+        </p>
+        <div className="mt-4 flex justify-end gap-1.5">
+          <button
+            type="button"
+            onClick={() => setNoteOpen(false)}
+            className="border-border text-muted hover:bg-hover rounded-[var(--radius)] border px-3 py-1 text-xs"
+          >
+            Skip
+          </button>
+          <button
+            type="button"
+            onClick={submitNote}
+            className="bg-accent text-accent-fg rounded-[var(--radius)] px-3 py-1 text-xs"
+          >
+            Send
+          </button>
         </div>
-      )}
+      </Dialog>
     </div>
   );
 }
