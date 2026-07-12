@@ -1,7 +1,6 @@
-import ReactMarkdown from 'react-markdown';
-import { remarkPlugins, rehypePlugins } from '@/lib/markdown';
 import type { ChatMessage } from '@/lib/messages-context';
 import { buildTree, answerText } from '@/lib/run-log';
+import { Markdown } from './markdown';
 import { NodeRow } from './turn/node-row';
 import { MessageActions } from './message-actions';
 
@@ -23,17 +22,7 @@ function AssistantMessage({ m }: { m: ChatMessage }) {
         ))
       ) : (
         <div className="markdown text-fg max-w-full min-w-0 text-sm break-words">
-          <ReactMarkdown
-            remarkPlugins={remarkPlugins}
-            rehypePlugins={rehypePlugins}
-            components={{
-              a: (props) => (
-                <a {...props} target="_blank" rel="noopener noreferrer" />
-              ),
-            }}
-          >
-            {m.content}
-          </ReactMarkdown>
+          <Markdown>{m.content}</Markdown>
           {m.streaming && (
             <span className="caret-blink" aria-hidden="true">
               ▍

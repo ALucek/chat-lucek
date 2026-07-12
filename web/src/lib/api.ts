@@ -66,30 +66,37 @@ interface RequestOpts {
   body?: unknown;
 }
 
-async function request<T>(
+// authFetch attaches the bearer token and refreshes once on a 401.
+async function authFetch(
   path: string,
-  opts: RequestOpts = {},
-  retry = true,
-): Promise<T> {
+  init: RequestInit = {},
+): Promise<Response> {
+  const headers: Record<string, string> = {
+    ...(init.headers as Record<string, string> | undefined),
+    ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+  };
+  const send = () =>
+    fetch(`${API_URL}${path}`, { ...init, headers, credentials: 'include' });
+  let res = await send();
+  if (res.status === 401) {
+    const token = await refreshAccess();
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+      res = await send();
+    }
+  }
+  return res;
+}
+
+async function request<T>(path: string, opts: RequestOpts = {}): Promise<T> {
   const headers: Record<string, string> = {};
   if (opts.body !== undefined) headers['Content-Type'] = 'application/json';
-  if (accessToken) headers['Authorization'] = `Bearer ${accessToken}`;
-
-  const res = await fetch(`${API_URL}${path}`, {
+  const res = await authFetch(path, {
     method: opts.method ?? 'GET',
     headers,
     body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
-    credentials: 'include',
   });
-
-  if (res.status === 401 && retry) {
-    const token = await refreshAccess();
-    if (token) return request<T>(path, opts, false);
-  }
-
-  if (!res.ok) {
-    throw new ApiError(res.status, await errorMessage(res));
-  }
+  if (!res.ok) throw new ApiError(res.status, await errorMessage(res));
   if (res.status === 204) return null as T;
   return (await res.json()) as T;
 }
@@ -148,16 +155,7 @@ export function me(): Promise<User> {
 }
 
 export async function exportAccount(): Promise<Blob> {
-  const fetchBlob = () =>
-    fetch(`${API_URL}/api/account/export`, {
-      headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
-      credentials: 'include',
-    });
-  let res = await fetchBlob();
-  if (res.status === 401) {
-    const token = await refreshAccess();
-    if (token) res = await fetchBlob();
-  }
+  const res = await authFetch('/api/account/export');
   if (!res.ok) throw new ApiError(res.status, await errorMessage(res));
   return res.blob();
 }
@@ -296,24 +294,13 @@ export async function sendMessage(
   handlers: StreamHandlers,
   signal?: AbortSignal,
 ): Promise<void> {
-  const send = () =>
-    fetch(`${API_URL}/api/conversations/${id}/messages`, {
+  try {
+    const res = await authFetch(`/api/conversations/${id}/messages`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ content }),
-      credentials: 'include',
       signal,
     });
-
-  try {
-    let res = await send();
-    if (res.status === 401) {
-      const token = await refreshAccess();
-      if (token) res = await send();
-    }
     if (!res.ok || !res.body) {
       handlers.onError(await errorMessage(res));
       return;
