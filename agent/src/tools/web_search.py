@@ -1,7 +1,5 @@
 from langchain_tavily import TavilySearch
 
-MAX_RESULTS = 5
-AUTO_PARAMETERS = True
 RELEVANCE_SCORE_THRESHOLD = 0.7
 TOOL_DESCRIPTION = """Internet Search Tool, takes in a natural language query and returns back relevant results + snippets from the web.
 Usage guidelines:
@@ -10,18 +8,14 @@ Usage guidelines:
 """
 
 
-def build_tavily_tool(
-    max_results: int = MAX_RESULTS,
-    auto_parameters: bool = AUTO_PARAMETERS,
-) -> TavilySearch:
-    """Get a search tool with the given parameters."""
-    kwargs = {
-        "max_results": max_results,
-        "auto_parameters": auto_parameters,
-        "include_raw_content": False,
-        "include_answer": False,
-    }
-    tool = TavilySearch(**kwargs)
+def build_tavily_tool() -> TavilySearch:
+    """Get the internet search tool."""
+    tool = TavilySearch(
+        max_results=5,
+        auto_parameters=True,
+        include_raw_content=False,
+        include_answer=False,
+    )
     tool.name = "internet_search"
     tool.description = TOOL_DESCRIPTION
     return tool

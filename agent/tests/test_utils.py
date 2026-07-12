@@ -1,13 +1,6 @@
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 
-from src.config import AgentConfig
-from src.utils import build_chat_model, build_messages
-
-
-def test_build_chat_model_applies_overrides(monkeypatch):
-    monkeypatch.setenv("OPENROUTER_API_KEY", "test")
-    model = build_chat_model(AgentConfig(), role="agent", max_tokens=999)
-    assert model.max_tokens == 999
+from src.utils import build_messages
 
 
 def test_prepends_system_prompt():

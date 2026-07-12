@@ -14,9 +14,9 @@ Keys load from `agent/.env`. From the repo root:
 Scope either target to one file, suite, or test with `E`, a pytest selector under `evals/`:
 
 ```bash
-make evals E=test_ability.py                          # one file (= one suite)
-make evals E=test_ability.py::test_finds_the_weather  # one eval
-make evals E="test_ability.py -k weather"             # by keyword within a file
+make evals E=test_ability.py                              # one file (= one suite)
+make evals E=test_ability.py::test_completes_a_web_search # one eval
+make evals E="test_ability.py -k web_search"              # by keyword within a file
 ```
 
 Cassettes key on the request, so changing a prompt, model, tool schema, or input re-records. Cached runs replay frozen responses and miss model drift, so trust `make evals` for real numbers.
