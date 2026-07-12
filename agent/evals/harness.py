@@ -14,6 +14,7 @@ from langsmith import testing as t
 from pydantic import BaseModel, Field
 
 from src.config import build_run_config
+from src.graphs.agent import agent
 
 # Pinned judge model, separate from the agent. Override via EVAL_JUDGE_MODEL.
 JUDGE_MODEL = "anthropic/claude-sonnet-5"
@@ -63,6 +64,17 @@ def load_state(name: str) -> dict:
     if "search_count" in data:
         state["search_count"] = data["search_count"]
     return state
+
+
+async def answer_for(question: str) -> str:
+    """Log the question, run the full agent, and log and return the final answer."""
+    t.log_inputs({"message": question})
+    result = await agent.ainvoke(
+        {"messages": [HumanMessage(content=question)]}, build_run_config()
+    )
+    answer = result["messages"][-1].content
+    t.log_outputs({"answer": answer})
+    return answer
 
 
 async def run_step(graph, state: dict) -> AnyMessage:

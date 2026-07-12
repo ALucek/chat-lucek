@@ -1,26 +1,15 @@
 import pytest
-from langchain_core.messages import HumanMessage
-from langsmith import testing as t
 
-from evals.harness import judge
-from src.config import build_run_config
-from src.graphs.agent import agent
+from evals.harness import answer_for, judge
 
 SUITE = "chat-lucek-tone"
 
 
 @pytest.mark.langsmith(test_suite_name=SUITE)
 async def test_tone_is_plain_and_direct():
-    question = (
+    answer = await answer_for(
         "hey can u explain how https actually works, like the whole handshake thing 😅"
     )
-    t.log_inputs({"message": question})
-    result = await agent.ainvoke(
-        {"messages": [HumanMessage(content=question)]}, build_run_config()
-    )
-    answer = result["messages"][-1].content
-    t.log_outputs({"answer": answer})
-
     verdict = judge(
         answer,
         "The reply speaks plainly and answers directly, getting to the point "
@@ -32,16 +21,9 @@ async def test_tone_is_plain_and_direct():
 
 @pytest.mark.langsmith(test_suite_name=SUITE)
 async def test_tone_has_no_filler():
-    question = (
+    answer = await answer_for(
         "heyyy good morning!! hope you're well — quick q, how do i boil an egg? 😊"
     )
-    t.log_inputs({"message": question})
-    result = await agent.ainvoke(
-        {"messages": [HumanMessage(content=question)]}, build_run_config()
-    )
-    answer = result["messages"][-1].content
-    t.log_outputs({"answer": answer})
-
     verdict = judge(
         answer,
         "The reply has no filler pleasantries, forced enthusiasm, verbose greeting "
@@ -53,14 +35,9 @@ async def test_tone_has_no_filler():
 
 @pytest.mark.langsmith(test_suite_name=SUITE)
 async def test_tone_does_not_perform():
-    question = "ugh i'm honestly terrible at math, could u pleaseee help me understand compound interest?? 🥺"
-    t.log_inputs({"message": question})
-    result = await agent.ainvoke(
-        {"messages": [HumanMessage(content=question)]}, build_run_config()
+    answer = await answer_for(
+        "ugh i'm honestly terrible at math, could u pleaseee help me understand compound interest?? 🥺"
     )
-    answer = result["messages"][-1].content
-    t.log_outputs({"answer": answer})
-
     verdict = judge(
         answer,
         "The reply does not perform: no sycophancy, no overeagerness, no emoji "
