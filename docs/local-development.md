@@ -91,7 +91,10 @@ They run in two stages so commits stay fast and the slow checks gate the push:
 | `make lint` | Format-check, vet, ESLint, Ruff, comment style |
 | `make typecheck` | `go build` and `tsc` |
 | `make test` | Go, web, and agent unit tests |
-| `make check` | Full pre-merge gate (everything above + infra and workflow checks + e2e) |
+| `make api-check` / `web-check` / `agent-check` | One service's full gate (what CI runs for it) |
+| `make e2e-local` | Start the DB, run the Playwright e2e suite, tear down |
+| `make security` | Static security scans (govulncheck, gosec, pnpm audit, pip-audit, bandit, gitleaks) |
+| `make check` | Full pre-merge gate (per-service gates + infra and workflow checks + e2e) |
 | `make evals` | Run the agent's live behavioral evals (real models; see [testing.md](testing.md)) |
 | `make db-reset` | Wipe, recreate, and migrate the local database |
 | `make db-psql` | Open a `psql` shell into the local database |
