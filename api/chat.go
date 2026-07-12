@@ -121,6 +121,39 @@ func conversationID(r *http.Request) (int64, error) {
 	return strconv.ParseInt(r.PathValue("id"), 10, 64)
 }
 
+// ownsConversation writes the 404/500 itself; callers return when it's false.
+func (c *Chat) ownsConversation(w http.ResponseWriter, r *http.Request, id, userID int64) bool {
+	var owned bool
+	if err := c.pool.QueryRow(r.Context(),
+		`select exists(select 1 from conversations where id = $1 and user_id = $2)`,
+		id, userID).Scan(&owned); err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "lookup failed"})
+		return false
+	}
+	if !owned {
+		writeJSON(w, http.StatusNotFound, map[string]string{"error": "conversation not found"})
+		return false
+	}
+	return true
+}
+
+// messageRunID returns the message's run id, or ok=false if not the caller's.
+func (c *Chat) messageRunID(w http.ResponseWriter, r *http.Request, msgID, userID int64) (runID *string, ok bool) {
+	err := c.pool.QueryRow(r.Context(),
+		`select m.langsmith_run_id from messages m
+		 join conversations conv on conv.id = m.conversation_id
+		 where m.id = $1 and conv.user_id = $2`, msgID, userID).Scan(&runID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		writeJSON(w, http.StatusNotFound, map[string]string{"error": "message not found"})
+		return nil, false
+	}
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "lookup failed"})
+		return nil, false
+	}
+	return runID, true
+}
+
 // Messages returns one conversation's messages, oldest first.
 func (c *Chat) Messages(w http.ResponseWriter, r *http.Request) {
 	userID, _ := userIDFromContext(r.Context())
@@ -131,15 +164,7 @@ func (c *Chat) Messages(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Ownership pre-check: "not yours" (404) vs "yours but empty" (200 []).
-	var owned bool
-	if err := c.pool.QueryRow(r.Context(),
-		`select exists(select 1 from conversations where id = $1 and user_id = $2)`,
-		id, userID).Scan(&owned); err != nil {
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "lookup failed"})
-		return
-	}
-	if !owned {
-		writeJSON(w, http.StatusNotFound, map[string]string{"error": "conversation not found"})
+	if !c.ownsConversation(w, r, id, userID) {
 		return
 	}
 
@@ -234,15 +259,7 @@ func (c *Chat) Send(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Ownership pre-check (same as Messages): 404 if not the caller's.
-	var owned bool
-	if err := c.pool.QueryRow(r.Context(),
-		`select exists(select 1 from conversations where id = $1 and user_id = $2)`,
-		id, userID).Scan(&owned); err != nil {
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "lookup failed"})
-		return
-	}
-	if !owned {
-		writeJSON(w, http.StatusNotFound, map[string]string{"error": "conversation not found"})
+	if !c.ownsConversation(w, r, id, userID) {
 		return
 	}
 
@@ -428,17 +445,8 @@ func (c *Chat) Feedback(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Ownership: the message must belong to one of the caller's conversations.
-	var runID *string
-	err = c.pool.QueryRow(r.Context(),
-		`select m.langsmith_run_id from messages m
-		 join conversations conv on conv.id = m.conversation_id
-		 where m.id = $1 and conv.user_id = $2`, msgID, userID).Scan(&runID)
-	if errors.Is(err, pgx.ErrNoRows) {
-		writeJSON(w, http.StatusNotFound, map[string]string{"error": "message not found"})
-		return
-	}
-	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "lookup failed"})
+	runID, ok := c.messageRunID(w, r, msgID, userID)
+	if !ok {
 		return
 	}
 
@@ -486,17 +494,7 @@ func (c *Chat) ClearFeedback(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Ownership: the message must belong to one of the caller's conversations.
-	var runID *string
-	err = c.pool.QueryRow(r.Context(),
-		`select m.langsmith_run_id from messages m
-		 join conversations conv on conv.id = m.conversation_id
-		 where m.id = $1 and conv.user_id = $2`, msgID, userID).Scan(&runID)
-	if errors.Is(err, pgx.ErrNoRows) {
-		writeJSON(w, http.StatusNotFound, map[string]string{"error": "message not found"})
-		return
-	}
-	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "lookup failed"})
+	if _, ok := c.messageRunID(w, r, msgID, userID); !ok {
 		return
 	}
 

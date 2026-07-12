@@ -63,7 +63,7 @@ func (a *Auth) MagicRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	raw, err := randomToken()
+	raw, err := randomHex(32)
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "could not create link"})
 		return

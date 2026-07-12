@@ -110,7 +110,7 @@ func (a *Auth) completeLogin(w http.ResponseWriter, r *http.Request, verifiedEma
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "could not create user"})
 		return
 	}
-	family, err := newFamilyID()
+	family, err := randomHex(16)
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "could not start session"})
 		return
@@ -125,7 +125,7 @@ func (a *Auth) issueTokens(w http.ResponseWriter, r *http.Request, userID int64,
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "could not mint token"})
 		return
 	}
-	raw, err := randomToken()
+	raw, err := randomHex(32)
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "could not create refresh token"})
 		return
