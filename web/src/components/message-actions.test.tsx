@@ -7,6 +7,7 @@ import { sendFeedback } from '@/lib/api';
 const toast = vi.fn();
 vi.mock('@/lib/api', () => ({
   sendFeedback: vi.fn().mockResolvedValue(undefined),
+  clearFeedback: vi.fn().mockResolvedValue(undefined),
 }));
 vi.mock('@/lib/toast-context', () => ({ useToast: () => ({ toast }) }));
 
@@ -53,6 +54,24 @@ describe('MessageActions', () => {
     await user.click(screen.getByRole('button', { name: /good response/i }));
     await user.click(screen.getByRole('button', { name: /bad response/i }));
     expect(sendFeedback).toHaveBeenLastCalledWith(7, -1, undefined);
+  });
+
+  it('clears feedback when the active thumb is re-clicked', async () => {
+    const { clearFeedback } = await import('@/lib/api');
+    const user = userEvent.setup();
+    render(<MessageActions messageId={7} content="x" initialRating={1} />);
+    const up = screen.getByRole('button', { name: /good response/i });
+    expect(up).toHaveAttribute('aria-pressed', 'true');
+    await user.click(up);
+    expect(clearFeedback).toHaveBeenCalledWith(7);
+    expect(up).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  it('does not open the note dialog when the active thumb is re-clicked', async () => {
+    const user = userEvent.setup();
+    render(<MessageActions messageId={7} content="x" initialRating={1} />);
+    await user.click(screen.getByRole('button', { name: /good response/i }));
+    expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
   });
 
   it('sends the note on Send', async () => {

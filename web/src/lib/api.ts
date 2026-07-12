@@ -242,6 +242,12 @@ export async function sendFeedback(
   });
 }
 
+export async function clearFeedback(messageId: number): Promise<void> {
+  await request<null>(`/api/messages/${messageId}/feedback`, {
+    method: 'DELETE',
+  });
+}
+
 export function getMessages(id: number): Promise<Message[]> {
   return request<Message[]>(`/api/conversations/${id}/messages`);
 }

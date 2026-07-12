@@ -50,7 +50,7 @@ export function MessageList({
   onRateMessage,
 }: {
   messages: ChatMessage[];
-  onRateMessage?: (messageId: number, rating: -1 | 1) => void;
+  onRateMessage?: (messageId: number, rating: -1 | 1 | null) => void;
 }) {
   return (
     <ul
