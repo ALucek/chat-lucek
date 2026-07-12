@@ -58,7 +58,11 @@ To sign in locally: set the three Google vars, generate the two secrets, and set
 | `LANGSMITH_TRACING` | no | `true` to send traces |
 | `LANGSMITH_ENDPOINT` `LANGSMITH_PROJECT` | no | Tracing destination |
 | `OPENAI_API_KEY` | no | Only to publish online LLM-judge evaluators; any placeholder works |
-| `DEFAULT_MODEL` `MAX_SEARCHES` | no | Model and search defaults; overridable per-run |
+| `DEFAULT_MODEL` | no | Agent model (default `deepseek/deepseek-v4-flash`) |
+| `MAX_SEARCHES` | no | Web searches per agent run (default 5) |
+| `MAX_TOKENS` | no | Max output tokens per model call (default 8192) |
+| `RECURSION_LIMIT` `SUBAGENT_RECURSION_LIMIT` | no | LangGraph recursion caps (defaults 100 and 50) |
+| `MODEL_MAX_RETRIES` | no | Retries per model call (default 3) |
 
 ## Run the stack
 
