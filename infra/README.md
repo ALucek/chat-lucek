@@ -35,7 +35,7 @@ Set in `terraform.tfvars`. Required vars have no default; the rest are shown wit
 | `magic_link_from` | `login@lucek.ai` | Verified Resend sender for sign-in emails |
 | `budget_amount` | `20` | Monthly budget in USD; thresholds alert as spend crosses it |
 | `alert_email_from` | `alerts@lucek.ai` | From address for alert emails; must be a verified Resend sender |
-| `langsmith_project` | `simple-deep-research` | LangSmith project the agent traces into |
+| `langsmith_project` | `chat-lucek-ai-prod` | LangSmith project the agent traces into |
 | `agent_default_model` | `deepseek/deepseek-v4-flash` | Default model the agent uses |
 | `agent_max_searches` | `5` | Max web searches per agent run |
 

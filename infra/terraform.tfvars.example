@@ -18,6 +18,6 @@ resend_api_key                   = "your-resend-send-api-key"
 # signup_open         = true
 # magic_link_from     = "login@lucek.ai"
 # alert_email_from    = "alerts@lucek.ai"
-# langsmith_project   = "simple-deep-research"
+# langsmith_project   = "chat-lucek-ai-prod"
 # agent_default_model = "deepseek/deepseek-v4-flash"
 # agent_max_searches  = 5

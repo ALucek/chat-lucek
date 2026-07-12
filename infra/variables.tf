@@ -75,7 +75,7 @@ variable "agent_max_searches" {
 variable "langsmith_project" {
   type        = string
   description = "LangSmith project the agent traces into."
-  default     = "simple-deep-research"
+  default     = "chat-lucek-ai-prod"
 }
 
 variable "langsmith_api_key" {
