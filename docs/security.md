@@ -40,6 +40,7 @@ CI runs these in [security.yml](../.github/workflows/security.yml) on every push
 - **Deploy identity:** GitHub Actions authenticate through Workload Identity Federation, so there are no long-lived service account keys.
 - **Least privilege:** each Cloud Run service runs as its own service account with only the roles it needs.
 - **Internal service:** the agent grants its invoke role only to the API's service account, which calls it with a Google-signed ID token; it is not publicly invocable.
+- **Private dev host:** `dev.chat.lucek.ai` serves the candidate revisions behind Identity-Aware Proxy; only the owner account and the deploy service account hold the IAP accessor role, everyone else gets a 403.
 
 ## Supply chain
 

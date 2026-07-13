@@ -9,6 +9,10 @@ injection_prompt_commit          = "your-prompt-injection-commit-hash"
 thread_helpfulness_prompt_commit = "your-thread-helpfulness-commit-hash"
 resend_api_key                   = "your-resend-send-api-key"
 
+# IAP dev host OAuth client (created by hand in the console); id + secret.
+iap_oauth_client_id     = "your-iap-oauth-client-id"
+iap_oauth_client_secret = "your-iap-oauth-client-secret"
+
 # Optional overrides (defaults shown)
 # region              = "us-central1"
 # domain              = "chat.lucek.ai"
