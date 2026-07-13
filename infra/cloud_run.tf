@@ -63,6 +63,13 @@ resource "google_cloud_run_v2_service" "web" {
       ports {
         container_port = 3000
       }
+
+      startup_probe {
+        http_get {
+          path = "/"
+          port = 3000
+        }
+      }
     }
   }
 
@@ -325,6 +332,14 @@ resource "google_cloud_run_v2_service_iam_member" "api_invokes_agent" {
   location = var.region
   role     = "roles/run.invoker"
   member   = "serviceAccount:${google_service_account.api.email}"
+}
+
+# The deploy SA smoke-checks the agent candidate revision during a deploy.
+resource "google_cloud_run_v2_service_iam_member" "deploy_invokes_agent" {
+  name     = google_cloud_run_v2_service.agent.name
+  location = var.region
+  role     = "roles/run.invoker"
+  member   = "serviceAccount:${google_service_account.deploy.email}"
 }
 
 resource "google_cloud_run_v2_job" "migrate" {
