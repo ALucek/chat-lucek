@@ -44,7 +44,7 @@ To sign in locally: set the three Google vars, generate the two secrets, and set
 | `SIGNUP_OPEN` | no | `true` to allow new accounts (closed by default) |
 | `RESEND_API_KEY` | no | Magic-link email; empty uses the fake mailer that logs links |
 | `MAGIC_LINK_FROM` | no | Verified Resend sender; required when `RESEND_API_KEY` is set |
-| `NEXT_PUBLIC_API_URL` | yes | Where the browser calls the API (default `http://localhost:8080`) |
+| `NEXT_PUBLIC_API_URL` | yes | Where the browser calls the API; unset means same-origin. Local dev uses `http://localhost:8080` |
 | `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | yes | Same value as `GOOGLE_CLIENT_ID`, exposed to the browser |
 | `LANGSMITH_API_KEY` | no | Attaches response feedback to the run's LangSmith trace; empty keeps it DB-only |
 | `LANGSMITH_ENDPOINT` | no | LangSmith API base URL (default `https://api.smith.langchain.com`) |

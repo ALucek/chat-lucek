@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { buildCSP } from '@/lib/csp';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080';
+// Empty = same-origin, so CSP connect-src stays 'self'; set for cross-origin.
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? '';
 
 // Reachable even during maintenance: the page itself and its legal links.
 const MAINTENANCE_EXEMPT = new Set(['/maintenance', '/terms', '/privacy']);

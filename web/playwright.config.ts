@@ -40,7 +40,10 @@ export default defineConfig({
     {
       command: `pnpm dev --port ${WEB_PORT}`,
       url: `http://localhost:${WEB_PORT}`,
-      env: { NEXT_PUBLIC_GOOGLE_CLIENT_ID: 'e2e-dummy' },
+      env: {
+        NEXT_PUBLIC_GOOGLE_CLIENT_ID: 'e2e-dummy',
+        NEXT_PUBLIC_API_URL: `http://localhost:${API_PORT}`,
+      },
       reuseExistingServer: !process.env.CI,
       timeout: 120_000,
     },

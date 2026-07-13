@@ -11,5 +11,7 @@ export default defineConfig({
     globals: true,
     setupFiles: ['./vitest.setup.ts'],
     exclude: [...configDefaults.exclude, 'e2e/**'],
+    // Mirror local dev, where the browser calls the API cross-origin.
+    env: { NEXT_PUBLIC_API_URL: 'http://localhost:8080' },
   },
 });
