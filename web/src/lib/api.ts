@@ -1,4 +1,5 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080';
+// Empty = same-origin (/api/...); set NEXT_PUBLIC_API_URL for cross-origin.
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? '';
 
 let accessToken: string | null = null;
 let refreshing: Promise<string | null> | null = null;

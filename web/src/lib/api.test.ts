@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
   loginWithGoogle,
   me,
@@ -102,6 +102,35 @@ describe('api client', () => {
       status: 429,
       message: 'Too many requests — please wait a moment and try again.',
     });
+  });
+});
+
+describe('API base resolution', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.resetModules();
+  });
+
+  it('calls a relative /api path when NEXT_PUBLIC_API_URL is empty', async () => {
+    vi.stubEnv('NEXT_PUBLIC_API_URL', '');
+    vi.resetModules();
+    const api = await import('./api');
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(200, []));
+    vi.stubGlobal('fetch', fetchMock);
+    await api.listConversations();
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/conversations');
+  });
+
+  it('prefixes the configured origin when NEXT_PUBLIC_API_URL is set', async () => {
+    vi.stubEnv('NEXT_PUBLIC_API_URL', 'https://dev.example.com');
+    vi.resetModules();
+    const api = await import('./api');
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(200, []));
+    vi.stubGlobal('fetch', fetchMock);
+    await api.listConversations();
+    expect(fetchMock.mock.calls[0][0]).toBe(
+      'https://dev.example.com/api/conversations',
+    );
   });
 });
 
