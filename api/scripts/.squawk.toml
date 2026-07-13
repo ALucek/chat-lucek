@@ -1,0 +1,19 @@
+# Migration lint: backward-compat rules on, locking/stylistic off.
+assume_in_transaction = true
+excluded_rules = [
+  # Locking / availability: a brief lock is acceptable for a single-user deploy.
+  "require-timeout-settings",
+  "constraint-missing-not-valid",
+  "disallowed-unique-constraint",
+  "require-concurrent-index-creation",
+  "require-concurrent-index-deletion",
+  "adding-field-with-default",
+  "prefer-robust-stmts",
+  # Stylistic preferences, not correctness.
+  "prefer-identity",
+  "prefer-bigint-over-int",
+  "prefer-bigint-over-smallint",
+  "prefer-text-field",
+  "prefer-timestamptz",
+  "ban-char-field",
+]

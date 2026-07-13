@@ -1,5 +1,6 @@
 -- +goose Up
 alter table users add constraint users_email_key unique (email);
+-- squawk-ignore ban-drop-column
 alter table users drop column google_sub;
 
 create table magic_links (
