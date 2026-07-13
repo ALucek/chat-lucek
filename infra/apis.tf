@@ -10,6 +10,7 @@ locals {
     "monitoring.googleapis.com",
     "logging.googleapis.com",
     "billingbudgets.googleapis.com",
+    "iap.googleapis.com",
   ]
 }
 

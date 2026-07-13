@@ -27,6 +27,16 @@ The migrate job runs before the new API revision is deployed, so the running rev
 
 The `migrations-check` job runs [squawk](https://squawkhq.com) over each migration's Up block and fails on backward-incompatible DDL: dropping or renaming a column, changing a column type, or adding a NOT NULL column without a default. Rules are set in [`api/scripts/.squawk.toml`](../api/scripts/.squawk.toml), with the zero-downtime locking rules disabled. A statement that must break a rule carries an inline `-- squawk-ignore <rule>` comment.
 
+### Private dev environment
+
+`dev.chat.lucek.ai` serves the candidate (`cand`-tagged) Cloud Run revisions through the same load balancer, on its own managed certificate. Identity-Aware Proxy gates it: only the `owner_email` Google account and the deploy service account hold `roles/iap.httpsResourceAccessor`, so an unauthenticated request gets a 403 and browsing prompts a Google login.
+
+IAP needs its service agent, which Terraform can't provision. Create it once after the first apply:
+
+```bash
+gcloud beta services identity create --service=iap.googleapis.com
+```
+
 ## First-time setup
 
 A from-scratch bootstrap. Commands use `<project-id>` for your GCP project; the region defaults to `us-central1` and the domain to `chat.lucek.ai`.
@@ -50,9 +60,12 @@ gcloud storage buckets create gs://<project-id>-tfstate \
 gcloud storage buckets update gs://<project-id>-tfstate --versioning
 ```
 
-### 3. Google OAuth client
+### 3. Google OAuth clients
 
-In the GCP console, create an OAuth 2.0 Client ID (Web application). Add `https://chat.lucek.ai` and `http://localhost:3000` as authorized JavaScript origins. Keep the client ID and secret for the next steps.
+Create two OAuth 2.0 Client IDs (Web application) in the GCP console; both share the one project consent screen.
+
+1. **App sign-in.** Add `https://chat.lucek.ai` and `http://localhost:3000` as authorized JavaScript origins. This is the frontend Google Sign-In client; keep its client ID and secret.
+2. **IAP** (for the private dev host, see below). Leave JavaScript origins empty. After creating it, edit it and add the authorized redirect URI `https://iap.googleapis.com/v1/oauth/clientIds/<CLIENT_ID>:handleRedirect` using its own client ID. Keep its client ID and secret for `iap_oauth_client_id` / `iap_oauth_client_secret`.
 
 ### 4. Configure and initialize Terraform
 
@@ -132,6 +145,8 @@ Point the domain's A-record at the load balancer IP, then wait for the managed c
 ```bash
 terraform output -raw lb_ip
 ```
+
+Add a second A-record for `dev.chat.lucek.ai` pointing at the same IP (the private dev host, below). Each host gets its own managed cert, so both provision independently.
 
 ### 10. First deploy
 

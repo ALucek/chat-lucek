@@ -22,13 +22,30 @@ variable "google_client_id" {
 
 variable "owner_email" {
   type        = string
-  description = "Account granted the unlimited token budget."
+  description = "Owner account: unlimited token budget and IAP access to the dev host (must be a Google account)."
 }
 
 variable "domain" {
   type        = string
   description = "Public domain served by the load balancer."
   default     = "chat.lucek.ai"
+}
+
+variable "dev_domain" {
+  type        = string
+  description = "Private domain serving the candidate revisions behind IAP."
+  default     = "dev.chat.lucek.ai"
+}
+
+variable "iap_oauth_client_id" {
+  type        = string
+  description = "Custom OAuth client ID for IAP (created by hand in the console)."
+}
+
+variable "iap_oauth_client_secret" {
+  type        = string
+  description = "Secret for the IAP OAuth client."
+  sensitive   = true
 }
 
 variable "github_repo" {
