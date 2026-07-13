@@ -4,7 +4,7 @@ DB_DSN := postgres://$(DB_USER):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(DB_NAME)?
 # Mirror the API: DATABASE_URL wins over the DB_* parts when set.
 MIGRATE_DSN := $(if $(DATABASE_URL),$(DATABASE_URL),$(DB_DSN))
 
-.PHONY: db-up db-down db-psql migrate-up migrate-down migrate-status migrate-create db-delete db-reset docker-build stack-up stack-down\
+.PHONY: db-up db-down db-psql migrate-up migrate-down migrate-status migrate-create migrations-check db-delete db-reset docker-build stack-up stack-down\
         api-run api-fmt api-fmt-check api-lint api-typecheck api-test api-vuln api-sast \
         web-install web-run web-build web-fmt web-fmt-check web-lint web-typecheck web-test web-audit e2e e2e-local \
         agent-install agent-run agent-fmt agent-fmt-check agent-lint agent-test agent-vuln agent-sast agent-check evals evals-cached push-llm-judge \
@@ -35,6 +35,10 @@ migrate-status:
 
 migrate-create:
 	@cd api && go tool goose -dir migrations create $(name) sql
+
+# Lint migrations' Up DDL with squawk (backward-compat gate).
+migrations-check:
+	@./api/scripts/lint-migrations.sh
 
 db-delete:
 	docker compose down -v

@@ -21,6 +21,12 @@ Images are tagged with the commit SHA, and the deploy updates each Cloud Run ser
 
 To deploy a branch or an earlier commit by hand without merging, dispatch [manual-deploy.yml](../.github/workflows/manual-deploy.yml); see the [manual deploy runbook](runbooks/manual-deploy.md). It refuses any commit that has not passed CI.
 
+### Database migrations
+
+The migrate job runs before the new API revision is deployed, so the running revision serves against the already-migrated schema. Migrations are expand-and-contract: additive and backward-compatible first, with destructive changes held for a later deploy once no running code depends on the old shape. A new column is added and backfilled in one release; the old column is dropped in a later one, after the release that used it is gone.
+
+The `migrations-check` job runs [squawk](https://squawkhq.com) over each migration's Up block and fails on backward-incompatible DDL: dropping or renaming a column, changing a column type, or adding a NOT NULL column without a default. Rules are set in [`api/scripts/.squawk.toml`](../api/scripts/.squawk.toml), with the zero-downtime locking rules disabled. A statement that must break a rule carries an inline `-- squawk-ignore <rule>` comment.
+
 ## First-time setup
 
 A from-scratch bootstrap. Commands use `<project-id>` for your GCP project; the region defaults to `us-central1` and the domain to `chat.lucek.ai`.

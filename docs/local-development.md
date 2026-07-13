@@ -94,7 +94,7 @@ They run in two stages so commits stay fast and the slow checks gate the push:
 | Stage | Checks |
 | --- | --- |
 | **commit** | gofmt, go vet, Prettier, ESLint, Ruff, comment style, gitleaks, `terraform fmt`, actionlint |
-| **push** | Go tests, Vitest, pytest, `go build`, `tsc`, `terraform validate`, tflint |
+| **push** | Go tests, Vitest, pytest, `go build`, `tsc`, migration lint, `terraform validate`, tflint |
 
 ## Everyday commands
 

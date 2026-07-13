@@ -29,6 +29,12 @@ jobs:
       - run: make agent-install
       # Runs ruff format check, ruff lint, and pytest — same as `make agent-check`.
       - run: make agent-check
+  migrations-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      # Lints every migration's Up DDL for backward compatibility (squawk).
+      - run: make migrations-check
   web-test:
     runs-on: ubuntu-latest
     steps:
