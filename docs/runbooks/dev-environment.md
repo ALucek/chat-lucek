@@ -1,6 +1,6 @@
 # Dev environment
 
-`dev.chat.lucek.ai` serves the candidate (`cand`-tagged) Cloud Run revisions through the same load balancer as production, behind Identity-Aware Proxy. The blue-green deploy verifies a candidate here before promoting it.
+`dev.chat.lucek.ai` serves the `cand`-tagged Cloud Run revisions through the same load balancer as production, behind Identity-Aware Proxy. It always reflects the latest `main`: every push deploys here, and production is promoted from it on a cadence.
 
 ## Access
 
@@ -8,11 +8,15 @@ Browsing prompts a Google login. Only principals with `roles/iap.httpsResourceAc
 
 ## What it serves
 
-The `cand` tag points at the most recent candidate revision. On a passing deploy the promoted revision keeps the tag, so between deploys the dev host mirrors production. A failed deploy leaves the dev host on the broken candidate while production stays on the last good revision; this is fix-forward, so the next deploy moves the tag and the dev host self-heals. Production is never affected either way.
+The `cand` tag points at the most recent deployed revision, so the dev host always runs the latest `main`. Between promotions dev is ahead of production; a promotion flips prod to whatever dev is serving, after which prod matches dev until the next push. A failed deploy leaves the dev host on the broken revision while production stays on the last promoted revision; this is fix-forward, so the next deploy moves the tag and the dev host self-heals. Production is never affected by a dev deploy.
+
+## Release to prod
+
+Production is promoted from dev every two hours by [promote.yml](../../.github/workflows/promote.yml), and on demand: dispatch it from the Actions tab to release the current dev snapshot immediately. A promotion flips production traffic to the revisions dev is serving, across all three services, and is a no-op when dev already matches prod. To ship one service straight to prod outside the train, use [manual deploy](manual-deploy.md). To undo a bad release, [roll back](rollback.md).
 
 ## Agent
 
-The agent is not served on the dev host; it is internal, called by the api. Its candidate is gated two ways during a deploy: its `/healthz` startup probe, and a live inference smoke that posts a real chat to the candidate and requires a streamed answer with non-zero token usage. A revision that fails either check is never promoted, so a broken model key, graph, or config is caught before it serves a user.
+The agent is not served on the dev host; it is internal, called by the api. Its revision is checked two ways when it deploys to dev: its `/healthz` startup probe, and a live inference smoke that posts a real chat to the revision and requires a streamed answer with non-zero token usage. The same live smoke re-runs at promotion, catching external drift such as an expired model key, so a broken agent is caught before it serves a user.
 
 ## Reset the dev host
 

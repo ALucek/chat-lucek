@@ -29,11 +29,17 @@ resource "google_service_account" "deploy" {
   display_name = "chat CI deploy"
 }
 
-# Only the repo's production environment may impersonate the deploy SA.
+# The dev and production environments may impersonate the deploy SA.
 resource "google_service_account_iam_member" "deploy_wif" {
   service_account_id = google_service_account.deploy.name
   role               = "roles/iam.workloadIdentityUser"
   member             = "principalSet://iam.googleapis.com/${google_iam_workload_identity_pool.github.name}/attribute.environment/production"
+}
+
+resource "google_service_account_iam_member" "deploy_wif_dev" {
+  service_account_id = google_service_account.deploy.name
+  role               = "roles/iam.workloadIdentityUser"
+  member             = "principalSet://iam.googleapis.com/${google_iam_workload_identity_pool.github.name}/attribute.environment/dev"
 }
 
 resource "google_project_iam_member" "deploy_artifact_registry" {

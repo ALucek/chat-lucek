@@ -91,3 +91,13 @@ jobs:
       deploy_web: ${{ needs.preflight.outputs.web == 'true' }}
       deploy_agent: ${{ needs.preflight.outputs.agent == 'true' }}
     secrets: inherit
+
+  # Hotfix bypass: promote the chosen service straight to prod, no cadence wait.
+  promote:
+    needs: [preflight, deploy]
+    uses: ./.github/workflows/_promote.yml
+    with:
+      promote_api: ${{ needs.preflight.outputs.api == 'true' }}
+      promote_web: ${{ needs.preflight.outputs.web == 'true' }}
+      promote_agent: ${{ needs.preflight.outputs.agent == 'true' }}
+    secrets: inherit

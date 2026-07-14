@@ -4,7 +4,11 @@ The infrastructure is Terraform-managed on GCP, and GitHub Actions builds and sh
 
 ## Pipeline
 
-Every push to `main` runs [test.yml](../.github/workflows/test.yml); on success, [deploy.yml](../.github/workflows/deploy.yml) deploys only the services that changed. It authenticates to GCP with Workload Identity Federation, so no service account keys are stored.
+The pipeline is a release train. Every push to `main` deploys the changed services to a persistent dev environment; production is promoted from dev as an atomic snapshot every two hours and on demand. GitHub Actions authenticates to GCP with Workload Identity Federation, so no service account keys are stored.
+
+### Deploy to dev
+
+Every push to `main` runs [test.yml](../.github/workflows/test.yml); on success, [deploy.yml](../.github/workflows/deploy.yml) builds and deploys only the changed services as new Cloud Run revisions tagged `cand`, with no production traffic. `dev.chat.lucek.ai` serves the `cand` revisions, so dev always reflects the latest main.
 
 ```mermaid
 flowchart TB
@@ -12,26 +16,39 @@ flowchart TB
     test -->|success| changes["Detect changed services"]
     changes --> build["Build + push images<br/>(Artifact Registry)"]
     build --> migrate["Run migrate job<br/>(if api changed)"]
-    migrate --> cand["Deploy candidate<br/>--no-traffic --tag cand"]
-    cand --> verify["Verify candidates<br/>(dev host + agent smoke)"]
-    verify --> promote["Promote --to-latest"]
-    promote --> smoke["Post-flip smoke"]
-    smoke --> attest["Publish SBOM + provenance"]
+    migrate --> cand["Deploy to dev<br/>--no-traffic --tag cand"]
+    cand --> verify["Verify<br/>(dev host + agent smoke)"]
+    verify --> attest["Publish SBOM + provenance"]
 ```
 
-The deploy is blue-green. Images are tagged with the commit SHA, and each changed service is first deployed as a candidate revision with no traffic and a `cand` tag. The candidate must pass its Cloud Run startup probe to become ready, then it is verified: the api and web candidates through the private dev host (`/readyz` and an unauthenticated `/api/me` for the api, the homepage for web), and the agent candidate with a live inference smoke. The agent smoke posts a real chat to the candidate's tagged URL with an identity token and requires a streamed answer with non-zero token usage, so a revision with a broken model key, graph, or config fails here rather than on the first user message. Only a passing candidate is promoted to 100% traffic; one that fails its probe or these checks is never promoted, so the previous revision keeps serving and there is nothing to roll back. A post-flip smoke on the production domain confirms the promotion took effect.
+Images are tagged with the commit SHA. A revision must pass its Cloud Run startup probe to become ready, then it is verified: the api and web through the private dev host (`/readyz` and an unauthenticated `/api/me` for the api, the homepage for web), and the agent with a live inference smoke (a real chat to the revision's tagged URL with an identity token, requiring a streamed answer with non-zero token usage). A revision with a broken model key, graph, or config fails here rather than on the first user message, and is never eligible for promotion.
 
-To deploy a branch or an earlier commit by hand without merging, dispatch [manual-deploy.yml](../.github/workflows/manual-deploy.yml); see the [manual deploy runbook](runbooks/manual-deploy.md). It refuses any commit that has not passed CI.
+### Promote to prod
+
+[promote.yml](../.github/workflows/promote.yml) runs every two hours and on demand. It flips production traffic to the revisions currently serving dev, across all three services at once, and is a no-op when dev already equals prod.
+
+```mermaid
+flowchart TB
+    trigger["Every 2h / manual<br/>promote.yml"] --> plan["Compare dev vs prod<br/>per service"]
+    plan -->|no change| noop["No-op"]
+    plan -->|changed| verify["Re-verify on dev host<br/>+ agent smoke"]
+    verify --> flip["Flip prod traffic<br/>to dev revision"]
+    flip --> post["Post-flip prod smoke"]
+```
+
+Promotion is blue-green: production's live revision is replaced by the dev revision, and the previous revision is retained, so rollback is an instant traffic flip back (see the [rollback runbook](runbooks/rollback.md)). Because deploy and promote are separate, the revisions being promoted are re-verified on the dev host first (and the agent is live-smoked again, catching external drift such as an expired model key), so a revision that failed its deploy checks is never promoted. A post-flip smoke on the production domain confirms the flip took effect.
+
+To release the current dev snapshot immediately instead of waiting for the schedule, dispatch `promote.yml`. To deploy an arbitrary branch or commit straight to production, bypassing the train, dispatch [manual-deploy.yml](../.github/workflows/manual-deploy.yml) (see the [manual deploy runbook](runbooks/manual-deploy.md)); it refuses any commit that has not passed CI.
 
 ### Database migrations
 
-The migrate job runs before the new API revision is deployed, so the running revision serves against the already-migrated schema. Migrations are expand-and-contract: additive and backward-compatible first, with destructive changes held for a later deploy once no running code depends on the old shape. A new column is added and backfilled in one release; the old column is dropped in a later one, after the release that used it is gone.
+The migrate job runs when a revision is deployed to dev, against the database that dev and production share. Because production is promoted from dev on a cadence, the live production revision runs against the already-migrated schema until the next promotion. Migrations are therefore strictly expand-and-contract: additive and backward-compatible first, with destructive changes held for a later release once no running code depends on the old shape. A new column is added and backfilled in one release; the old column is dropped in a later one, after the release that used it has been promoted. The backward-compatibility window is the release cadence, not minutes, so a destructive change must never ride in the same release as the expand it depends on.
 
 The `migrations-check` job runs [squawk](https://squawkhq.com) over each migration's Up block and fails on backward-incompatible DDL: dropping or renaming a column, changing a column type, or adding a NOT NULL column without a default. Rules are set in [`api/scripts/.squawk.toml`](../api/scripts/.squawk.toml), with the zero-downtime locking rules disabled. A statement that must break a rule carries an inline `-- squawk-ignore <rule>` comment.
 
 ### Private dev environment
 
-`dev.chat.lucek.ai` serves the candidate (`cand`-tagged) Cloud Run revisions through the same load balancer, on its own managed certificate. Identity-Aware Proxy gates it: only the `owner_email` Google account and the deploy service account hold `roles/iap.httpsResourceAccessor`, so an unauthenticated request gets a 403 and browsing prompts a Google login.
+`dev.chat.lucek.ai` serves the `cand`-tagged Cloud Run revisions (the latest main) through the same load balancer, on its own managed certificate. Identity-Aware Proxy gates it: only the `owner_email` Google account and the deploy service account hold `roles/iap.httpsResourceAccessor`, so an unauthenticated request gets a 403 and browsing prompts a Google login.
 
 IAP needs its service agent, which Terraform can't provision. Create it once after the first apply:
 
@@ -129,7 +146,7 @@ gcloud run jobs execute chat-migrate --region us-central1 --wait
 
 ### 8. GitHub Actions variables
 
-Set these repository variables (all come from `terraform output`) and create a `production` environment:
+Set these repository variables (all come from `terraform output`) and create two environments, `dev` and `production`, with no protection rules. The dev-deploy jobs run in `dev` and the promote jobs run in `production`; Terraform grants both environments permission to impersonate the deploy service account.
 
 | Variable | Source |
 | --- | --- |

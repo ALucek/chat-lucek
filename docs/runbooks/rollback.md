@@ -20,9 +20,9 @@ gcloud run services describe chat-agent --region=us-central1 \
   --format='value(status.traffic[].revisionName)'
 ```
 
-## Resume normal deploys
+## After a rollback
 
-A rollback pins traffic to a revision, so later CD deploys stop serving. Once the fix is deployed, dispatch the workflow again with `revision=latest` to restore automatic routing.
+Rollback moves both production traffic and the dev (`cand`) tag onto the target revision, so dev matches prod and the next scheduled [promotion](../deployment.md) is a no-op instead of re-shipping the bad revision. To move forward, push a fix to `main`: it deploys to dev, and the next promotion ships it. There is no separate resume step.
 
 ## Notes
 
