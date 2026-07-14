@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { autoSize } from '@/lib/autosize';
@@ -9,14 +9,34 @@ export function Composer({
   onSend,
   onStop,
   sending,
+  captureTyping = false,
 }: {
   onSend: (text: string) => void;
   onStop: () => void;
   sending: boolean;
+  captureTyping?: boolean;
 }) {
   const [text, setText] = useState('');
   const [expanded, setExpanded] = useState(false);
   const ref = useRef<HTMLTextAreaElement>(null);
+
+  // Start typing anywhere (nothing else focused) and the keystroke lands here.
+  useEffect(() => {
+    if (!captureTyping) return;
+    function focusOnType(e: KeyboardEvent) {
+      const el = ref.current;
+      if (!el || el.disabled) return;
+      if (e.metaKey || e.ctrlKey || e.altKey || e.key.length !== 1) return;
+      const active = document.activeElement;
+      if (active && active !== document.body) return;
+      // Insert the char ourselves so it lands at the end deterministically.
+      e.preventDefault();
+      el.focus();
+      setText((prev) => prev + e.key);
+    }
+    document.addEventListener('keydown', focusOnType);
+    return () => document.removeEventListener('keydown', focusOnType);
+  }, [captureTyping]);
 
   function submit() {
     const trimmed = text.trim();
@@ -31,6 +51,8 @@ export function Composer({
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       submit();
+    } else if (e.key === 'Escape') {
+      e.currentTarget.blur();
     }
   }
 

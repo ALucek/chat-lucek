@@ -28,7 +28,12 @@ export default function Home() {
       <div className="flex flex-1 items-center justify-center">
         <p className="text-muted text-sm">Type a message below</p>
       </div>
-      <Composer onSend={onSend} onStop={() => {}} sending={sending} />
+      <Composer
+        onSend={onSend}
+        onStop={() => {}}
+        sending={sending}
+        captureTyping
+      />
     </div>
   );
 }
