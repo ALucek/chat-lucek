@@ -145,7 +145,7 @@ export function MessageActions({
   }
 
   return (
-    <div className="mt-1 flex items-center gap-0.5">
+    <div className="flex items-center gap-0.5">
       <button
         type="button"
         aria-label={copied ? 'Copied' : 'Copy response'}
@@ -205,18 +205,18 @@ export function MessageActions({
         <p className="text-subtle mt-2 text-xs">
           Your note helps improve responses.
         </p>
-        <div className="mt-4 flex justify-end gap-1.5">
+        <div className="mt-4 flex justify-center gap-2 md:justify-end md:gap-1.5">
           <button
             type="button"
             onClick={() => setNoteOpen(false)}
-            className="border-border text-muted hover:bg-hover rounded-[var(--radius)] border px-3 py-1 text-xs"
+            className="border-border text-muted hover:bg-hover flex-1 rounded-[var(--radius)] border px-3 py-2.5 text-sm md:flex-none md:py-1 md:text-xs"
           >
             Skip
           </button>
           <button
             type="button"
             onClick={submitNote}
-            className="bg-accent text-accent-fg rounded-[var(--radius)] px-3 py-1 text-xs"
+            className="bg-accent text-accent-fg flex-1 rounded-[var(--radius)] px-3 py-2.5 text-sm md:flex-none md:py-1 md:text-xs"
           >
             Send
           </button>

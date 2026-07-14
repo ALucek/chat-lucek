@@ -52,17 +52,17 @@ export function DeleteAccountDialog({
         placeholder={user?.email}
         className="mb-3 px-2 py-1"
       />
-      <div className="flex justify-end gap-1.5">
+      <div className="flex justify-center gap-2 md:justify-end md:gap-1.5">
         <button
           onClick={onClose}
-          className="border-border text-muted hover:bg-hover rounded border px-3 py-1 text-xs"
+          className="border-border text-muted hover:bg-hover flex-1 rounded border px-3 py-2.5 text-sm md:flex-none md:py-1 md:text-xs"
         >
           Cancel
         </button>
         <button
           onClick={onDelete}
           disabled={!matches || busy}
-          className="bg-danger rounded px-3 py-1 text-xs text-white hover:brightness-95 disabled:opacity-50"
+          className="bg-danger flex-1 rounded px-3 py-2.5 text-sm text-white hover:brightness-95 disabled:opacity-50 md:flex-none md:py-1 md:text-xs"
         >
           Delete account
         </button>
