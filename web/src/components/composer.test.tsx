@@ -34,6 +34,15 @@ describe('Composer', () => {
     expect(onSend).not.toHaveBeenCalled();
   });
 
+  it('Escape blurs the box', () => {
+    render(<Composer onSend={vi.fn()} onStop={vi.fn()} sending={false} />);
+    const box = screen.getByRole('textbox');
+    box.focus();
+    expect(box).toHaveFocus();
+    fireEvent.keyDown(box, { key: 'Escape' });
+    expect(box).not.toHaveFocus();
+  });
+
   it('shows Stop while sending and calls onStop', async () => {
     const onStop = vi.fn();
     render(<Composer onSend={vi.fn()} onStop={onStop} sending={true} />);

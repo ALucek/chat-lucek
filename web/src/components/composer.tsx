@@ -48,6 +48,8 @@ export function Composer({
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       submit();
+    } else if (e.key === 'Escape') {
+      e.currentTarget.blur();
     }
   }
 
