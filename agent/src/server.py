@@ -1,6 +1,7 @@
 import asyncio
 import json
 import logging
+import os
 import sys
 from datetime import datetime, timezone
 from typing import Any
@@ -60,9 +61,14 @@ def _sse(event: dict[str, Any]) -> str:
     return f"event: {event['event']}\ndata: {json.dumps(event['data'])}\n\n"
 
 
-def _make_tracer() -> LangChainTracer | None:
+def _make_tracer(dev: bool = False) -> LangChainTracer | None:
     # A tracer we own, so an interrupted run can close its runs. None if off.
-    return LangChainTracer() if tracing_is_enabled() else None
+    if not tracing_is_enabled():
+        return None
+    # Dev-host runs trace to the dev project, off the prod evaluators.
+    if dev and (project := os.environ.get("LANGSMITH_PROJECT_DEV")):
+        return LangChainTracer(project_name=project)
+    return LangChainTracer()
 
 
 def _close_open_runs(tracer: LangChainTracer) -> None:
@@ -83,7 +89,7 @@ async def run(req: Request) -> StreamingResponse:
     body = await req.json()
     messages = _to_lc_messages(body.get("messages", []))
     config = build_run_config(body.get("overrides"), body.get("thread_id"))
-    tracer = _make_tracer()
+    tracer = _make_tracer(bool(body.get("dev")))
     if tracer is not None:
         config = {**config, "callbacks": [tracer]}
 

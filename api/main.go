@@ -58,7 +58,11 @@ func main() {
 	check := func(ctx context.Context) error { return Healthy(ctx, pool) }
 
 	auth := &Auth{pool: pool, secret: []byte(cfg.JWTSecret), verify: selectGoogleVerifier(cfg), exchange: selectGoogleExchanger(cfg), signupOpen: cfg.SignupOpen, mailer: selectMailer(cfg), linkBase: cfg.AllowedOrigin}
-	agent := &agentClient{baseURL: cfg.AgentURL, http: newAgentHTTPClient()}
+	candURL := cfg.AgentCandURL
+	if candURL == "" {
+		candURL = candURLFor(cfg.AgentURL)
+	}
+	agent := &agentClient{baseURL: cfg.AgentURL, candURL: candURL, http: newAgentHTTPClient()}
 	if strings.HasPrefix(cfg.AgentURL, "https") {
 		ts, err := idtoken.NewTokenSource(ctx, cfg.AgentURL)
 		if err != nil {
@@ -73,7 +77,7 @@ func main() {
 			return t.AccessToken, nil
 		}
 	}
-	chat := &Chat{pool: pool, agent: agent, runsBudget: cfg.RunsBudgetDaily, ownerEmail: normalizeEmail(cfg.OwnerEmail), usageSecret: []byte(cfg.UsageHashSecret), mirror: newLangsmithClient(cfg.LangsmithEndpoint, cfg.LangsmithAPIKey)}
+	chat := &Chat{pool: pool, agent: agent, runsBudget: cfg.RunsBudgetDaily, ownerEmail: normalizeEmail(cfg.OwnerEmail), usageSecret: []byte(cfg.UsageHashSecret), mirror: newLangsmithClient(cfg.LangsmithEndpoint, cfg.LangsmithAPIKey), devHost: cfg.DevHost}
 	account := &Account{pool: pool}
 
 	mux := newMux(check, auth, chat, account)
@@ -181,6 +185,7 @@ func newMux(check func(context.Context) error, auth *Auth, chat *Chat, account *
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /livez", liveHandler())
 	mux.HandleFunc("GET /readyz", readyHandler(check))
+	mux.HandleFunc("GET /agentz", chat.Agentz)
 	mux.Handle("POST /api/google", http.HandlerFunc(auth.Google))
 	mux.Handle("POST /api/magic/request", http.HandlerFunc(auth.MagicRequest))
 	mux.Handle("POST /api/magic/verify", http.HandlerFunc(auth.MagicVerify))

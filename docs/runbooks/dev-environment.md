@@ -16,7 +16,7 @@ Production is promoted from dev every two hours by [promote.yml](../../.github/w
 
 ## Agent
 
-The agent is not served on the dev host; it is internal, called by the api. Its revision is checked two ways when it deploys to dev: its `/healthz` startup probe, and a live inference smoke that posts a real chat to the revision and requires a streamed answer with non-zero token usage. The same live smoke re-runs at promotion, catching external drift such as an expired model key, so a broken agent is caught before it serves a user.
+The agent is not served on the dev host; it is internal, called by the api. On dev-host requests the api routes to the candidate agent revision and traces the run to the `chat-lucek-dev` LangSmith project, keeping dev traffic off the prod evaluators and alerts. It is checked two ways when it deploys: its `/healthz` startup probe, and the api's `/agentz` endpoint (dev host only), which drives a canned round-trip to the candidate agent. The same `/agentz` check re-runs at promotion, catching external drift such as an expired model key, so a broken agent is caught before it serves a user. Chatting on the dev host exercises the candidate agent end to end before promotion.
 
 ## Reset the dev host
 

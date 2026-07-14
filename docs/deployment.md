@@ -17,11 +17,11 @@ flowchart TB
     changes --> build["Build + push images<br/>(Artifact Registry)"]
     build --> migrate["Run migrate job<br/>(if api changed)"]
     migrate --> cand["Deploy to dev<br/>--no-traffic --tag cand"]
-    cand --> verify["Verify<br/>(dev host + agent smoke)"]
+    cand --> verify["Verify<br/>(dev host + /agentz)"]
     verify --> attest["Publish SBOM + provenance"]
 ```
 
-Images are tagged with the commit SHA. A revision must pass its Cloud Run startup probe to become ready, then it is verified: the api and web through the private dev host (`/readyz` and an unauthenticated `/api/me` for the api, the homepage for web), and the agent with a live inference smoke (a real chat to the revision's tagged URL with an identity token, requiring a streamed answer with non-zero token usage). A revision with a broken model key, graph, or config fails here rather than on the first user message, and is never eligible for promotion.
+Images are tagged with the commit SHA. A revision must pass its Cloud Run startup probe to become ready, then it is verified through the private dev host: `/readyz` and an unauthenticated `/api/me` for the api, the homepage for web, and `/agentz` for the agent. On the dev host the api routes to the candidate agent, and `/agentz` makes it do a canned round-trip there (requiring a streamed answer with non-zero token usage), so the api-to-agent path is exercised end to end. A revision with a broken model key, graph, or config fails here rather than on the first user message, and is never eligible for promotion.
 
 ### Promote to prod
 
@@ -31,12 +31,12 @@ Images are tagged with the commit SHA. A revision must pass its Cloud Run startu
 flowchart TB
     trigger["Every 2h / manual<br/>promote.yml"] --> plan["Compare dev vs prod<br/>per service"]
     plan -->|no change| noop["No-op"]
-    plan -->|changed| verify["Re-verify on dev host<br/>+ agent smoke"]
+    plan -->|changed| verify["Re-verify on dev host<br/>+ /agentz"]
     verify --> flip["Flip prod traffic<br/>to dev revision"]
     flip --> post["Post-flip prod smoke"]
 ```
 
-Promotion is blue-green: production's live revision is replaced by the dev revision, and the previous revision is retained, so rollback is an instant traffic flip back (see the [rollback runbook](runbooks/rollback.md)). Because deploy and promote are separate, the revisions being promoted are re-verified on the dev host first (and the agent is live-smoked again, catching external drift such as an expired model key), so a revision that failed its deploy checks is never promoted. A post-flip smoke on the production domain confirms the flip took effect.
+Promotion is blue-green: production's live revision is replaced by the dev revision, and the previous revision is retained, so rollback is an instant traffic flip back (see the [rollback runbook](runbooks/rollback.md)). Because deploy and promote are separate, the revisions being promoted are re-verified on the dev host first (including the agent via `/agentz`, catching external drift such as an expired model key), so a revision that failed its deploy checks is never promoted. A post-flip smoke on the production domain confirms the flip took effect.
 
 To release the current dev snapshot immediately instead of waiting for the schedule, dispatch `promote.yml`. To deploy an arbitrary branch or commit straight to production, bypassing the train, dispatch [manual-deploy.yml](../.github/workflows/manual-deploy.yml) (see the [manual deploy runbook](runbooks/manual-deploy.md)); it refuses any commit that has not passed CI.
 

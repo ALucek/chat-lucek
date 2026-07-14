@@ -95,6 +95,12 @@ variable "langsmith_project" {
   default     = "chat-lucek-ai-prod"
 }
 
+variable "langsmith_project_dev" {
+  type        = string
+  description = "LangSmith project for dev-host runs, off the prod evaluators."
+  default     = "chat-lucek-dev"
+}
+
 variable "langsmith_api_key" {
   type        = string
   description = "LangSmith API key for provisioning online evaluators."

@@ -153,6 +153,11 @@ resource "google_cloud_run_v2_service" "api" {
         name  = "AGENT_URL"
         value = google_cloud_run_v2_service.agent.uri
       }
+      # Requests to this host route to the candidate agent (dev/prod split).
+      env {
+        name  = "DEV_HOST"
+        value = var.dev_domain
+      }
 
       env {
         name = "DB_PASSWORD"
@@ -277,6 +282,11 @@ resource "google_cloud_run_v2_service" "agent" {
         name  = "LANGSMITH_PROJECT"
         value = var.langsmith_project
       }
+      # Dev-host runs trace here instead, off the prod evaluators/alerts.
+      env {
+        name  = "LANGSMITH_PROJECT_DEV"
+        value = var.langsmith_project_dev
+      }
 
       env {
         name = "OPENROUTER_API_KEY"
@@ -335,14 +345,6 @@ resource "google_cloud_run_v2_service_iam_member" "api_invokes_agent" {
   location = var.region
   role     = "roles/run.invoker"
   member   = "serviceAccount:${google_service_account.api.email}"
-}
-
-# The deploy SA smoke-checks the agent candidate revision during a deploy.
-resource "google_cloud_run_v2_service_iam_member" "deploy_invokes_agent" {
-  name     = google_cloud_run_v2_service.agent.name
-  location = var.region
-  role     = "roles/run.invoker"
-  member   = "serviceAccount:${google_service_account.deploy.email}"
 }
 
 resource "google_cloud_run_v2_job" "migrate" {

@@ -20,6 +20,8 @@ type Config struct {
 	ResendAPIKey       string
 	MagicLinkFrom      string
 	AgentURL           string
+	AgentCandURL       string
+	DevHost            string
 	AllowedOrigin      string
 	DatabaseURL        string
 	LogLevel           string
@@ -48,6 +50,8 @@ func LoadConfig() (Config, error) {
 		ResendAPIKey:       os.Getenv("RESEND_API_KEY"),
 		MagicLinkFrom:      os.Getenv("MAGIC_LINK_FROM"),
 		AgentURL:           getenvDefault("AGENT_URL", "http://localhost:8081"),
+		AgentCandURL:       os.Getenv("AGENT_CAND_URL"),
+		DevHost:            os.Getenv("DEV_HOST"),
 		AllowedOrigin:      getenvDefault("ALLOWED_ORIGIN", "http://localhost:3000"),
 		LogLevel:           getenvDefault("LOG_LEVEL", "info"),
 		DatabaseURL:        os.Getenv("DATABASE_URL"),

@@ -24,6 +24,7 @@ type Chat struct {
 	ownerEmail  string
 	usageSecret []byte
 	mirror      feedbackMirror
+	devHost     string // requests to this host route to the candidate agent
 }
 
 type conversation struct {
@@ -31,6 +32,27 @@ type conversation struct {
 	Title     string    `json:"title"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
+}
+
+// Agentz canned-checks the api->agent path; dev host only (404 elsewhere).
+func (c *Chat) Agentz(w http.ResponseWriter, r *http.Request) {
+	if c.devHost == "" || r.Host != c.devHost {
+		http.NotFound(w, r)
+		return
+	}
+	gotText := false
+	usage, err := c.agent.run(r.Context(),
+		[]llmMessage{{Role: "user", Content: "What is your name?"}}, "", true,
+		runHandlers{onDelta: func(_, text string) {
+			if text != "" {
+				gotText = true
+			}
+		}})
+	if err != nil || !gotText || usage.Completion == 0 {
+		writeJSON(w, http.StatusServiceUnavailable, map[string]string{"status": "agent unavailable"})
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }
 
 type message struct {
@@ -342,7 +364,8 @@ func (c *Chat) Send(w http.ResponseWriter, r *http.Request) {
 	var runID string
 	nodes := []*traceNode{}
 	byID := map[string]*traceNode{}
-	usage, err := c.agent.run(r.Context(), msgs, strconv.FormatInt(id, 10), runHandlers{
+	dev := c.devHost != "" && r.Host == c.devHost
+	usage, err := c.agent.run(r.Context(), msgs, strconv.FormatInt(id, 10), dev, runHandlers{
 		onNode: func(f nodeFrame) {
 			n := &traceNode{ID: f.ID, ParentID: f.ParentID, Type: f.Type, Name: f.Name, Input: f.Input}
 			nodes = append(nodes, n)

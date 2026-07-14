@@ -55,10 +55,6 @@ jobs:
             echo "flip_$svc=true" >> "$GITHUB_OUTPUT"
             echo "rev_$svc=$cand" >> "$GITHUB_OUTPUT"
             ANY=true
-            if [ "$svc" = "agent" ]; then
-              echo "agent_cand=$(echo "$j" | jq -r '[.status.traffic[]|select(.tag=="cand")|.url][0]')" >> "$GITHUB_OUTPUT"
-              echo "agent_base=$(echo "$j" | jq -r '.status.url')" >> "$GITHUB_OUTPUT"
-            fi
           }
           plan api "${{ inputs.promote_api }}"
           plan web "${{ inputs.promote_web }}"
@@ -66,7 +62,7 @@ jobs:
           echo "any=$ANY" >> "$GITHUB_OUTPUT"
       # Re-verify the revisions being promoted on the dev host before flipping.
       - name: Verify candidates on the dev host
-        if: ${{ steps.plan.outputs.flip_api == 'true' || steps.plan.outputs.flip_web == 'true' }}
+        if: ${{ steps.plan.outputs.flip_api == 'true' || steps.plan.outputs.flip_web == 'true' || steps.plan.outputs.flip_agent == 'true' }}
         env:
           TOKEN: ${{ steps.auth.outputs.id_token }}
           DEV: https://dev.${{ vars.DOMAIN }}
@@ -82,32 +78,10 @@ jobs:
             web=$(curl -s -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $TOKEN" "$DEV/")
             test "$web" = "200" || { echo "web candidate / -> $web"; exit 1; }
           fi
-      # Re-smoke the agent candidate at release time to catch external drift.
-      - uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
-        id: agent_token
-        if: ${{ steps.plan.outputs.flip_agent == 'true' }}
-        with:
-          workload_identity_provider: ${{ vars.WIF_PROVIDER }}
-          service_account: ${{ vars.DEPLOY_SA }}
-          token_format: id_token
-          id_token_audience: ${{ steps.plan.outputs.agent_base }}
-          id_token_include_email: true
-      - name: Smoke agent candidate
-        if: ${{ steps.plan.outputs.flip_agent == 'true' }}
-        env:
-          CAND: ${{ steps.plan.outputs.agent_cand }}
-          TOKEN: ${{ steps.agent_token.outputs.id_token }}
-        run: |
-          set -euo pipefail
-          body='{"messages":[{"role":"user","content":"What is your name?"}]}'
-          out=$(curl -sS -X POST "$CAND/run" \
-            -H "Authorization: Bearer $TOKEN" \
-            -H 'Content-Type: application/json' -d "$body")
-          echo "$out" | grep -q '^event: error' && { echo "agent error frame"; exit 1; }
-          echo "$out" | grep -A1 '^event: delta' | grep -q '"text": *"[^"]' \
-            || { echo "no non-empty delta"; exit 1; }
-          echo "$out" | grep -A1 '^event: usage' \
-            | grep -Eq '"output": *[1-9]' || { echo "usage output not > 0"; exit 1; }
+          if [ "${{ steps.plan.outputs.flip_agent }}" = "true" ]; then
+            az=$(curl -s -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $TOKEN" "$DEV/agentz")
+            test "$az" = "200" || { echo "agent candidate /agentz -> $az"; exit 1; }
+          fi
       # Flip prod traffic to the dev revision; old revision stays for rollback.
       - name: Promote agent
         if: ${{ steps.plan.outputs.flip_agent == 'true' }}
