@@ -8,8 +8,7 @@ def test_load_state_rebuilds_trace_and_search_count():
     assert state["search_count"] == 5
     msgs = state["messages"]
     assert isinstance(msgs[0], HumanMessage)
-    # Tool-call messages deserialize with their ids preserved (needed for the
-    # ai/tool pairing the model API requires).
+    # Tool-call ids survive deserialization (the model API needs ai/tool pairing).
     search_calls = [
         c
         for m in msgs
