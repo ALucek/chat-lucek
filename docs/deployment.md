@@ -12,12 +12,14 @@ flowchart TB
     test -->|success| changes["Detect changed services"]
     changes --> build["Build + push images<br/>(Artifact Registry)"]
     build --> migrate["Run migrate job<br/>(if api changed)"]
-    migrate --> deploy["Deploy to Cloud Run"]
-    deploy --> smoke["Smoke check"]
+    migrate --> cand["Deploy candidate<br/>--no-traffic --tag cand"]
+    cand --> verify["Verify on dev host<br/>(IAP)"]
+    verify --> promote["Promote --to-latest"]
+    promote --> smoke["Post-flip smoke"]
     smoke --> attest["Publish SBOM + provenance"]
 ```
 
-Images are tagged with the commit SHA, and the deploy updates each Cloud Run service to that tag. The smoke check confirms the site returns 200 and the API rejects an unauthenticated request before the run is considered successful.
+The deploy is blue-green. Images are tagged with the commit SHA, and each changed service is first deployed as a candidate revision with no traffic and a `cand` tag. The candidate must pass its Cloud Run startup probe to become ready, then it is verified through the private dev host (`/readyz` and an unauthenticated `/api/me` for the api, the homepage for web). Only a passing candidate is promoted to 100% traffic; one that fails its probe or the dev-host checks is never promoted, so the previous revision keeps serving and there is nothing to roll back. A post-flip smoke on the production domain confirms the promotion took effect.
 
 To deploy a branch or an earlier commit by hand without merging, dispatch [manual-deploy.yml](../.github/workflows/manual-deploy.yml); see the [manual deploy runbook](runbooks/manual-deploy.md). It refuses any commit that has not passed CI.
 
@@ -64,7 +66,7 @@ gcloud storage buckets update gs://<project-id>-tfstate --versioning
 
 Create two OAuth 2.0 Client IDs (Web application) in the GCP console; both share the one project consent screen.
 
-1. **App sign-in.** Add `https://chat.lucek.ai` and `http://localhost:3000` as authorized JavaScript origins. This is the frontend Google Sign-In client; keep its client ID and secret.
+1. **App sign-in.** Add `https://chat.lucek.ai`, `https://dev.chat.lucek.ai`, and `http://localhost:3000` as authorized JavaScript origins (the dev origin lets Google Sign-In work on the private dev host). This is the frontend Google Sign-In client; keep its client ID and secret.
 2. **IAP** (for the private dev host, see below). Leave JavaScript origins empty. After creating it, edit it and add the authorized redirect URI `https://iap.googleapis.com/v1/oauth/clientIds/<CLIENT_ID>:handleRedirect` using its own client ID. Keep its client ID and secret for `iap_oauth_client_id` / `iap_oauth_client_secret`.
 
 ### 4. Configure and initialize Terraform
@@ -134,7 +136,8 @@ Set these repository variables (all come from `terraform output`) and create a `
 | `GCP_PROJECT` | your project ID |
 | `GCP_REGION` | `us-central1` |
 | `DOMAIN` | `chat.lucek.ai` |
-| `GOOGLE_CLIENT_ID` | the OAuth client ID |
+| `GOOGLE_CLIENT_ID` | the app sign-in OAuth client ID |
+| `IAP_OAUTH_CLIENT_ID` | the IAP OAuth client ID (used to smoke the dev host) |
 | `WIF_PROVIDER` | `terraform output wif_provider` |
 | `DEPLOY_SA` | `terraform output deploy_sa_email` |
 
