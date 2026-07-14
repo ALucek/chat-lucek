@@ -195,7 +195,8 @@ stack-up:
 	docker compose --profile full up -d --build --wait
 	$(MAKE) migrate-up
 
-stack-down: db-down
+stack-down:
+	docker compose --profile full down
 
 # ── Quality gates (aggregates) ─────────────────────────────────────────
 
