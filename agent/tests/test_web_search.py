@@ -1,4 +1,17 @@
-from src.tools.web_search import build_tavily_tool, process_search_results
+from src.tools import web_search as ws
+from src.tools.web_search import build_web_search_tool, process_search_results
+
+
+class _FakeClient:
+    def __init__(self):
+        self.calls = []
+
+    async def search(self, query, **kwargs):
+        self.calls.append((query, kwargs))
+        return {
+            "query": query,
+            "results": [{"title": "T", "url": "u", "content": "c", "score": 0.9}],
+        }
 
 
 def test_filters_below_relevance_threshold():
@@ -32,8 +45,27 @@ def test_empty_results_still_has_header():
     assert "Search results for: x" in out
 
 
-def test_build_tavily_tool_naming(monkeypatch):
-    monkeypatch.setenv("TAVILY_API_KEY", "test")
-    tool = build_tavily_tool()
+def test_build_web_search_tool_naming():
+    tool = build_web_search_tool()
     assert tool.name == "internet_search"
     assert "Internet Search" in tool.description
+
+
+def test_tool_exposes_only_query():
+    tool = build_web_search_tool()
+    assert list(tool.args.keys()) == ["query"]
+
+
+async def test_search_sends_only_query_with_fixed_params(monkeypatch):
+    fake = _FakeClient()
+    monkeypatch.setattr(ws, "_client", lambda: fake)
+    out = await ws._search("cats")
+    query, kwargs = fake.calls[0]
+    assert query == "cats"
+    assert kwargs == {
+        "max_results": ws.MAX_RESULTS,
+        "auto_parameters": True,
+        "include_raw_content": False,
+        "include_answer": False,
+    }
+    assert "[T](u)" in out

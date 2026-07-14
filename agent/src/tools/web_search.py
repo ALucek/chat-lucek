@@ -1,5 +1,10 @@
-from langchain_tavily import TavilySearch
+from functools import lru_cache
 
+from langchain_core.tools import StructuredTool
+from pydantic import BaseModel, Field
+from tavily import AsyncTavilyClient
+
+MAX_RESULTS = 5
 RELEVANCE_SCORE_THRESHOLD = 0.7
 TOOL_DESCRIPTION = """Internet Search Tool, takes in a natural language query and returns back relevant results + snippets from the web.
 Usage guidelines:
@@ -8,17 +13,34 @@ Usage guidelines:
 """
 
 
-def build_tavily_tool() -> TavilySearch:
-    """Get the internet search tool."""
-    tool = TavilySearch(
-        max_results=5,
+class WebSearchInput(BaseModel):
+    query: str = Field(description="Natural-language search query.")
+
+
+@lru_cache(maxsize=1)
+def _client() -> AsyncTavilyClient:
+    return AsyncTavilyClient()
+
+
+async def _search(query: str) -> str:
+    results = await _client().search(
+        query,
+        max_results=MAX_RESULTS,
         auto_parameters=True,
         include_raw_content=False,
         include_answer=False,
     )
-    tool.name = "internet_search"
-    tool.description = TOOL_DESCRIPTION
-    return tool
+    return process_search_results(results)
+
+
+def build_web_search_tool() -> StructuredTool:
+    """Build the internet search tool; the model supplies only a query."""
+    return StructuredTool.from_function(
+        coroutine=_search,
+        name="internet_search",
+        description=TOOL_DESCRIPTION,
+        args_schema=WebSearchInput,
+    )
 
 
 def process_search_results(results: dict) -> str:

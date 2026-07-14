@@ -1,5 +1,4 @@
 import asyncio
-from functools import lru_cache
 
 from langchain_core.messages import AIMessage, ToolMessage
 from langchain_core.runnables import RunnableConfig
@@ -8,18 +7,15 @@ from langgraph.graph import END, START, StateGraph
 from src.config import AgentConfig, get_settings
 from src.prompts.subagent_prompt import get_subagent_system_prompt
 from src.state import SubagentState
-from src.tools.web_search import build_tavily_tool, process_search_results
+from src.tools.web_search import build_web_search_tool
 from src.utils import build_chat_model, build_messages
 
-
-@lru_cache(maxsize=1)
-def _web_search_tool():
-    return build_tavily_tool()
+web_search_tool = build_web_search_tool()
 
 
 async def subagent_node(state: SubagentState, config: RunnableConfig) -> dict:
     cfg = AgentConfig.from_runnable_config(config)
-    model = build_chat_model(cfg, role="subagent").bind_tools([_web_search_tool()])
+    model = build_chat_model(cfg, role="subagent").bind_tools([web_search_tool])
     messages = build_messages(get_subagent_system_prompt(), state["messages"])
     response = await model.ainvoke(messages, config=config)
     return {"messages": [response]}
@@ -42,17 +38,15 @@ async def web_search_node(state: SubagentState, config: RunnableConfig) -> dict:
     execute_calls = tool_calls[:remaining]
     skipped_calls = tool_calls[remaining:]
 
-    tasks = [_web_search_tool().ainvoke(call.get("args", {})) for call in execute_calls]
+    tasks = [web_search_tool.ainvoke(call.get("args", {})) for call in execute_calls]
     results = await asyncio.gather(*tasks, return_exceptions=True)
 
     tool_messages: list[ToolMessage] = []
     for call, result in zip(execute_calls, results):
         if isinstance(result, Exception):
             content = f"Error running search: {result}"
-        elif isinstance(result, dict):
-            content = process_search_results(result)
         else:
-            content = str(result)
+            content = result
         tool_messages.append(
             ToolMessage(
                 content=content,
