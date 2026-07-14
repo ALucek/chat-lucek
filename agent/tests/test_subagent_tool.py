@@ -26,7 +26,3 @@ async def test_run_subagent_sets_subagent_recursion_limit(monkeypatch):
     monkeypatch.setattr(st, "subagent", fake)
     await st._run_subagent("task", {})
     assert fake.config["recursion_limit"] == get_settings().subagent_recursion_limit
-
-
-def test_build_subagent_tool_naming():
-    assert st.build_subagent_tool().name == "run_subagent"

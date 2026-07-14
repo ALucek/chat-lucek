@@ -84,11 +84,7 @@ def judge(
     key: str,
     reference: str | None = None,
 ) -> Verdict:
-    """Grade content against a single criterion (reason, then boolean).
-
-    Logs the boolean under `key`. An optional reference is shown to the judge as
-    one example of an ideal response.
-    """
+    """Grade content against a criterion; log the boolean verdict under `key`."""
     model = ChatOpenRouter(
         model=judge_model_name(), temperature=0
     ).with_structured_output(Verdict)

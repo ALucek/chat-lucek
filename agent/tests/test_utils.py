@@ -11,9 +11,7 @@ def test_prepends_system_prompt():
 
 
 def test_preserves_full_working_state_without_trimming():
-    # The agent must keep its whole scratchpad: trimming mid-run drops the
-    # original task and breaks tool-call/result pairs. Windowing is the
-    # gateway's job, not the agent's.
+    # No windowing here: the agent must keep its whole scratchpad intact.
     history: list = []
     for i in range(30):
         history.append(HumanMessage(content=f"h{i}"))
