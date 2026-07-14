@@ -12,7 +12,7 @@ The `cand` tag points at the most recent candidate revision. On a passing deploy
 
 ## Agent
 
-The agent is not served on the dev host; it is internal, called by the api. Its candidate is gated by its `/healthz` startup probe during a deploy, so a broken agent revision never becomes ready and is never promoted. There is no unauthenticated endpoint to smoke, so confirm a new agent release functionally with a real chat message after it promotes.
+The agent is not served on the dev host; it is internal, called by the api. Its candidate is gated two ways during a deploy: its `/healthz` startup probe, and a live inference smoke that posts a real chat to the candidate's tagged URL and requires a streamed answer with non-zero token usage. The token audience is the agent's base service URL even though the request goes to the tagged URL. A revision that fails either check is never promoted, so a broken model key, graph, or config is caught before it serves a user.
 
 ## Reset the dev host
 
