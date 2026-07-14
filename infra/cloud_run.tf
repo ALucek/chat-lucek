@@ -74,6 +74,7 @@ resource "google_cloud_run_v2_service" "web" {
   }
 
   # Fields written by gcloud/Cloud Run, not managed here.
+  # Do NOT ignore template.revision: pinning it 409s on shape changes.
   lifecycle {
     ignore_changes = [
       client,
@@ -223,6 +224,7 @@ resource "google_cloud_run_v2_service" "api" {
   }
 
   # Fields written by gcloud/Cloud Run, not managed here.
+  # Do NOT ignore template.revision: pinning it 409s on shape changes.
   lifecycle {
     ignore_changes = [
       client,
@@ -324,6 +326,7 @@ resource "google_cloud_run_v2_service" "agent" {
   }
 
   # Fields written by gcloud/Cloud Run, not managed here.
+  # Do NOT ignore template.revision: pinning it 409s on shape changes.
   lifecycle {
     ignore_changes = [
       client,
