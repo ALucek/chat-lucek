@@ -80,7 +80,6 @@ resource "google_cloud_run_v2_service" "web" {
       client_version,
       scaling,
       template[0].containers[0].image,
-      template[0].revision,
     ]
   }
 }
@@ -231,7 +230,6 @@ resource "google_cloud_run_v2_service" "api" {
       scaling,
       template[0].containers[0].image,
       template[0].containers[0].volume_mounts,
-      template[0].revision,
     ]
   }
 
@@ -332,7 +330,6 @@ resource "google_cloud_run_v2_service" "agent" {
       client_version,
       scaling,
       template[0].containers[0].image,
-      template[0].revision,
     ]
   }
 
