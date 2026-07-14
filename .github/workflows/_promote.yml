@@ -52,8 +52,12 @@ jobs:
               echo "flip_$svc=false" >> "$GITHUB_OUTPUT"; return
             fi
             echo "$svc: ${live:-none} -> $cand"
-            echo "flip_$svc=true" >> "$GITHUB_OUTPUT"
-            echo "rev_$svc=$cand" >> "$GITHUB_OUTPUT"
+            # prev_ is the serving revision, restored if this promote fails.
+            {
+              echo "flip_$svc=true"
+              echo "rev_$svc=$cand"
+              echo "prev_$svc=$live"
+            } >> "$GITHUB_OUTPUT"
             ANY=true
           }
           plan api "${{ inputs.promote_api }}"
@@ -105,3 +109,18 @@ jobs:
       - name: Nothing to promote
         if: ${{ steps.plan.outputs.any != 'true' }}
         run: echo "dev already matches prod; nothing to promote"
+      # On failure, restore each flipped service to its pre-promote revision.
+      - name: Restore prod on failure
+        if: ${{ failure() && steps.plan.outputs.any == 'true' }}
+        run: |
+          set -uo pipefail
+          restore() {
+            svc="$1"; flip="$2"; prev="$3"
+            [ "$flip" = "true" ] && [ -n "$prev" ] || return 0
+            echo "restoring chat-$svc -> $prev"
+            gcloud run services update-traffic "chat-$svc" --region "$REGION" \
+              --to-revisions "$prev=100" || echo "WARNING: restore of chat-$svc failed"
+          }
+          restore agent "${{ steps.plan.outputs.flip_agent }}" "${{ steps.plan.outputs.prev_agent }}"
+          restore api "${{ steps.plan.outputs.flip_api }}" "${{ steps.plan.outputs.prev_api }}"
+          restore web "${{ steps.plan.outputs.flip_web }}" "${{ steps.plan.outputs.prev_web }}"
