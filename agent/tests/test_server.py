@@ -252,12 +252,33 @@ def test_make_tracer_gated_on_tracing(monkeypatch):
     assert server._make_tracer() is sentinel
 
 
+def test_make_tracer_dev_uses_dev_project(monkeypatch):
+    from src import server
+
+    captured = {}
+
+    def fake_tracer(project_name=None):
+        captured["project"] = project_name
+        return "t"
+
+    monkeypatch.setattr(server, "tracing_is_enabled", lambda: True)
+    monkeypatch.setattr(server, "LangChainTracer", fake_tracer)
+    monkeypatch.setenv("LANGSMITH_PROJECT_DEV", "chat-lucek-dev")
+
+    assert server._make_tracer(True) == "t"
+    assert captured["project"] == "chat-lucek-dev"
+
+    captured.clear()
+    assert server._make_tracer(False) == "t"
+    assert captured["project"] is None
+
+
 async def test_interrupt_closes_open_runs(monkeypatch):
     from src import server
 
     tracer = _FakeTracer(run_map={"open": _FakeRun(None)}, client=_FakeClient())
     monkeypatch.setattr(server, "agent", _FakeAgent())
-    monkeypatch.setattr(server, "_make_tracer", lambda: tracer)
+    monkeypatch.setattr(server, "_make_tracer", lambda *_: tracer)
 
     resp = await server.run(_FakeReq({"messages": [{"role": "user", "content": "hi"}]}))
     agen = resp.body_iterator

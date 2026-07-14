@@ -22,8 +22,17 @@ const (
 // agentClient streams runs from the agent service's /run SSE endpoint.
 type agentClient struct {
 	baseURL string
+	candURL string // dev host routes here; empty falls back to baseURL
 	http    *http.Client
 	token   func(context.Context) (string, error) // nil = no auth (local http)
+}
+
+// candURLFor inserts the cand tag into the base host; local http is unchanged.
+func candURLFor(base string) string {
+	if !strings.HasPrefix(base, "https://") {
+		return base
+	}
+	return strings.Replace(base, "https://", "https://cand---", 1)
 }
 
 // llmMessage is one conversation turn sent to the agent.
@@ -49,20 +58,26 @@ type runHandlers struct {
 	onMeta    func(runID string)
 }
 
-// run POSTs history to /run, streams events, and returns aggregate usage.
-// threadID groups the conversation's runs into one LangSmith thread.
-func (c *agentClient) run(ctx context.Context, msgs []llmMessage, threadID string, h runHandlers) (tokenUsage, error) {
+// run POSTs history to /run and streams events; dev hits the candidate agent.
+func (c *agentClient) run(ctx context.Context, msgs []llmMessage, threadID string, dev bool, h runHandlers) (tokenUsage, error) {
 	var usage tokenUsage
 
 	payload := map[string]any{"messages": msgs}
 	if threadID != "" {
 		payload["thread_id"] = threadID
 	}
+	url := c.baseURL
+	if dev {
+		payload["dev"] = true
+		if c.candURL != "" {
+			url = c.candURL
+		}
+	}
 	reqBody, err := json.Marshal(payload)
 	if err != nil {
 		return usage, err
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+"/run", bytes.NewReader(reqBody))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url+"/run", bytes.NewReader(reqBody))
 	if err != nil {
 		return usage, err
 	}

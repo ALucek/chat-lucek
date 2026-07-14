@@ -19,6 +19,7 @@ Everything under `/api/` requires an `Authorization: Bearer <access token>` head
 | --- | --- | --- |
 | `GET` | `/livez` | Liveness probe |
 | `GET` | `/readyz` | Readiness probe (checks the database) |
+| `GET` | `/agentz` | api-to-agent integration check (dev host only) |
 | `POST` | `/api/google` | Sign in with a Google auth code, returns tokens |
 | `POST` | `/api/magic/request` | Email a single-use magic sign-in link |
 | `POST` | `/api/magic/verify` | Verify a magic-link token, returns tokens |

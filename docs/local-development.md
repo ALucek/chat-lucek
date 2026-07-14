@@ -35,6 +35,7 @@ To sign in locally: set the three Google vars, generate the two secrets, and set
 | `PORT` | yes | API port (default 8080) |
 | `ALLOWED_ORIGIN` | no | CORS origin (default `http://localhost:3000`) |
 | `AGENT_URL` | no | Agent base URL (default `http://localhost:8081`, where `make agent-run` serves) |
+| `DEV_HOST` `AGENT_CAND_URL` | no | Prod dev/prod agent split (dev host routes to the candidate agent); no effect locally |
 | `LOG_LEVEL` | no | debug, info, warn, error (default info) |
 | `RUNS_BUDGET_DAILY` | no | Per-user rolling-24h run cap (default 20) |
 | `JWT_SECRET` | yes | Signs session tokens; `openssl rand -hex 32` |
@@ -57,7 +58,7 @@ To sign in locally: set the three Google vars, generate the two secrets, and set
 | `TAVILY_API_KEY` | yes | Web search ([tavily.com](https://tavily.com)) |
 | `LANGSMITH_API_KEY` | no | Run tracing ([smith.langchain.com](https://smith.langchain.com)); same value as the root `.env` key |
 | `LANGSMITH_TRACING` | no | `true` to send traces |
-| `LANGSMITH_ENDPOINT` `LANGSMITH_PROJECT` | no | Tracing destination |
+| `LANGSMITH_ENDPOINT` `LANGSMITH_PROJECT` `LANGSMITH_PROJECT_DEV` | no | Tracing destination (dev-host runs use the `_DEV` project) |
 | `OPENAI_API_KEY` | no | Only to publish online LLM-judge evaluators; any placeholder works |
 | `DEFAULT_MODEL` | no | Agent model (default `deepseek/deepseek-v4-flash`) |
 | `MAX_SEARCHES` | no | Web searches per agent run (default 5) |

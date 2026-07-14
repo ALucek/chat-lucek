@@ -28,7 +28,7 @@ func TestAgentRun_DispatchesNodesAndUsage(t *testing.T) {
 	var nodes []nodeFrame
 	deltas := map[string]string{}
 	ends := map[string]string{}
-	usage, err := c.run(context.Background(), []llmMessage{{Role: "user", Content: "hi"}}, "", runHandlers{
+	usage, err := c.run(context.Background(), []llmMessage{{Role: "user", Content: "hi"}}, "", false, runHandlers{
 		onNode:    func(n nodeFrame) { nodes = append(nodes, n) },
 		onDelta:   func(id, text string) { deltas[id] += text },
 		onNodeEnd: func(id string, out json.RawMessage) { ends[id] = string(out) },
@@ -62,7 +62,7 @@ func TestAgentRun_ErrorEvent(t *testing.T) {
 	defer srv.Close()
 	c := &agentClient{baseURL: srv.URL, http: srv.Client()}
 
-	if _, err := c.run(context.Background(), nil, "", runHandlers{}); err == nil || !strings.Contains(err.Error(), "boom") {
+	if _, err := c.run(context.Background(), nil, "", false, runHandlers{}); err == nil || !strings.Contains(err.Error(), "boom") {
 		t.Fatalf("want error containing boom, got %v", err)
 	}
 }
@@ -74,7 +74,7 @@ func TestAgentRun_BadStatus(t *testing.T) {
 	defer srv.Close()
 	c := &agentClient{baseURL: srv.URL, http: srv.Client()}
 
-	if _, err := c.run(context.Background(), nil, "", runHandlers{}); err == nil {
+	if _, err := c.run(context.Background(), nil, "", false, runHandlers{}); err == nil {
 		t.Fatal("want error on non-200 status")
 	}
 }
@@ -98,7 +98,7 @@ func TestAgentRun_AttachesBearerOnlyWhenTokenSet(t *testing.T) {
 			}))
 			defer srv.Close()
 			c := &agentClient{baseURL: srv.URL, http: srv.Client(), token: tc.token}
-			if _, err := c.run(context.Background(), nil, "", runHandlers{}); err != nil {
+			if _, err := c.run(context.Background(), nil, "", false, runHandlers{}); err != nil {
 				t.Fatalf("run: %v", err)
 			}
 			if gotAuth != tc.wantAuth {
@@ -118,7 +118,7 @@ func TestAgentRun_SendsThreadID(t *testing.T) {
 	defer srv.Close()
 	c := &agentClient{baseURL: srv.URL, http: srv.Client()}
 
-	if _, err := c.run(context.Background(), nil, "42", runHandlers{}); err != nil {
+	if _, err := c.run(context.Background(), nil, "42", false, runHandlers{}); err != nil {
 		t.Fatalf("run: %v", err)
 	}
 	if body["thread_id"] != "42" {
@@ -126,7 +126,7 @@ func TestAgentRun_SendsThreadID(t *testing.T) {
 	}
 
 	body = nil
-	if _, err := c.run(context.Background(), nil, "", runHandlers{}); err != nil {
+	if _, err := c.run(context.Background(), nil, "", false, runHandlers{}); err != nil {
 		t.Fatalf("run: %v", err)
 	}
 	if _, ok := body["thread_id"]; ok {
