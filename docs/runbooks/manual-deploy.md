@@ -13,7 +13,7 @@ It resolves the ref to a commit, refuses unless that commit has a passing `test`
 
 ## Verify
 
-The run verifies each service before promoting (api and web on the dev host, the agent with a live inference smoke), then confirms the production domain after the flip. No manual check is needed.
+The run verifies each service on the dev host before promoting (api `/readyz` + `/api/me`, web homepage, the agent via the api's `/agentz` integration check), then confirms the production domain after the flip. No manual check is needed.
 
 ## Notes
 

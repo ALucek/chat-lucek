@@ -19,7 +19,8 @@ The API reaches the agent at `AGENT_URL` (default `http://localhost:8081`).
 | `GET`  | `/healthz` | Liveness probe                                    |
 
 Request body: `{"messages": [{"role": "user", "content": "..."}], "overrides": {...}}`.
-`overrides` is optional (`model`, `max_searches`, `max_tokens`).
+`overrides` is optional (`model`, `max_searches`, `max_tokens`). An optional `dev`
+bool traces the run to `LANGSMITH_PROJECT_DEV` instead of the default project.
 
 ## Run events
 
