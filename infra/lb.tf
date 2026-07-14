@@ -126,8 +126,9 @@ resource "google_compute_url_map" "lb" {
       service = google_compute_backend_service.api_cand.id
     }
 
+    # /agentz is the dev-only api-to-agent integration check.
     path_rule {
-      paths   = ["/readyz"]
+      paths   = ["/readyz", "/agentz"]
       service = google_compute_backend_service.api_cand.id
     }
   }
