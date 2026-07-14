@@ -41,4 +41,29 @@ describe('Composer', () => {
     await userEvent.click(screen.getByRole('button', { name: /stop/i }));
     expect(onStop).toHaveBeenCalled();
   });
+
+  function mockPointer(fine: boolean) {
+    window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+      matches: query === '(pointer: fine)' ? fine : false,
+      media: query,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    })) as unknown as typeof window.matchMedia;
+  }
+
+  it('autoFocus focuses the box on a fine-pointer (desktop) device', () => {
+    mockPointer(true);
+    render(
+      <Composer onSend={vi.fn()} onStop={vi.fn()} sending={false} autoFocus />,
+    );
+    expect(screen.getByRole('textbox')).toHaveFocus();
+  });
+
+  it('autoFocus does not focus on a coarse-pointer (touch) device', () => {
+    mockPointer(false);
+    render(
+      <Composer onSend={vi.fn()} onStop={vi.fn()} sending={false} autoFocus />,
+    );
+    expect(screen.getByRole('textbox')).not.toHaveFocus();
+  });
 });

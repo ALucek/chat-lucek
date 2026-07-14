@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { autoSize } from '@/lib/autosize';
@@ -9,14 +9,27 @@ export function Composer({
   onSend,
   onStop,
   sending,
+  autoFocus = false,
 }: {
   onSend: (text: string) => void;
   onStop: () => void;
   sending: boolean;
+  autoFocus?: boolean;
 }) {
   const [text, setText] = useState('');
   const [expanded, setExpanded] = useState(false);
   const ref = useRef<HTMLTextAreaElement>(null);
+
+  // Autofocus on desktop; skip touch so the keyboard doesn't pop open.
+  const attachRef = useCallback(
+    (node: HTMLTextAreaElement | null) => {
+      ref.current = node;
+      if (node && autoFocus && window.matchMedia('(pointer: fine)').matches) {
+        node.focus();
+      }
+    },
+    [autoFocus],
+  );
 
   function submit() {
     const trimmed = text.trim();
@@ -40,7 +53,7 @@ export function Composer({
         className={`mx-auto flex w-full max-w-2xl gap-2 ${expanded ? 'items-end' : 'items-center'}`}
       >
         <Textarea
-          ref={ref}
+          ref={attachRef}
           value={text}
           onChange={(e) => {
             setText(e.target.value);
