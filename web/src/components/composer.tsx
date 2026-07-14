@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { autoSize } from '@/lib/autosize';
@@ -9,27 +9,31 @@ export function Composer({
   onSend,
   onStop,
   sending,
-  autoFocus = false,
+  captureTyping = false,
 }: {
   onSend: (text: string) => void;
   onStop: () => void;
   sending: boolean;
-  autoFocus?: boolean;
+  captureTyping?: boolean;
 }) {
   const [text, setText] = useState('');
   const [expanded, setExpanded] = useState(false);
   const ref = useRef<HTMLTextAreaElement>(null);
 
-  // Autofocus on desktop; skip touch so the keyboard doesn't pop open.
-  const attachRef = useCallback(
-    (node: HTMLTextAreaElement | null) => {
-      ref.current = node;
-      if (node && autoFocus && window.matchMedia('(pointer: fine)').matches) {
-        node.focus();
-      }
-    },
-    [autoFocus],
-  );
+  // Start typing anywhere (nothing else focused) and the keystroke lands here.
+  useEffect(() => {
+    if (!captureTyping) return;
+    function focusOnType(e: KeyboardEvent) {
+      const el = ref.current;
+      if (!el || el.disabled) return;
+      if (e.metaKey || e.ctrlKey || e.altKey || e.key.length !== 1) return;
+      const active = document.activeElement;
+      if (active && active !== document.body) return;
+      el.focus();
+    }
+    document.addEventListener('keydown', focusOnType);
+    return () => document.removeEventListener('keydown', focusOnType);
+  }, [captureTyping]);
 
   function submit() {
     const trimmed = text.trim();
@@ -53,7 +57,7 @@ export function Composer({
         className={`mx-auto flex w-full max-w-2xl gap-2 ${expanded ? 'items-end' : 'items-center'}`}
       >
         <Textarea
-          ref={attachRef}
+          ref={ref}
           value={text}
           onChange={(e) => {
             setText(e.target.value);

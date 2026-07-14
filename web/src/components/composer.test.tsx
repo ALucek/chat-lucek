@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Composer } from './composer';
 
@@ -42,28 +42,39 @@ describe('Composer', () => {
     expect(onStop).toHaveBeenCalled();
   });
 
-  function mockPointer(fine: boolean) {
-    window.matchMedia = vi.fn().mockImplementation((query: string) => ({
-      matches: query === '(pointer: fine)' ? fine : false,
-      media: query,
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-    })) as unknown as typeof window.matchMedia;
-  }
-
-  it('autoFocus focuses the box on a fine-pointer (desktop) device', () => {
-    mockPointer(true);
+  it('captureTyping focuses the box when typing starts with nothing focused', () => {
     render(
-      <Composer onSend={vi.fn()} onStop={vi.fn()} sending={false} autoFocus />,
+      <Composer
+        onSend={vi.fn()}
+        onStop={vi.fn()}
+        sending={false}
+        captureTyping
+      />,
     );
-    expect(screen.getByRole('textbox')).toHaveFocus();
+    const box = screen.getByRole('textbox');
+    expect(box).not.toHaveFocus();
+    fireEvent.keyDown(document.body, { key: 'h' });
+    expect(box).toHaveFocus();
   });
 
-  it('autoFocus does not focus on a coarse-pointer (touch) device', () => {
-    mockPointer(false);
+  it('captureTyping ignores shortcut keys and non-printable keys', () => {
     render(
-      <Composer onSend={vi.fn()} onStop={vi.fn()} sending={false} autoFocus />,
+      <Composer
+        onSend={vi.fn()}
+        onStop={vi.fn()}
+        sending={false}
+        captureTyping
+      />,
     );
+    const box = screen.getByRole('textbox');
+    fireEvent.keyDown(document.body, { key: 'k', metaKey: true });
+    fireEvent.keyDown(document.body, { key: 'Tab' });
+    expect(box).not.toHaveFocus();
+  });
+
+  it('does not capture typing when the prop is off', () => {
+    render(<Composer onSend={vi.fn()} onStop={vi.fn()} sending={false} />);
+    fireEvent.keyDown(document.body, { key: 'h' });
     expect(screen.getByRole('textbox')).not.toHaveFocus();
   });
 });
