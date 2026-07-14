@@ -22,7 +22,7 @@ permissions:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    environment: production
+    environment: dev
     permissions:
       contents: read
       id-token: write # WIF auth to GCP
@@ -150,27 +150,8 @@ jobs:
             || { echo "no non-empty delta"; exit 1; }
           echo "$out" | grep -A1 '^event: usage' \
             | grep -Eq '"output": *[1-9]' || { echo "usage output not > 0"; exit 1; }
-      # A verified candidate takes 100% traffic; a failed one stopped above.
-      - name: Promote agent
-        if: ${{ inputs.deploy_agent }}
-        run: gcloud run services update-traffic chat-agent --region "${{ vars.GCP_REGION }}" --to-latest
-      - name: Promote api
-        if: ${{ inputs.deploy_api }}
-        run: gcloud run services update-traffic chat-api --region "${{ vars.GCP_REGION }}" --to-latest
-      - name: Promote web
-        if: ${{ inputs.deploy_web }}
-        run: gcloud run services update-traffic chat-web --region "${{ vars.GCP_REGION }}" --to-latest
-      - name: Post-flip smoke
-        run: |
-          set -euo pipefail
-          web=$(curl -fsS -o /dev/null -w '%{http_code}' "https://${{ vars.DOMAIN }}")
-          test "$web" = "200" || { echo "web returned $web"; exit 1; }
-          ready=$(curl -s -o /dev/null -w '%{http_code}' "https://${{ vars.DOMAIN }}/readyz")
-          test "$ready" = "200" || { echo "/readyz returned $ready"; exit 1; }
-          api=$(curl -s -o /dev/null -w '%{http_code}' "https://${{ vars.DOMAIN }}/api/me")
-          test "$api" = "401" || { echo "api /api/me returned $api"; exit 1; }
 
-      # Run after deploy so an attestation hiccup never blocks a release.
+      # Run last so an attestation hiccup never blocks the dev deploy.
       - name: Generate api SBOM
         if: ${{ inputs.deploy_api }}
         uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0

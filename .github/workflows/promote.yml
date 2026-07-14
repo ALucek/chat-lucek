@@ -1,0 +1,23 @@
+name: promote
+# Release the current dev snapshot to prod: every 2h and on demand.
+on:
+  schedule:
+    - cron: "0 */2 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write # ceiling for the called _promote workflow (WIF)
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  promote:
+    uses: ./.github/workflows/_promote.yml
+    with:
+      promote_api: true
+      promote_web: true
+      promote_agent: true
+    secrets: inherit
