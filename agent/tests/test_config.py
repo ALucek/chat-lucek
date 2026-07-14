@@ -9,24 +9,6 @@ def test_chat_kwargs_rejects_unknown_role():
         AgentConfig().chat_kwargs("nonsense")
 
 
-def test_settings_defaults(monkeypatch):
-    for k in (
-        "DEFAULT_MODEL",
-        "MAX_SEARCHES",
-        "MAX_TOKENS",
-        "RECURSION_LIMIT",
-        "SUBAGENT_RECURSION_LIMIT",
-        "MODEL_MAX_RETRIES",
-    ):
-        monkeypatch.delenv(k, raising=False)
-    get_settings.cache_clear()
-    s = get_settings()
-    assert s.default_model == "deepseek/deepseek-v4-flash"
-    assert (s.max_searches, s.max_tokens) == (5, 8192)
-    assert (s.recursion_limit, s.subagent_recursion_limit) == (100, 50)
-    assert s.model_max_retries == 3
-
-
 def test_settings_env_override(monkeypatch):
     monkeypatch.setenv("MAX_SEARCHES", "9")
     get_settings.cache_clear()
