@@ -1,6 +1,6 @@
 # Deployment
 
-The infrastructure is Terraform-managed on GCP, and GitHub Actions builds and ships to Cloud Run on every push to `main`. The first section covers that ongoing pipeline; the second is a full runbook for standing the project up from nothing.
+The infrastructure is Terraform-managed on GCP. On every push to `main`, GitHub Actions builds the changed services and deploys them to a dev environment; production is promoted from dev on a schedule. The first section covers that ongoing pipeline; the second is a full runbook for standing the project up from nothing.
 
 ## Pipeline
 
