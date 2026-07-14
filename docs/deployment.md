@@ -13,13 +13,13 @@ flowchart TB
     changes --> build["Build + push images<br/>(Artifact Registry)"]
     build --> migrate["Run migrate job<br/>(if api changed)"]
     migrate --> cand["Deploy candidate<br/>--no-traffic --tag cand"]
-    cand --> verify["Verify on dev host<br/>(IAP)"]
+    cand --> verify["Verify candidates<br/>(dev host + agent smoke)"]
     verify --> promote["Promote --to-latest"]
     promote --> smoke["Post-flip smoke"]
     smoke --> attest["Publish SBOM + provenance"]
 ```
 
-The deploy is blue-green. Images are tagged with the commit SHA, and each changed service is first deployed as a candidate revision with no traffic and a `cand` tag. The candidate must pass its Cloud Run startup probe to become ready, then it is verified through the private dev host (`/readyz` and an unauthenticated `/api/me` for the api, the homepage for web). Only a passing candidate is promoted to 100% traffic; one that fails its probe or the dev-host checks is never promoted, so the previous revision keeps serving and there is nothing to roll back. A post-flip smoke on the production domain confirms the promotion took effect.
+The deploy is blue-green. Images are tagged with the commit SHA, and each changed service is first deployed as a candidate revision with no traffic and a `cand` tag. The candidate must pass its Cloud Run startup probe to become ready, then it is verified: the api and web candidates through the private dev host (`/readyz` and an unauthenticated `/api/me` for the api, the homepage for web), and the agent candidate with a live inference smoke. The agent smoke posts a real chat to the candidate's tagged URL with an identity token and requires a streamed answer with non-zero token usage, so a revision with a broken model key, graph, or config fails here rather than on the first user message. Only a passing candidate is promoted to 100% traffic; one that fails its probe or these checks is never promoted, so the previous revision keeps serving and there is nothing to roll back. A post-flip smoke on the production domain confirms the promotion took effect.
 
 To deploy a branch or an earlier commit by hand without merging, dispatch [manual-deploy.yml](../.github/workflows/manual-deploy.yml); see the [manual deploy runbook](runbooks/manual-deploy.md). It refuses any commit that has not passed CI.
 
