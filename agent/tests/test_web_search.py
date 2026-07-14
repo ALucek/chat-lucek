@@ -1,4 +1,4 @@
-from src.tools.web_search import build_tavily_tool, process_search_results
+from src.tools.web_search import build_web_search_tool, process_search_results
 
 
 def test_filters_below_relevance_threshold():
@@ -32,8 +32,6 @@ def test_empty_results_still_has_header():
     assert "Search results for: x" in out
 
 
-def test_build_tavily_tool_naming(monkeypatch):
-    monkeypatch.setenv("TAVILY_API_KEY", "test")
-    tool = build_tavily_tool()
-    assert tool.name == "internet_search"
-    assert "Internet Search" in tool.description
+def test_tool_exposes_only_query():
+    tool = build_web_search_tool()
+    assert list(tool.args.keys()) == ["query"]
