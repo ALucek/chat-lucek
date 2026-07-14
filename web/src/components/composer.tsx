@@ -29,7 +29,10 @@ export function Composer({
       if (e.metaKey || e.ctrlKey || e.altKey || e.key.length !== 1) return;
       const active = document.activeElement;
       if (active && active !== document.body) return;
+      // Insert the char ourselves so it lands at the end deterministically.
+      e.preventDefault();
       el.focus();
+      setText((prev) => prev + e.key);
     }
     document.addEventListener('keydown', focusOnType);
     return () => document.removeEventListener('keydown', focusOnType);

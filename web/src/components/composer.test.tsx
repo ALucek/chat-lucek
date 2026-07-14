@@ -64,6 +64,7 @@ describe('Composer', () => {
     expect(box).not.toHaveFocus();
     fireEvent.keyDown(document.body, { key: 'h' });
     expect(box).toHaveFocus();
+    expect(box).toHaveValue('h');
   });
 
   it('captureTyping ignores shortcut keys and non-printable keys', () => {
