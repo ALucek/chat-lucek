@@ -8,7 +8,12 @@ from langchain_core.messages import (
 from langgraph.graph.message import REMOVE_ALL_MESSAGES
 
 from src.middleware import summarization as summ
-from src.middleware.summarization import SUMMARY_PREFIX, _split, compact
+from src.middleware.summarization import (
+    SUMMARY_PREFIX,
+    _newest_durable_id,
+    _split,
+    compact,
+)
 
 
 class _FakeSummarizer:
@@ -23,6 +28,15 @@ class _FakeSummarizer:
 class _Boom:
     async def ainvoke(self, messages, config=None):
         raise RuntimeError("summarizer down")
+
+
+class _CapturingSummarizer:
+    def __init__(self):
+        self.config = None
+
+    async def ainvoke(self, messages, config=None):
+        self.config = config
+        return AIMessage(content="THE SUMMARY")
 
 
 def _cfg(threshold, keep):
@@ -112,6 +126,36 @@ async def test_summarizer_failure_falls_back_to_placeholder(monkeypatch):
     assert isinstance(result[0], RemoveMessage)
     assert result[1].content == "[earlier conversation omitted]"
     assert [m.content for m in result[2:]] == ["c", "d"]
+
+
+def test_newest_durable_id_skips_synthetic_and_generated():
+    head = [
+        HumanMessage(content="s", id=None),
+        HumanMessage(content="a", id="7"),
+        AIMessage(content="b", id="lc_run-abc-0"),
+        AIMessage(content="c", id="9"),
+        AIMessage(content="d", id="lc_run-xyz-0"),
+    ]
+    assert _newest_durable_id(head) == "9"
+
+
+def test_newest_durable_id_none_when_no_durable():
+    head = [HumanMessage(content="s", id=None), AIMessage(content="x", id="lc_run-a-0")]
+    assert _newest_durable_id(head) is None
+
+
+async def test_compact_rides_watermark_on_summarizer_metadata(monkeypatch):
+    fake = _CapturingSummarizer()
+    monkeypatch.setattr(summ, "build_chat_model", lambda cfg, role=None, **kw: fake)
+    msgs = [
+        HumanMessage(content="a", id="1"),
+        AIMessage(content="b", id="2"),
+        HumanMessage(content="c", id="3"),
+        AIMessage(content="d", id="4"),
+    ]
+    await compact({"messages": msgs}, _cfg(1, 2))
+    assert "summarization" in fake.config["tags"]
+    assert fake.config["metadata"]["summary_through_id"] == "2"
 
 
 def test_split_repairs_leading_tool_message():

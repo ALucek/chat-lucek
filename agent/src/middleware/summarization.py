@@ -22,10 +22,21 @@ def _split(messages: list, keep: int) -> tuple[list, list]:
     return head, tail
 
 
-async def _summarize(head, cfg: AgentConfig, config: RunnableConfig) -> HumanMessage:
+def _newest_durable_id(head: list) -> str | None:
+    for m in reversed(head):
+        mid = getattr(m, "id", None)
+        if isinstance(mid, str) and mid.isdigit():
+            return mid
+    return None
+
+
+async def _summarize(
+    head, cfg: AgentConfig, config: RunnableConfig, wid: str | None
+) -> HumanMessage:
     model = build_chat_model(cfg, role="summarizer")
     prompt = [*head, HumanMessage(get_summary_prompt())]
-    cfg_tagged = {**(config or {}), "tags": ["summarization"]}
+    meta = {**((config or {}).get("metadata") or {}), "summary_through_id": wid}
+    cfg_tagged = {**(config or {}), "tags": ["summarization"], "metadata": meta}
     resp = await model.ainvoke(prompt, config=cfg_tagged)
     return HumanMessage(SUMMARY_PREFIX + resp.text)
 
@@ -38,8 +49,9 @@ async def compact(state: dict, config: RunnableConfig) -> dict:
     head, tail = _split(messages, cfg.summary_keep)
     if not head:
         return {}
+    wid = _newest_durable_id(head)
     try:
-        kept = [await _summarize(head, cfg, config), *tail]
+        kept = [await _summarize(head, cfg, config, wid), *tail]
     except Exception:  # noqa: BLE001
         logger.warning("summarization failed", exc_info=True)
         kept = [HumanMessage("[earlier conversation omitted]"), *tail]
