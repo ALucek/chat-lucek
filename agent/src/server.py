@@ -110,9 +110,14 @@ async def run(req: Request) -> StreamingResponse:
             if tracer is not None:
                 _close_open_runs(tracer)
             raise
-        except Exception as exc:  # noqa: BLE001
+        except Exception:  # noqa: BLE001
             logger.exception("agent run failed")
-            yield _sse({"event": "error", "data": {"message": str(exc)}})
+            yield _sse(
+                {
+                    "event": "error",
+                    "data": {"message": "The agent run failed. Please try again."},
+                }
+            )
         yield _sse({"event": "end", "data": {}})
 
     return StreamingResponse(gen(), media_type="text/event-stream")

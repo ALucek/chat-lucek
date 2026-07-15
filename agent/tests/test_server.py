@@ -96,7 +96,9 @@ async def test_run_emits_error_then_end_on_failure(raising_app):
         r = await c.post("/run", json={"messages": [{"role": "user", "content": "hi"}]})
         events = _parse_sse(r.text)
         assert [e for e, _ in events] == ["error", "end"]
-        assert "boom" in events[0][1]["message"]
+        # Generic message only; the raw exception text must not leak to the client.
+        assert events[0][1]["message"] == "The agent run failed. Please try again."
+        assert "boom" not in events[0][1]["message"]
 
 
 async def test_run_forwards_thread_id_to_run_config(monkeypatch):
