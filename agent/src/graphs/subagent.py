@@ -7,6 +7,7 @@ from langgraph.graph import END, START, StateGraph
 from src.config import AgentConfig, get_settings
 from src.prompts.subagent_prompt import get_subagent_system_prompt
 from src.state import SubagentState
+from src.middleware.summarization import compact
 from src.tools.web_search import build_web_search_tool
 from src.utils import build_chat_model, build_messages
 
@@ -74,15 +75,17 @@ async def web_search_node(state: SubagentState, config: RunnableConfig) -> dict:
 
 
 builder = StateGraph(SubagentState)
+builder.add_node("compact", compact)
 builder.add_node("subagent", subagent_node)
 builder.add_node("web_search", web_search_node)
-builder.add_edge(START, "subagent")
+builder.add_edge(START, "compact")
+builder.add_edge("compact", "subagent")
 builder.add_conditional_edges(
     "subagent",
     route_subagent,
     {"tools": "web_search", "end": END},
 )
-builder.add_edge("web_search", "subagent")
+builder.add_edge("web_search", "compact")
 
 subagent = builder.compile().with_config(
     recursion_limit=get_settings().subagent_recursion_limit

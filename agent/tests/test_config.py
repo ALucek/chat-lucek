@@ -56,3 +56,28 @@ def test_role_override_beats_default_max_tokens(monkeypatch):
     )
     model = build_chat_model(cfg, role="agent")
     assert model.max_tokens == 256
+
+
+def test_summarizer_role_uses_default_model():
+    kwargs = AgentConfig().chat_kwargs("summarizer")
+    assert kwargs["model"] == get_settings().default_model
+
+
+def test_build_run_config_summary_defaults():
+    conf = build_run_config({})["configurable"]
+    assert conf["summary_threshold"] == get_settings().summary_threshold
+    assert conf["summary_keep"] == get_settings().summary_keep
+
+
+def test_build_run_config_maps_summary_overrides():
+    conf = build_run_config({"summary_threshold": 5, "summary_keep": 3})["configurable"]
+    assert conf["summary_threshold"] == 5
+    assert conf["summary_keep"] == 3
+
+
+def test_agent_config_reads_summary_fields():
+    cfg = AgentConfig.from_runnable_config(
+        {"configurable": {"summary_threshold": 7, "summary_keep": 2}}
+    )
+    assert cfg.summary_threshold == 7
+    assert cfg.summary_keep == 2

@@ -88,3 +88,12 @@ async def test_subagent_node_wraps_model_response(monkeypatch):
         {"messages": [HumanMessage(content="hi")], "search_count": 0}, {}
     )
     assert [m.content for m in out["messages"]] == ["findings"]
+
+
+def test_compact_node_wired_before_subagent():
+    g = sub_mod.subagent.get_graph()
+    assert "compact" in g.nodes
+    edges = {(e.source, e.target) for e in g.edges}
+    assert ("__start__", "compact") in edges
+    assert ("compact", "subagent") in edges
+    assert ("web_search", "compact") in edges

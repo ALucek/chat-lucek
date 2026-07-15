@@ -23,6 +23,8 @@ export function NodeRow({
     if (!node.text?.trim()) return null;
     return <TextBlock node={node} nested={nested} streaming={caret} />;
   }
+  // compaction and unknown types are inert; the seam for later UI.
+  if (node.type !== 'tool') return null;
   // set_todos renders in the docked PlanDock, not inline.
   if (node.name === 'set_todos') return null;
   const active = !!turnStreaming && node.output === undefined;

@@ -6,6 +6,7 @@ from langgraph.prebuilt import ToolNode
 from src.config import AgentConfig, get_settings
 from src.prompts.agent_prompt import get_agent_system_prompt
 from src.state import AgentState
+from src.middleware.summarization import compact
 from src.tools.subagent_tool import build_subagent_tool
 from src.tools.todo_list import build_todo_tool
 from src.utils import build_chat_model, build_messages
@@ -30,11 +31,13 @@ def route_agent(state: AgentState) -> str:
 
 
 builder = StateGraph(AgentState)
+builder.add_node("compact", compact)
 builder.add_node("agent", agent_node)
 builder.add_node("tools", ToolNode(tools))
 
-builder.add_edge(START, "agent")
+builder.add_edge(START, "compact")
+builder.add_edge("compact", "agent")
 builder.add_conditional_edges("agent", route_agent, {"tools": "tools", "end": END})
-builder.add_edge("tools", "agent")
+builder.add_edge("tools", "compact")
 
 agent = builder.compile().with_config(recursion_limit=get_settings().recursion_limit)

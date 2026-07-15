@@ -19,6 +19,8 @@ class Settings(BaseSettings):
     recursion_limit: int = 100
     subagent_recursion_limit: int = 50
     model_max_retries: int = 3
+    summary_threshold: int = 100_000
+    summary_keep: int = 20
 
 
 @lru_cache
@@ -44,12 +46,23 @@ class AgentConfig(BaseModel):
     subagent: RoleConfig = Field(
         default_factory=RoleConfig, description="Overrides for the subagent."
     )
+    summarizer: RoleConfig = Field(
+        default_factory=RoleConfig, description="Overrides for the summarizer."
+    )
     max_searches: int = Field(
         default_factory=lambda: get_settings().max_searches,
         description="Hard limit on the number of web searches per subagent run.",
     )
+    summary_threshold: int = Field(
+        default_factory=lambda: get_settings().summary_threshold,
+        description="Approx-token context size that triggers compaction.",
+    )
+    summary_keep: int = Field(
+        default_factory=lambda: get_settings().summary_keep,
+        description="Recent messages kept verbatim when compacting.",
+    )
 
-    ROLES: ClassVar[set[str]] = {"agent", "subagent"}
+    ROLES: ClassVar[set[str]] = {"agent", "subagent", "summarizer"}
 
     def chat_kwargs(self, role: str) -> dict[str, Any]:
         if role not in self.ROLES:
@@ -79,6 +92,10 @@ def build_run_config(
         role["max_tokens"] = overrides["max_tokens"]
     configurable: dict[str, Any] = {
         "max_searches": overrides.get("max_searches", settings.max_searches),
+        "summary_threshold": overrides.get(
+            "summary_threshold", settings.summary_threshold
+        ),
+        "summary_keep": overrides.get("summary_keep", settings.summary_keep),
     }
     if role:
         configurable["agent"] = dict(role)

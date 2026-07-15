@@ -187,7 +187,7 @@ export interface Conversation {
 export interface RunNode {
   id: string;
   parent_id: string | null;
-  type: 'reasoning' | 'text' | 'tool';
+  type: 'reasoning' | 'text' | 'tool' | 'compaction';
   text?: string;
   name?: string;
   input?: unknown;

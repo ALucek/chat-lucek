@@ -63,6 +63,8 @@ To sign in locally: set the three Google vars, generate the two secrets, and set
 | `DEFAULT_MODEL` | no | Agent model (default `deepseek/deepseek-v4-flash`) |
 | `MAX_SEARCHES` | no | Web searches per agent run (default 5) |
 | `MAX_TOKENS` | no | Max output tokens per model call (default 8192) |
+| `SUMMARY_THRESHOLD` | no | Approx-token context size that triggers conversation compaction (default 100000) |
+| `SUMMARY_KEEP` | no | Recent messages kept verbatim when compacting (default 20) |
 | `RECURSION_LIMIT` `SUBAGENT_RECURSION_LIMIT` | no | LangGraph recursion caps (defaults 100 and 50) |
 | `MODEL_MAX_RETRIES` | no | Retries per model call (default 3) |
 

@@ -42,3 +42,12 @@ async def test_agent_node_wraps_model_response(monkeypatch):
     )
     out = await agent_mod.agent_node({"messages": [HumanMessage(content="hi")]}, {})
     assert [m.content for m in out["messages"]] == ["answer"]
+
+
+def test_compact_node_wired_before_agent():
+    g = agent_mod.agent.get_graph()
+    assert "compact" in g.nodes
+    edges = {(e.source, e.target) for e in g.edges}
+    assert ("__start__", "compact") in edges
+    assert ("compact", "agent") in edges
+    assert ("tools", "compact") in edges
