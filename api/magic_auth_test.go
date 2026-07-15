@@ -1,11 +1,59 @@
 package main
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 )
+
+func TestLinkBaseFor(t *testing.T) {
+	a := &Auth{
+		linkBase:       "https://chat.lucek.ai",
+		allowedOrigins: []string{"https://chat.lucek.ai", "https://dev.chat.lucek.ai"},
+	}
+	if got := a.linkBaseFor("https://dev.chat.lucek.ai"); got != "https://dev.chat.lucek.ai" {
+		t.Errorf("allowed origin: want it echoed, got %q", got)
+	}
+	if got := a.linkBaseFor("https://evil.example"); got != "https://chat.lucek.ai" {
+		t.Errorf("unlisted origin: want primary fallback, got %q", got)
+	}
+	if got := a.linkBaseFor(""); got != "https://chat.lucek.ai" {
+		t.Errorf("empty origin: want primary fallback, got %q", got)
+	}
+}
+
+func TestMagicRequest_LinkUsesRequestOrigin(t *testing.T) {
+	resetDB(t)
+	fm := newFakeMailer()
+	auth := &Auth{
+		pool: testPool, secret: testSecret, signupOpen: true, mailer: fm,
+		linkBase:       "https://chat.lucek.ai",
+		allowedOrigins: []string{"https://chat.lucek.ai", "https://dev.chat.lucek.ai"},
+	}
+	chat := &Chat{pool: testPool, runsBudget: testRunsBudget, usageSecret: testUsageSecret}
+	mux := newMux(func(ctx context.Context) error { return Healthy(ctx, testPool) }, auth, chat, &Account{pool: testPool})
+
+	body, _ := json.Marshal(map[string]string{"email": "dev@gmail.com"})
+	req := httptest.NewRequest(http.MethodPost, "/api/magic/request", bytes.NewReader(body))
+	req.Header.Set("Origin", "https://dev.chat.lucek.ai")
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("want 200, got %d (%s)", rec.Code, rec.Body)
+	}
+	link, ok := fm.last("dev@gmail.com")
+	if !ok {
+		t.Fatal("expected a link to be sent")
+	}
+	if !strings.HasPrefix(link, "https://dev.chat.lucek.ai/auth/magic?token=") {
+		t.Fatalf("link should use the dev origin, got %q", link)
+	}
+}
 
 // requestAndToken drives a magic request and returns the raw token.
 func requestAndToken(t *testing.T, mux http.Handler, fm *fakeMailer, email string) string {

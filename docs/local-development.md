@@ -35,7 +35,7 @@ To sign in locally: set the three Google vars, generate the two secrets, and set
 | `PORT` | yes | API port (default 8080) |
 | `ALLOWED_ORIGIN` | no | CORS origin (default `http://localhost:3000`) |
 | `AGENT_URL` | no | Agent base URL (default `http://localhost:8081`, where `make agent-run` serves) |
-| `DEV_HOST` `AGENT_CAND_URL` | no | Prod dev/prod agent split (dev host routes to the candidate agent); no effect locally |
+| `DEV_HOST` `AGENT_CAND_URL` | no | Prod dev/prod agent split (dev host routes to the candidate agent); `DEV_HOST` also allowlists `https://<DEV_HOST>` for CORS/origin checks. No effect locally |
 | `LOG_LEVEL` | no | debug, info, warn, error (default info) |
 | `RUNS_BUDGET_DAILY` | no | Per-user rolling-24h run cap (default 20) |
 | `JWT_SECRET` | yes | Signs session tokens; `openssl rand -hex 32` |

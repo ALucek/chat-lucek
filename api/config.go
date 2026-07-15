@@ -23,6 +23,7 @@ type Config struct {
 	AgentCandURL       string
 	DevHost            string
 	AllowedOrigin      string
+	AllowedOrigins     []string
 	DatabaseURL        string
 	LogLevel           string
 	RunsBudgetDaily    int
@@ -110,6 +111,12 @@ func LoadConfig() (Config, error) {
 	// The real mailer needs a verified sender address.
 	if cfg.ResendAPIKey != "" && cfg.MagicLinkFrom == "" {
 		return Config{}, fmt.Errorf("MAGIC_LINK_FROM must be set when RESEND_API_KEY is set")
+	}
+
+	// The dev host shares this service; allow its origin too (from DEV_HOST).
+	cfg.AllowedOrigins = []string{cfg.AllowedOrigin}
+	if cfg.DevHost != "" {
+		cfg.AllowedOrigins = append(cfg.AllowedOrigins, "https://"+cfg.DevHost)
 	}
 
 	return cfg, nil

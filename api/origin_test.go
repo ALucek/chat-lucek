@@ -6,14 +6,27 @@ import (
 	"testing"
 )
 
+var originTestAllowed = []string{"https://chat.lucek.ai", "https://dev.chat.lucek.ai"}
+
 func originTestHandler() (http.Handler, *bool) {
 	called := false
-	h := withOriginCheck("https://chat.lucek.ai",
+	h := withOriginCheck(originTestAllowed,
 		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			called = true
 			w.WriteHeader(http.StatusOK)
 		}))
 	return h, &called
+}
+
+func TestOriginCheck_AllowsSecondOrigin(t *testing.T) {
+	h, called := originTestHandler()
+	r := httptest.NewRequest(http.MethodPost, "/api/refresh", nil)
+	r.Header.Set("Origin", "https://dev.chat.lucek.ai")
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, r)
+	if rec.Code != http.StatusOK || !*called {
+		t.Fatalf("dev origin should pass; code=%d called=%v", rec.Code, *called)
+	}
 }
 
 func TestOriginCheck_AllowsMatchingPost(t *testing.T) {
