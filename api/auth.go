@@ -17,14 +17,23 @@ import (
 
 // Auth groups the auth handlers and middleware with their dependencies.
 type Auth struct {
-	pool         *pgxpool.Pool
-	secret       []byte
-	verify       googleVerifier
-	exchange     googleExchanger
-	signupOpen   bool
-	mailer       mailer
-	linkBase     string
-	magicLimiter *limiter
+	pool           *pgxpool.Pool
+	secret         []byte
+	verify         googleVerifier
+	exchange       googleExchanger
+	signupOpen     bool
+	mailer         mailer
+	linkBase       string
+	allowedOrigins []string
+	magicLimiter   *limiter
+}
+
+// linkBaseFor picks the request origin when allowed, else the primary base.
+func (a *Auth) linkBaseFor(origin string) string {
+	if originAllowed(a.allowedOrigins, origin) {
+		return origin
+	}
+	return a.linkBase
 }
 
 type ctxKey string

@@ -57,7 +57,7 @@ func main() {
 
 	check := func(ctx context.Context) error { return Healthy(ctx, pool) }
 
-	auth := &Auth{pool: pool, secret: []byte(cfg.JWTSecret), verify: selectGoogleVerifier(cfg), exchange: selectGoogleExchanger(cfg), signupOpen: cfg.SignupOpen, mailer: selectMailer(cfg), linkBase: cfg.AllowedOrigin}
+	auth := &Auth{pool: pool, secret: []byte(cfg.JWTSecret), verify: selectGoogleVerifier(cfg), exchange: selectGoogleExchanger(cfg), signupOpen: cfg.SignupOpen, mailer: selectMailer(cfg), linkBase: cfg.AllowedOrigin, allowedOrigins: cfg.AllowedOrigins}
 	candURL := cfg.AgentCandURL
 	if candURL == "" {
 		candURL = candURLFor(cfg.AgentURL)
@@ -82,7 +82,7 @@ func main() {
 
 	mux := newMux(check, auth, chat, account)
 
-	handler := withRequestID(withLogging(withRecover(withSecurityHeaders(withCORS(cfg.AllowedOrigin, withOriginCheck(cfg.AllowedOrigin, withMaxBody(withMaintenance(cfg.Maintenance, mux))))))))
+	handler := withRequestID(withLogging(withRecover(withSecurityHeaders(withCORS(cfg.AllowedOrigins, withOriginCheck(cfg.AllowedOrigins, withMaxBody(withMaintenance(cfg.Maintenance, mux))))))))
 	server := newServer(":"+cfg.Port, handler)
 
 	go func() {

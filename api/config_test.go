@@ -15,7 +15,7 @@ func setAllEnv(t *testing.T) {
 	t.Setenv("USAGE_HASH_SECRET", "test-usage-secret-at-least-32-bytes-xx")
 	// Clear optional vars so a developer's .env can't leak into default assertions.
 	for _, k := range []string{
-		"AGENT_URL", "ALLOWED_ORIGIN",
+		"AGENT_URL", "ALLOWED_ORIGIN", "DEV_HOST",
 		"LOG_LEVEL", "DATABASE_URL", "RUNS_BUDGET_DAILY", "OWNER_EMAIL",
 		"GOOGLE_AUTH_FAKE", "SIGNUP_OPEN", "MAINTENANCE_MODE",
 		"RESEND_API_KEY", "MAGIC_LINK_FROM",
@@ -173,6 +173,36 @@ func TestLoadConfig_MaintenanceMode(t *testing.T) {
 	}
 	if !cfg.Maintenance {
 		t.Fatal("MAINTENANCE_MODE=1 should set cfg.Maintenance")
+	}
+}
+
+func TestLoadConfig_AllowedOriginsPrimaryOnlyWithoutDevHost(t *testing.T) {
+	setAllEnv(t)
+	t.Setenv("ALLOWED_ORIGIN", "https://chat.lucek.ai")
+	t.Setenv("RESEND_API_KEY", "re_test_key")
+	t.Setenv("MAGIC_LINK_FROM", "hi@chat.lucek.ai")
+	cfg, err := LoadConfig()
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if len(cfg.AllowedOrigins) != 1 || cfg.AllowedOrigins[0] != "https://chat.lucek.ai" {
+		t.Fatalf("want [primary], got %v", cfg.AllowedOrigins)
+	}
+}
+
+func TestLoadConfig_AllowedOriginsIncludesDevHost(t *testing.T) {
+	setAllEnv(t)
+	t.Setenv("ALLOWED_ORIGIN", "https://chat.lucek.ai")
+	t.Setenv("RESEND_API_KEY", "re_test_key")
+	t.Setenv("MAGIC_LINK_FROM", "hi@chat.lucek.ai")
+	t.Setenv("DEV_HOST", "dev.chat.lucek.ai")
+	cfg, err := LoadConfig()
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	want := []string{"https://chat.lucek.ai", "https://dev.chat.lucek.ai"}
+	if len(cfg.AllowedOrigins) != 2 || cfg.AllowedOrigins[0] != want[0] || cfg.AllowedOrigins[1] != want[1] {
+		t.Fatalf("want %v, got %v", want, cfg.AllowedOrigins)
 	}
 }
 

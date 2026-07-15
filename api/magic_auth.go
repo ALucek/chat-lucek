@@ -74,7 +74,7 @@ func (a *Auth) MagicRequest(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "could not create link"})
 		return
 	}
-	link := a.linkBase + "/auth/magic?token=" + url.QueryEscape(raw)
+	link := a.linkBaseFor(r.Header.Get("Origin")) + "/auth/magic?token=" + url.QueryEscape(raw)
 	if err := a.mailer.SendMagicLink(r.Context(), id, link); err != nil {
 		slog.ErrorContext(r.Context(), "magic link send", "err", err)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "could not send link"})
