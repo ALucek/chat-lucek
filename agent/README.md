@@ -45,7 +45,7 @@ nest under it, so the run reads as a tree.
 
 A `compaction` node marks where older history was summarized to keep the run
 within the model's context window. It streams the summary as `delta` text and is
-not part of the answer, so clients may render it distinctly or ignore it. Its
+not part of the answer; the web client renders it as its own collapsible step. Its
 `node_end` carries `{"summary_through_id"}`, the newest folded message id, which the
 caller can store with the summary as a watermark.
 
