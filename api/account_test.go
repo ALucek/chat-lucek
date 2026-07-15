@@ -69,6 +69,32 @@ func TestAccount_ExportScopedToCaller(t *testing.T) {
 	}
 }
 
+func TestAccount_ExportIncludesSummary(t *testing.T) {
+	resetDB(t)
+	ctx := context.Background()
+	mux := newTestMux(nil)
+	ta, uid := signup(t, mux, "a@x.com")
+	var cid int64
+	testPool.QueryRow(ctx, `insert into conversations (user_id) values ($1) returning id`, uid).Scan(&cid)
+	testPool.Exec(ctx, `update conversations set summary='RECAP' where id=$1`, cid)
+
+	rec := do(t, mux, http.MethodGet, "/api/account/export", ta, nil)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("want 200, got %d", rec.Code)
+	}
+	var out struct {
+		Conversations []struct {
+			Summary *string `json:"summary"`
+		} `json:"conversations"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &out); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if len(out.Conversations) != 1 || out.Conversations[0].Summary == nil || *out.Conversations[0].Summary != "RECAP" {
+		t.Fatalf("export missing summary: %+v", out.Conversations)
+	}
+}
+
 func TestAccount_ExportRequiresAuth(t *testing.T) {
 	resetDB(t)
 	mux := newTestMux(nil)

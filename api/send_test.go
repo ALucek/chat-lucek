@@ -4,8 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -382,5 +384,163 @@ func TestSend_NoTraceForPlainAnswer(t *testing.T) {
 
 	if raw := assistantTrace(t, mux, ta, cid); len(raw) != 0 {
 		t.Fatalf("plain answer should have no trace, got %s", raw)
+	}
+}
+
+func TestConversations_HasSummaryColumns(t *testing.T) {
+	resetDB(t)
+	ctx := context.Background()
+	var uid int64
+	testPool.QueryRow(ctx, `insert into users (email) values ('c@x.com') returning id`).Scan(&uid)
+	var cid int64
+	testPool.QueryRow(ctx, `insert into conversations (user_id) values ($1) returning id`, uid).Scan(&cid)
+	var mid int64
+	if err := testPool.QueryRow(ctx,
+		`insert into messages (conversation_id, role, content) values ($1,'user','hi') returning id`, cid).Scan(&mid); err != nil {
+		t.Fatalf("seed message: %v", err)
+	}
+	if _, err := testPool.Exec(ctx,
+		`update conversations set summary = 'recap', summary_through_message_id = $1 where id = $2`, mid, cid); err != nil {
+		t.Fatalf("update summary: %v", err)
+	}
+	var sum *string
+	var wm *int64
+	if err := testPool.QueryRow(ctx,
+		`select summary, summary_through_message_id from conversations where id = $1`, cid).Scan(&sum, &wm); err != nil {
+		t.Fatalf("select summary: %v", err)
+	}
+	if sum == nil || *sum != "recap" || wm == nil || *wm != mid {
+		t.Fatalf("summary=%v watermark=%v", sum, wm)
+	}
+}
+
+func TestSend_AssemblesSummaryPlusTail(t *testing.T) {
+	resetDB(t)
+	ctx := context.Background()
+	var gotBody []byte
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotBody, _ = io.ReadAll(r.Body)
+		w.Header().Set("Content-Type", "text/event-stream")
+		fmt.Fprint(w, textFrames("a", "ok"), endFrame)
+	}))
+	t.Cleanup(srv.Close)
+	client := &agentClient{baseURL: srv.URL, http: srv.Client()}
+	mux := newTestMux(client)
+
+	ta, uid := signup(t, mux, "a@x.com")
+	var cid int64
+	testPool.QueryRow(ctx, `insert into conversations (user_id) values ($1) returning id`, uid).Scan(&cid)
+	var m2 int64
+	testPool.QueryRow(ctx, `insert into messages (conversation_id, role, content) values ($1,'user','old-1') returning id`, cid).Scan(new(int64))
+	testPool.QueryRow(ctx, `insert into messages (conversation_id, role, content) values ($1,'assistant','old-2') returning id`, cid).Scan(&m2)
+	testPool.QueryRow(ctx, `insert into messages (conversation_id, role, content) values ($1,'user','old-3') returning id`, cid).Scan(new(int64))
+	// Summary covers m2; only old-3 and the new turn are sent verbatim.
+	testPool.Exec(ctx, `update conversations set summary='SUM', summary_through_message_id=$1 where id=$2`, m2, cid)
+
+	do(t, mux, http.MethodPost, fmt.Sprintf("/api/conversations/%d/messages", cid), ta,
+		map[string]string{"content": "new-turn"})
+
+	var sent struct {
+		Messages []llmMessage `json:"messages"`
+	}
+	if err := json.Unmarshal(gotBody, &sent); err != nil {
+		t.Fatalf("decode agent body: %v (%s)", err, gotBody)
+	}
+	if len(sent.Messages) != 3 {
+		t.Fatalf("want [summary, old-3, new-turn], got %+v", sent.Messages)
+	}
+	if sent.Messages[0].ID != "" || sent.Messages[0].Content != summaryFrame+"SUM" {
+		t.Fatalf("summary turn wrong: %+v", sent.Messages[0])
+	}
+	if sent.Messages[1].Content != "old-3" || sent.Messages[1].ID == "" {
+		t.Fatalf("tail should be id-tagged old-3, got %+v", sent.Messages[1])
+	}
+	if sent.Messages[2].Content != "new-turn" {
+		t.Fatalf("last should be the new turn, got %+v", sent.Messages[2])
+	}
+}
+
+// compactionEndFrame builds a compaction node_end carrying the watermark id.
+func compactionEndFrame(id, wid string) string {
+	return fmt.Sprintf("event: node_end\ndata: {\"id\":%q,\"output\":{\"summary_through_id\":%q}}\n\n", id, wid)
+}
+
+func TestSend_PersistsCompactionSummary(t *testing.T) {
+	resetDB(t)
+	ctx := context.Background()
+	ta, uid := signup(t, nil, "a@x.com")
+	var cid int64
+	testPool.QueryRow(ctx, `insert into conversations (user_id) values ($1) returning id`, uid).Scan(&cid)
+	var mid int64
+	testPool.QueryRow(ctx, `insert into messages (conversation_id, role, content) values ($1,'user','old') returning id`, cid).Scan(&mid)
+
+	client := fakeAgent(t, http.StatusOK,
+		nodeStartFrame("s1:compaction", "", "compaction", "", ""),
+		deltaFrame("s1:compaction", "RECAP"),
+		compactionEndFrame("s1:compaction", strconv.FormatInt(mid, 10)),
+		textFrames("a", "done"), endFrame)
+	mux := newTestMux(client)
+
+	do(t, mux, http.MethodPost, fmt.Sprintf("/api/conversations/%d/messages", cid), ta,
+		map[string]string{"content": "hi"})
+
+	var sum *string
+	var wm *int64
+	testPool.QueryRow(ctx, `select summary, summary_through_message_id from conversations where id=$1`, cid).Scan(&sum, &wm)
+	if sum == nil || *sum != "RECAP" || wm == nil || *wm != mid {
+		t.Fatalf("summary=%v watermark=%v (want RECAP, %d)", sum, wm, mid)
+	}
+}
+
+func TestSend_NullWatermarkNotPersisted(t *testing.T) {
+	resetDB(t)
+	ctx := context.Background()
+	ta, uid := signup(t, nil, "a@x.com")
+	var cid int64
+	testPool.QueryRow(ctx, `insert into conversations (user_id) values ($1) returning id`, uid).Scan(&cid)
+
+	nullEnd := "event: node_end\ndata: {\"id\":\"s1:compaction\",\"output\":{\"summary_through_id\":null}}\n\n"
+	client := fakeAgent(t, http.StatusOK,
+		nodeStartFrame("s1:compaction", "", "compaction", "", ""),
+		deltaFrame("s1:compaction", "RECAP"), nullEnd,
+		textFrames("a", "done"), endFrame)
+	mux := newTestMux(client)
+
+	do(t, mux, http.MethodPost, fmt.Sprintf("/api/conversations/%d/messages", cid), ta,
+		map[string]string{"content": "hi"})
+
+	var sum *string
+	testPool.QueryRow(ctx, `select summary from conversations where id=$1`, cid).Scan(&sum)
+	if sum != nil {
+		t.Fatalf("null id must not persist, got %q", *sum)
+	}
+}
+
+func TestSend_LastNonNullCompactionWins(t *testing.T) {
+	resetDB(t)
+	ctx := context.Background()
+	ta, uid := signup(t, nil, "a@x.com")
+	var cid int64
+	testPool.QueryRow(ctx, `insert into conversations (user_id) values ($1) returning id`, uid).Scan(&cid)
+	var m1, m2 int64
+	testPool.QueryRow(ctx, `insert into messages (conversation_id, role, content) values ($1,'user','one') returning id`, cid).Scan(&m1)
+	testPool.QueryRow(ctx, `insert into messages (conversation_id, role, content) values ($1,'assistant','two') returning id`, cid).Scan(&m2)
+
+	client := fakeAgent(t, http.StatusOK,
+		nodeStartFrame("s1:compaction", "", "compaction", "", ""),
+		deltaFrame("s1:compaction", "FIRST"), compactionEndFrame("s1:compaction", strconv.FormatInt(m1, 10)),
+		nodeStartFrame("s2:compaction", "", "compaction", "", ""),
+		deltaFrame("s2:compaction", "SECOND"), compactionEndFrame("s2:compaction", strconv.FormatInt(m2, 10)),
+		textFrames("a", "done"), endFrame)
+	mux := newTestMux(client)
+
+	do(t, mux, http.MethodPost, fmt.Sprintf("/api/conversations/%d/messages", cid), ta,
+		map[string]string{"content": "hi"})
+
+	var sum *string
+	var wm *int64
+	testPool.QueryRow(ctx, `select summary, summary_through_message_id from conversations where id=$1`, cid).Scan(&sum, &wm)
+	if sum == nil || *sum != "SECOND" || wm == nil || *wm != m2 {
+		t.Fatalf("last should win: summary=%v watermark=%v (want SECOND, %d)", sum, wm, m2)
 	}
 }

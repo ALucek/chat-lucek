@@ -33,6 +33,18 @@ class Translator:
             return self._on_tool_end(event)
         if etype == "on_chat_model_end":
             self._accumulate(event)
+            if "summarization" in (event.get("tags") or []):
+                rid = str(event.get("run_id"))
+                wid = (event.get("metadata") or {}).get("summary_through_id")
+                return [
+                    {
+                        "event": "node_end",
+                        "data": {
+                            "id": f"{rid}:compaction",
+                            "output": {"summary_through_id": wid},
+                        },
+                    }
+                ]
         return []
 
     def _parent_id(self, event: dict[str, Any]) -> str | None:

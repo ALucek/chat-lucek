@@ -19,6 +19,8 @@ The API reaches the agent at `AGENT_URL` (default `http://localhost:8081`).
 | `GET`  | `/healthz` | Liveness probe                                    |
 
 Request body: `{"messages": [{"role": "user", "content": "..."}], "overrides": {...}}`.
+Each message may carry an optional `id` (its caller-side row id); compaction echoes
+the newest folded one back so the caller can persist a rolling summary.
 `overrides` is optional (`model`, `max_searches`, `max_tokens`). An optional `dev`
 bool traces the run to `LANGSMITH_PROJECT_DEV` instead of the default project.
 
@@ -43,7 +45,9 @@ nest under it, so the run reads as a tree.
 
 A `compaction` node marks where older history was summarized to keep the run
 within the model's context window. It streams the summary as `delta` text and is
-not part of the answer, so clients may render it distinctly or ignore it.
+not part of the answer, so clients may render it distinctly or ignore it. Its
+`node_end` carries `{"summary_through_id"}`, the newest folded message id, which the
+caller can store with the summary as a watermark.
 
 The `meta` event's `langsmith_run_id` is the trace root. The API keeps it on the
 saved reply so a later thumbs up/down can attach user feedback to that trace.

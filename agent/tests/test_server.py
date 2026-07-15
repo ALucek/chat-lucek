@@ -174,6 +174,19 @@ def test_to_lc_messages_maps_roles():
     assert isinstance(msgs[1], AIMessage) and msgs[1].content == "a"
 
 
+def test_to_lc_messages_preserves_id():
+    from src import server
+
+    msgs = server._to_lc_messages(
+        [
+            {"role": "user", "content": "hi", "id": "42"},
+            {"role": "assistant", "content": "yo"},
+        ]
+    )
+    assert msgs[0].id == "42"
+    assert msgs[1].id is None
+
+
 def test_sse_framing():
     from src import server
 

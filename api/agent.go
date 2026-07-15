@@ -37,6 +37,7 @@ func candURLFor(base string) string {
 
 // llmMessage is one conversation turn sent to the agent.
 type llmMessage struct {
+	ID      string `json:"id,omitempty"`
 	Role    string `json:"role"`
 	Content string `json:"content"`
 }

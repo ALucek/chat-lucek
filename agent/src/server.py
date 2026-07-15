@@ -50,10 +50,8 @@ async def healthz() -> dict[str, str]:
 def _to_lc_messages(messages: list[dict[str, Any]]) -> list[Any]:
     out: list[Any] = []
     for m in messages:
-        if m.get("role") == "user":
-            out.append(HumanMessage(content=m.get("content", "")))
-        else:
-            out.append(AIMessage(content=m.get("content", "")))
+        cls = HumanMessage if m.get("role") == "user" else AIMessage
+        out.append(cls(content=m.get("content", ""), id=m.get("id")))
     return out
 
 
