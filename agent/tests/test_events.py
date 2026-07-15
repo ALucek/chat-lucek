@@ -43,6 +43,50 @@ def test_summarization_chunks_emit_compaction_not_text():
     ]
 
 
+def test_summarization_end_emits_compaction_node_end():
+    tr = Translator()
+    ev = {
+        "event": "on_chat_model_end",
+        "run_id": "s1",
+        "tags": ["summarization"],
+        "metadata": {"summary_through_id": "42"},
+        "data": {"output": SimpleNamespace(usage_metadata={})},
+    }
+    assert tr.handle(ev) == [
+        {
+            "event": "node_end",
+            "data": {"id": "s1:compaction", "output": {"summary_through_id": "42"}},
+        }
+    ]
+
+
+def test_summarization_end_null_id_still_closes_node():
+    tr = Translator()
+    ev = {
+        "event": "on_chat_model_end",
+        "run_id": "s2",
+        "tags": ["summarization"],
+        "metadata": {},
+        "data": {"output": SimpleNamespace(usage_metadata={})},
+    }
+    assert tr.handle(ev) == [
+        {
+            "event": "node_end",
+            "data": {"id": "s2:compaction", "output": {"summary_through_id": None}},
+        }
+    ]
+
+
+def test_non_summarization_end_emits_no_node_end():
+    tr = Translator()
+    ev = {
+        "event": "on_chat_model_end",
+        "run_id": "m1",
+        "data": {"output": SimpleNamespace(usage_metadata={})},
+    }
+    assert tr.handle(ev) == []
+
+
 def test_first_reasoning_chunk_opens_node_then_delta():
     tr = Translator()
     out = tr.handle(_stream("r1", ["root", "n1"], _chunk(reasoning="Hi")))
