@@ -99,6 +99,9 @@ func nonTrivial(nodes []*traceNode) bool {
 const maxMessageChars = 8000
 const maxFeedbackChars = 2000
 
+// summaryFrame prefixes a stored summary re-sent to the agent as prior context.
+const summaryFrame = "Here is a summary of the earlier conversation so far:\n\n"
+
 // List returns the caller's conversations, newest activity first.
 func (c *Chat) List(w http.ResponseWriter, r *http.Request) {
 	userID, _ := userIDFromContext(r.Context())
@@ -328,26 +331,49 @@ func (c *Chat) Send(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Build the request from full history; the agent owns the system prompt.
-	msgs := []llmMessage{}
-	rows, err := c.pool.Query(r.Context(),
-		`select role, content from messages where conversation_id = $1 order by id`, id)
+	// Load the stored summary + watermark; assemble [summary + tail].
+	var summary *string
+	var watermark *int64
+	if err := c.pool.QueryRow(r.Context(),
+		`select summary, summary_through_message_id from conversations where id = $1`, id).
+		Scan(&summary, &watermark); err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "could not load conversation"})
+		return
+	}
+
+	histQuery := `select id, role, content from messages where conversation_id = $1 order by id`
+	histArgs := []any{id}
+	if watermark != nil {
+		histQuery = `select id, role, content from messages where conversation_id = $1 and id > $2 order by id`
+		histArgs = append(histArgs, *watermark)
+	}
+	rows, err := c.pool.Query(r.Context(), histQuery, histArgs...)
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "could not load history"})
 		return
 	}
+	msgs := []llmMessage{}
+	dbCount := 0
 	for rows.Next() {
+		var mid int64
 		var m llmMessage
-		if err := rows.Scan(&m.Role, &m.Content); err != nil {
+		if err := rows.Scan(&mid, &m.Role, &m.Content); err != nil {
 			rows.Close()
 			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "scan failed"})
 			return
 		}
+		m.ID = strconv.FormatInt(mid, 10)
 		msgs = append(msgs, m)
+		dbCount++
 	}
 	rows.Close() // free the pooled connection before the (long) stream
 
-	firstMessage := len(msgs) == 1 // just the inserted user message
+	// Prepend the stored summary as the opening turn for prior context.
+	if summary != nil && watermark != nil {
+		msgs = append([]llmMessage{{Role: "user", Content: summaryFrame + *summary}}, msgs...)
+	}
+
+	firstMessage := watermark == nil && dbCount == 1 // just the inserted user message
 
 	// Commit to the stream: from here, failures are reported as SSE events.
 	flusher, ok := w.(http.Flusher)
@@ -362,6 +388,8 @@ func (c *Chat) Send(w http.ResponseWriter, r *http.Request) {
 
 	var reply strings.Builder
 	var runID string
+	var summaryText string
+	var summaryThroughID *int64
 	nodes := []*traceNode{}
 	byID := map[string]*traceNode{}
 	dev := c.devHost != "" && r.Host == c.devHost
@@ -386,6 +414,17 @@ func (c *Chat) Send(w http.ResponseWriter, r *http.Request) {
 		onNodeEnd: func(id string, output json.RawMessage) {
 			if n := byID[id]; n != nil {
 				n.Output = output
+				if n.Type == "compaction" {
+					var o struct {
+						SummaryThroughID *string `json:"summary_through_id"`
+					}
+					if json.Unmarshal(output, &o) == nil && o.SummaryThroughID != nil {
+						if wid, err := strconv.ParseInt(*o.SummaryThroughID, 10, 64); err == nil {
+							summaryText = n.Text
+							summaryThroughID = &wid
+						}
+					}
+				}
 			}
 			writeSSE(w, "node_end", map[string]any{"id": id, "output": output})
 			flusher.Flush()
@@ -423,6 +462,12 @@ func (c *Chat) Send(w http.ResponseWriter, r *http.Request) {
 	}
 	_, _ = c.pool.Exec(r.Context(),
 		`update conversations set updated_at = now() where id = $1`, id)
+
+	if summaryThroughID != nil {
+		_, _ = c.pool.Exec(r.Context(),
+			`update conversations set summary = $1, summary_through_message_id = $2 where id = $3`,
+			summaryText, *summaryThroughID, id)
+	}
 
 	if err := recordUsage(r.Context(), c.pool, userID, usage); err != nil {
 		slog.ErrorContext(r.Context(), "record usage", "err", err)

@@ -35,6 +35,7 @@ type exportMessage struct {
 type exportConversation struct {
 	ID        int64           `json:"id"`
 	Title     string          `json:"title"`
+	Summary   *string         `json:"summary,omitempty"`
 	CreatedAt time.Time       `json:"created_at"`
 	UpdatedAt time.Time       `json:"updated_at"`
 	Messages  []exportMessage `json:"messages"`
@@ -71,7 +72,7 @@ func (a *Account) Export(w http.ResponseWriter, r *http.Request) {
 	}
 
 	convRows, err := a.pool.Query(ctx,
-		`select id, coalesce(title,''), created_at, updated_at
+		`select id, coalesce(title,''), summary, created_at, updated_at
 		 from conversations where user_id = $1 order by id`, userID)
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "could not load conversations"})
@@ -79,7 +80,7 @@ func (a *Account) Export(w http.ResponseWriter, r *http.Request) {
 	}
 	for convRows.Next() {
 		var c exportConversation
-		if err := convRows.Scan(&c.ID, &c.Title, &c.CreatedAt, &c.UpdatedAt); err != nil {
+		if err := convRows.Scan(&c.ID, &c.Title, &c.Summary, &c.CreatedAt, &c.UpdatedAt); err != nil {
 			convRows.Close()
 			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "scan failed"})
 			return
