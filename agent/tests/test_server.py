@@ -96,7 +96,6 @@ async def test_run_emits_error_then_end_on_failure(raising_app):
         r = await c.post("/run", json={"messages": [{"role": "user", "content": "hi"}]})
         events = _parse_sse(r.text)
         assert [e for e, _ in events] == ["error", "end"]
-        # Generic message only; the raw exception text must not leak to the client.
         assert events[0][1]["message"] == "The agent run failed. Please try again."
         assert "boom" not in events[0][1]["message"]
 
