@@ -45,7 +45,7 @@ export function PlanDock({
   return (
     <div className="px-3">
       <div className="mx-auto w-full max-w-2xl pb-2">
-        <div className="border-border bg-surface overflow-hidden rounded-[var(--radius)] border">
+        <div className="dock-slide-in border-border bg-surface overflow-hidden rounded-[var(--radius)] border">
           <button
             type="button"
             aria-expanded={open}
