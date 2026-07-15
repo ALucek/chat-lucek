@@ -29,7 +29,7 @@ bool traces the run to `LANGSMITH_PROJECT_DEV` instead of the default project.
 
 | Event      | Payload                                | Meaning                                        |
 | ---------- | -------------------------------------- | ---------------------------------------------- |
-| `node`     | `{id, parent_id, type, name?, input?}` | A step begins: `type` is `reasoning`, `text`, or `tool` |
+| `node`     | `{id, parent_id, type, name?, input?}` | A step begins: `type` is `reasoning`, `text`, `tool`, or `compaction` |
 | `delta`    | `{id, text}`                           | Text appended to a `reasoning` or `text` node  |
 | `node_end` | `{id, output?}`                        | A step completes                               |
 | `usage`    | `{input, output, total, reasoning}`    | Aggregate token usage across all model calls   |
@@ -41,17 +41,22 @@ A node's `parent_id` is the `id` of the `tool` it runs inside, or `null` at the
 top level. A subagent (`run_subagent`) and its own `internet_search` calls
 nest under it, so the run reads as a tree.
 
+A `compaction` node marks where older history was summarized to keep the run
+within the model's context window. It streams the summary as `delta` text and is
+not part of the answer, so clients may render it distinctly or ignore it.
+
 The `meta` event's `langsmith_run_id` is the trace root. The API keeps it on the
 saved reply so a later thumbs up/down can attach user feedback to that trace.
 
 ## Structure
 
-| Path            | Contents                                     |
-| --------------- | -------------------------------------------- |
-| `src/graphs/`   | The `agent` graph and its `subagent`         |
-| `src/tools/`    | Web search, subagent delegation, todo list   |
-| `src/prompts/`  | System prompts                               |
-| `src/server.py` | FastAPI app: `/run`, `/healthz`              |
-| `src/events.py` | LangGraph events to SSE translation          |
-| `src/config.py` | Settings and per-run config                  |
-| `evals/`        | Live behavioral evals, offline and online (see [evals/README.md](evals/README.md)) |
+| Path              | Contents                                            |
+| ----------------- | --------------------------------------------------- |
+| `src/graphs/`     | The `agent` graph and its `subagent`                |
+| `src/middleware/` | Cross-cutting graph steps                           |
+| `src/tools/`      | Web search, subagent delegation, todo list          |
+| `src/prompts/`    | System prompts                                      |
+| `src/server.py`   | FastAPI app: `/run`, `/healthz`                     |
+| `src/events.py`   | LangGraph events to SSE translation                 |
+| `src/config.py`   | Settings and per-run config                         |
+| `evals/`          | Live behavioral evals, offline and online (see [evals/README.md](evals/README.md)) |

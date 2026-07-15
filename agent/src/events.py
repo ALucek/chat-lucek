@@ -59,6 +59,11 @@ class Translator:
         chunk = (event.get("data") or {}).get("chunk")
         parent = self._parent_id(event)
         rid = str(event.get("run_id"))
+        if "summarization" in (event.get("tags") or []):
+            content = getattr(chunk, "content", "")
+            if not content:
+                return []
+            return self._text_frames(f"{rid}:compaction", parent, "compaction", content)
         out: list[dict[str, Any]] = []
         reasoning = (getattr(chunk, "additional_kwargs", {}) or {}).get(
             "reasoning_content"

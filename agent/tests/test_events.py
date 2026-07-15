@@ -18,6 +18,31 @@ def _stream(run_id, parent_ids, chunk):
     }
 
 
+def _stream_tagged(run_id, parent_ids, chunk, tags):
+    return {
+        "event": "on_chat_model_stream",
+        "name": "ChatOpenRouter",
+        "run_id": run_id,
+        "parent_ids": parent_ids,
+        "tags": tags,
+        "data": {"chunk": chunk},
+    }
+
+
+def test_summarization_chunks_emit_compaction_not_text():
+    tr = Translator()
+    out = tr.handle(
+        _stream_tagged("s1", ["root"], _chunk(content="sum"), ["summarization"])
+    )
+    assert out == [
+        {
+            "event": "node",
+            "data": {"id": "s1:compaction", "parent_id": None, "type": "compaction"},
+        },
+        {"event": "delta", "data": {"id": "s1:compaction", "text": "sum"}},
+    ]
+
+
 def test_first_reasoning_chunk_opens_node_then_delta():
     tr = Translator()
     out = tr.handle(_stream("r1", ["root", "n1"], _chunk(reasoning="Hi")))
