@@ -49,7 +49,7 @@ export default function ConversationPage() {
         nodes={messages.flatMap((m) => m.nodes ?? [])}
         running={sending}
       />
-      <Composer onSend={send} onStop={stop} sending={sending} />
+      <Composer onSend={send} onStop={stop} sending={sending} captureTyping />
     </div>
   );
 }
