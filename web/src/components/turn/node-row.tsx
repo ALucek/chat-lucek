@@ -3,6 +3,7 @@ import { ReasoningRow } from './reasoning-row';
 import { ToolRow } from './tool-row';
 import { SubagentRow } from './subagent-row';
 import { TextBlock } from './text-block';
+import { CompactionRow } from './compaction-row';
 
 // NodeRow dispatches a node to its row (tool with children = subagent). A tool
 // with no output while the turn streams is still running.
@@ -23,7 +24,11 @@ export function NodeRow({
     if (!node.text?.trim()) return null;
     return <TextBlock node={node} nested={nested} streaming={caret} />;
   }
-  // compaction and unknown types are inert; the seam for later UI.
+  if (node.type === 'compaction') {
+    const active = !!turnStreaming && node.output === undefined;
+    return <CompactionRow node={node} active={active} />;
+  }
+  // Unknown types are inert.
   if (node.type !== 'tool') return null;
   // set_todos renders in the docked PlanDock, not inline.
   if (node.name === 'set_todos') return null;
