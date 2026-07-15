@@ -14,12 +14,22 @@ logger = logging.getLogger("chat-agent")
 SUMMARY_PREFIX = "Here is a summary of the earlier conversation so far:\n\n"
 
 
-def _split(messages: list, keep: int) -> tuple[list, list]:
-    cut = max(len(messages) - keep, 0)
-    head, tail = messages[:cut], messages[cut:]
-    while head and tail and isinstance(tail[0], ToolMessage):
-        head, tail = head[:-1], [head[-1], *tail]
-    return head, tail
+def _tokens(msg) -> int:
+    return count_tokens_approximately([msg])
+
+
+def _split(messages: list, budget: int) -> tuple[list, list]:
+    if not messages:
+        return [], []
+    cut = len(messages) - 1  # always keep the newest message
+    used = _tokens(messages[cut])
+    while cut > 0 and used + _tokens(messages[cut - 1]) <= budget:
+        cut -= 1
+        used += _tokens(messages[cut])
+    # Never orphan a tool result: pull its AIMessage into the tail.
+    while cut > 0 and isinstance(messages[cut], ToolMessage):
+        cut -= 1
+    return messages[:cut], messages[cut:]
 
 
 def _newest_durable_id(head: list) -> str | None:
@@ -46,7 +56,8 @@ async def compact(state: dict, config: RunnableConfig) -> dict:
     cfg = AgentConfig.from_runnable_config(config)
     if count_tokens_approximately(messages) < cfg.summary_threshold:
         return {}
-    head, tail = _split(messages, cfg.summary_keep)
+    budget = int(cfg.summary_keep_ratio * cfg.summary_threshold)
+    head, tail = _split(messages, budget)
     if not head:
         return {}
     wid = _newest_durable_id(head)
