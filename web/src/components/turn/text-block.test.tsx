@@ -13,7 +13,7 @@ describe('TextBlock', () => {
     };
     const { container } = render(<TextBlock node={node} streaming />);
     expect(screen.getByText('hi')).toBeInTheDocument();
-    expect(container.querySelector('.caret-blink')).not.toBeNull();
+    expect(container.querySelector('.animate-blink')).not.toBeNull();
   });
 
   it('renders nested subagent text without a caret', () => {
@@ -26,6 +26,6 @@ describe('TextBlock', () => {
     };
     const { container } = render(<TextBlock node={node} nested streaming />);
     expect(screen.getByText('sub')).toBeInTheDocument();
-    expect(container.querySelector('.caret-blink')).toBeNull();
+    expect(container.querySelector('.animate-blink')).toBeNull();
   });
 });

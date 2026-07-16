@@ -177,7 +177,7 @@ describe('MessageList timeline', () => {
         ]}
       />,
     );
-    expect(container.querySelector('.caret-blink')).not.toBeNull();
+    expect(container.querySelector('.animate-blink')).not.toBeNull();
   });
 
   it('drops the caret from a preamble once a tool follows it', () => {
@@ -213,7 +213,7 @@ describe('MessageList timeline', () => {
       />,
     );
     // last node is the subagent, so the preamble text has no live caret
-    expect(container.querySelector('.caret-blink')).toBeNull();
+    expect(container.querySelector('.animate-blink')).toBeNull();
   });
 });
 

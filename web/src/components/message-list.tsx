@@ -24,7 +24,7 @@ function AssistantMessage({ m }: { m: ChatMessage }) {
         <div className="markdown text-fg max-w-full min-w-0 text-sm break-words">
           <Markdown>{m.content}</Markdown>
           {m.streaming && (
-            <span className="caret-blink" aria-hidden="true">
+            <span className="animate-blink" aria-hidden="true">
               ▍
             </span>
           )}
