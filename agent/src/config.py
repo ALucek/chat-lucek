@@ -20,7 +20,7 @@ class Settings(BaseSettings):
     subagent_recursion_limit: int = 50
     model_max_retries: int = 3
     summary_threshold: int = 100_000
-    summary_keep_ratio: float = 0.1
+    summary_keep_ratio: float = 0.2
 
 
 @lru_cache

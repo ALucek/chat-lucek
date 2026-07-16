@@ -74,6 +74,21 @@ async def test_over_threshold_folds_head_keeps_newest(monkeypatch):
     assert [m.content for m in result[2:]] == ["d"]
 
 
+async def test_compaction_triggers_at_the_token_threshold(monkeypatch):
+    monkeypatch.setattr(
+        summ, "build_chat_model", lambda cfg, role=None, **kw: _FakeSummarizer()
+    )
+    msgs = [
+        (HumanMessage if i % 2 == 0 else AIMessage)(content="x" * 400) for i in range(6)
+    ]
+    total = count_tokens_approximately(msgs)
+    # Just over the threshold: compaction fires.
+    over = await compact({"messages": msgs}, _cfg(total - 1, 0.2))
+    assert isinstance(over["messages"][0], RemoveMessage)
+    # Just under: no compaction.
+    assert await compact({"messages": msgs}, _cfg(total + 1, 0.2)) == {}
+
+
 async def test_summary_receives_prior_summary_for_folding(monkeypatch):
     fake = _FakeSummarizer()
     monkeypatch.setattr(summ, "build_chat_model", lambda cfg, role=None, **kw: fake)

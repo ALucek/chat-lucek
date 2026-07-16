@@ -14,18 +14,14 @@ logger = logging.getLogger("chat-agent")
 SUMMARY_PREFIX = "Here is a summary of the earlier conversation so far:\n\n"
 
 
-def _tokens(msg) -> int:
-    return count_tokens_approximately([msg])
-
-
 def _split(messages: list, budget: int) -> tuple[list, list]:
     if not messages:
         return [], []
     cut = len(messages) - 1  # always keep the newest message
-    used = _tokens(messages[cut])
-    while cut > 0 and used + _tokens(messages[cut - 1]) <= budget:
+    used = count_tokens_approximately([messages[cut]])
+    while cut > 0 and used + count_tokens_approximately([messages[cut - 1]]) <= budget:
         cut -= 1
-        used += _tokens(messages[cut])
+        used += count_tokens_approximately([messages[cut]])
     # Never orphan a tool result: pull its AIMessage into the tail.
     while cut > 0 and isinstance(messages[cut], ToolMessage):
         cut -= 1
