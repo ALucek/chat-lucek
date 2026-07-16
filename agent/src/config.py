@@ -20,7 +20,7 @@ class Settings(BaseSettings):
     subagent_recursion_limit: int = 50
     model_max_retries: int = 3
     summary_threshold: int = 100_000
-    summary_keep: int = 20
+    summary_keep_ratio: float = 0.2
 
 
 @lru_cache
@@ -57,9 +57,9 @@ class AgentConfig(BaseModel):
         default_factory=lambda: get_settings().summary_threshold,
         description="Approx-token context size that triggers compaction.",
     )
-    summary_keep: int = Field(
-        default_factory=lambda: get_settings().summary_keep,
-        description="Recent messages kept verbatim when compacting.",
+    summary_keep_ratio: float = Field(
+        default_factory=lambda: get_settings().summary_keep_ratio,
+        description="Fraction of summary_threshold of recent messages kept verbatim.",
     )
 
     ROLES: ClassVar[set[str]] = {"agent", "subagent", "summarizer"}
@@ -95,7 +95,9 @@ def build_run_config(
         "summary_threshold": overrides.get(
             "summary_threshold", settings.summary_threshold
         ),
-        "summary_keep": overrides.get("summary_keep", settings.summary_keep),
+        "summary_keep_ratio": overrides.get(
+            "summary_keep_ratio", settings.summary_keep_ratio
+        ),
     }
     if role:
         configurable["agent"] = dict(role)
