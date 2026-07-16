@@ -23,7 +23,7 @@ export function TextBlock({
     <div className="markdown text-fg max-w-full min-w-0 text-sm break-words">
       <Markdown>{text}</Markdown>
       {streaming && (
-        <span className="caret-blink" aria-hidden="true">
+        <span className="animate-blink" aria-hidden="true">
           ▍
         </span>
       )}

@@ -27,6 +27,25 @@
   --font-mono:
     var(--font-share-tech), ui-monospace, 'SFMono-Regular', Menlo, Consolas,
     monospace;
+
+  /* animations */
+  --animate-blink: blink 1s step-end infinite;
+  --animate-dock-in: dock-in 220ms cubic-bezier(0.22, 0.61, 0.36, 1);
+  @keyframes blink {
+    50% {
+      opacity: 0;
+    }
+  }
+  @keyframes dock-in {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
 }
 
 @layer base {
@@ -209,36 +228,6 @@
 .markdown .hljs-operator,
 .markdown .hljs-punctuation {
   color: #9a6e3a;
-}
-
-/* streaming caret */
-.caret-blink {
-  animation: blink 1s step-end infinite;
-}
-@keyframes blink {
-  50% {
-    opacity: 0;
-  }
-}
-
-/* plan dock entrance: plays on mount only, not on updates */
-.dock-slide-in {
-  animation: plan-dock-in 220ms cubic-bezier(0.22, 0.61, 0.36, 1);
-}
-@keyframes plan-dock-in {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .dock-slide-in {
-    animation: none;
-  }
 }
 
 /* usage meter — donut + centered percent in the sidebar footer */
