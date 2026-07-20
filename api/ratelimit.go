@@ -1,11 +1,15 @@
 package main
 
 import (
+	"context"
+	"log/slog"
 	"net/http"
 	"strconv"
 	"sync"
+	"sync/atomic"
 	"time"
 
+	"github.com/redis/go-redis/v9"
 	"golang.org/x/time/rate"
 )
 
@@ -105,5 +109,82 @@ func rateLimit(a allower, key func(*http.Request) string) func(http.Handler) htt
 			}
 			next.ServeHTTP(w, r)
 		})
+	}
+}
+
+// slidingWindow counts a key's requests in a trailing window via a sorted set.
+var slidingWindow = redis.NewScript(`
+local key = KEYS[1]
+local now = tonumber(ARGV[1])
+local window = tonumber(ARGV[2])
+local limit = tonumber(ARGV[3])
+local member = ARGV[4]
+redis.call('ZREMRANGEBYSCORE', key, 0, now - window)
+local count = redis.call('ZCARD', key)
+if count < limit then
+  redis.call('ZADD', key, now, member)
+  redis.call('PEXPIRE', key, window)
+  return {1, 0}
+end
+local oldest = redis.call('ZRANGE', key, 0, 0, 'WITHSCORES')
+local retry = window
+if oldest[2] then
+  retry = (tonumber(oldest[2]) + window) - now
+  if retry < 0 then retry = 0 end
+end
+redis.call('PEXPIRE', key, window)
+return {0, retry}
+`)
+
+// newRedisClient builds a client from a rediss:// (or redis://) URL.
+func newRedisClient(rawURL string) (*redis.Client, error) {
+	opt, err := redis.ParseURL(rawURL)
+	if err != nil {
+		return nil, err
+	}
+	return redis.NewClient(opt), nil
+}
+
+// redisLimiter is a global sliding-window limit with an in-memory fallback.
+type redisLimiter struct {
+	rdb      *redis.Client
+	prefix   string
+	window   time.Duration
+	limit    int
+	timeout  time.Duration
+	now      func() time.Time
+	fallback *limiter
+	seq      uint64
+}
+
+// allow consumes one slot for key across all instances sharing the store.
+func (r *redisLimiter) allow(key string) (bool, time.Duration) {
+	ctx, cancel := context.WithTimeout(context.Background(), r.timeout)
+	defer cancel()
+	now := r.now()
+	member := strconv.FormatInt(now.UnixNano(), 10) + "-" +
+		strconv.FormatUint(atomic.AddUint64(&r.seq, 1), 10)
+	res, err := slidingWindow.Run(ctx, r.rdb, []string{r.prefix + key},
+		now.UnixMilli(), r.window.Milliseconds(), r.limit, member).Int64Slice()
+	if err != nil || len(res) != 2 {
+		slog.Warn("ratelimit: redis unavailable, using in-memory fallback",
+			"limiter", r.prefix, "err", err)
+		return r.fallback.allow(key)
+	}
+	if res[0] == 1 {
+		return true, 0
+	}
+	return false, time.Duration(res[1]) * time.Millisecond
+}
+
+// userLimiter returns a global limiter when rdb is set, else an in-memory one.
+func userLimiter(rdb *redis.Client, name string, perMin, burst int, timeout time.Duration) allower {
+	local := newLimiter(perMin, burst)
+	if rdb == nil {
+		return local
+	}
+	return &redisLimiter{
+		rdb: rdb, prefix: "rl:" + name + ":", window: time.Minute,
+		limit: perMin, timeout: timeout, now: time.Now, fallback: local,
 	}
 }
