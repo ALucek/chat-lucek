@@ -69,7 +69,7 @@ func TestLimiter_EvictsIdleKeys(t *testing.T) {
 func TestLimiter_Middleware429WithRetryAfter(t *testing.T) {
 	now := time.Now()
 	l := &limiter{entries: map[string]*entry{}, rate: 1, burst: 1, now: fixedClock(now)}
-	h := l.middleware(func(*http.Request) string { return "k" })(
+	h := rateLimit(l, func(*http.Request) string { return "k" })(
 		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(http.StatusOK) }))
 
 	rec1 := httptest.NewRecorder()

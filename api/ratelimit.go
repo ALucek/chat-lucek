@@ -30,6 +30,11 @@ type limiter struct {
 	idleTTL time.Duration
 }
 
+// allower reports whether a keyed request may proceed, and the wait if not.
+type allower interface {
+	allow(key string) (bool, time.Duration)
+}
+
 // newLimiter allows perMinute requests with burst, and starts the sweep.
 func newLimiter(perMinute, burst int) *limiter {
 	l := &limiter{
@@ -84,11 +89,11 @@ func (l *limiter) evict() {
 	}
 }
 
-// middleware rate-limits by the extractor's key; 429 + Retry-After on deny.
-func (l *limiter) middleware(key func(*http.Request) string) func(http.Handler) http.Handler {
+// rateLimit answers 429 + Retry-After once the key exceeds its allowance.
+func rateLimit(a allower, key func(*http.Request) string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			ok, retryAfter := l.allow(key(r))
+			ok, retryAfter := a.allow(key(r))
 			if !ok {
 				secs := int(retryAfter.Seconds())
 				if secs < 1 {

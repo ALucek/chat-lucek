@@ -169,13 +169,13 @@ func newMux(check func(context.Context) error, auth *Auth, chat *Chat, account *
 	protect := func(h http.HandlerFunc) http.Handler { return auth.Middleware(http.HandlerFunc(h)) }
 
 	chatLimiter := newLimiter(chatRatePerMin, chatRateBurst)
-	limitUser := chatLimiter.middleware(func(r *http.Request) string {
+	limitUser := rateLimit(chatLimiter, func(r *http.Request) string {
 		uid, _ := userIDFromContext(r.Context())
 		return strconv.FormatInt(uid, 10)
 	})
 
 	exportLimiter := newLimiter(exportRatePerMin, exportRateBurst)
-	limitExport := exportLimiter.middleware(func(r *http.Request) string {
+	limitExport := rateLimit(exportLimiter, func(r *http.Request) string {
 		uid, _ := userIDFromContext(r.Context())
 		return strconv.FormatInt(uid, 10)
 	})
