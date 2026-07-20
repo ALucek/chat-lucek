@@ -25,7 +25,7 @@ type Auth struct {
 	mailer         mailer
 	linkBase       string
 	allowedOrigins []string
-	magicLimiter   *limiter
+	magicLimiter   allower
 }
 
 // linkBaseFor picks the request origin when allowed, else the primary base.
