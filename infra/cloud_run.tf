@@ -5,7 +5,10 @@ locals {
   agent_image = "${local.registry}/agent:bootstrap"
 
   # Each runtime SA reads only the secrets it needs.
-  api_secret_ids   = ["jwt-secret", "db-password", "google-client-secret", "usage-hash-secret", "resend-api-key", "langsmith-api-key"]
+  api_secret_ids = concat(
+    ["jwt-secret", "db-password", "google-client-secret", "usage-hash-secret", "resend-api-key", "langsmith-api-key"],
+    local.upstash_enabled ? ["upstash-redis-url"] : [],
+  )
   agent_secret_ids = ["openrouter-api-key", "tavily-api-key", "langsmith-api-key"]
 }
 
@@ -210,6 +213,23 @@ resource "google_cloud_run_v2_service" "api" {
           secret_key_ref {
             secret  = google_secret_manager_secret.app["langsmith-api-key"].secret_id
             version = "latest"
+          }
+        }
+      }
+      env {
+        name  = "RATE_LIMIT_TIMEOUT_MS"
+        value = "200"
+      }
+      # Present only when the tfvar is set; otherwise limiters stay in-memory.
+      dynamic "env" {
+        for_each = local.upstash_enabled ? [1] : []
+        content {
+          name = "UPSTASH_REDIS_URL"
+          value_source {
+            secret_key_ref {
+              secret  = google_secret_manager_secret.app["upstash-redis-url"].secret_id
+              version = "latest"
+            }
           }
         }
       }
