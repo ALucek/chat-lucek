@@ -138,6 +138,8 @@ printf '%s' "$DB_PW" | gcloud secrets versions add db-password --data-file=-
 gcloud sql users set-password app --instance=chat --password="$DB_PW"
 ```
 
+The API rate limiter is optional and off by default. To enforce the request limits globally across instances, create an Upstash Redis database in the same region as Cloud Run and set its `rediss://` connection string in the `upstash_redis_url` tfvar. Leaving it empty keeps the limits in-memory, per instance.
+
 Then run the migrations through the Cloud Run job:
 
 ```bash
