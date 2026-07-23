@@ -49,6 +49,8 @@ To sign in locally: set the three Google vars, generate the two secrets, and set
 | `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | yes | Same value as `GOOGLE_CLIENT_ID`, exposed to the browser |
 | `LANGSMITH_API_KEY` | no | Attaches response feedback to the run's LangSmith trace; empty keeps it DB-only |
 | `LANGSMITH_ENDPOINT` | no | LangSmith API base URL (default `https://api.smith.langchain.com`) |
+| `UPSTASH_REDIS_URL` | no | Upstash `rediss://` URL; makes the API rate limits global across instances. Empty keeps them per-instance |
+| `RATE_LIMIT_TIMEOUT_MS` | no | Per-request Redis timeout in ms (default 200); on timeout the limiter falls back to in-memory |
 
 ### Agent `.env`
 

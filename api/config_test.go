@@ -19,6 +19,7 @@ func setAllEnv(t *testing.T) {
 		"LOG_LEVEL", "DATABASE_URL", "RUNS_BUDGET_DAILY", "OWNER_EMAIL",
 		"GOOGLE_AUTH_FAKE", "SIGNUP_OPEN", "MAINTENANCE_MODE",
 		"RESEND_API_KEY", "MAGIC_LINK_FROM",
+		"UPSTASH_REDIS_URL", "RATE_LIMIT_TIMEOUT_MS",
 	} {
 		t.Setenv(k, "")
 	}
@@ -41,6 +42,20 @@ func TestLoadConfig_PopulatesFieldsFromEnv(t *testing.T) {
 	}
 	if cfg.OwnerEmail != "" || cfg.GoogleAuthFake {
 		t.Errorf("optional defaults off: OwnerEmail=%q GoogleAuthFake=%v", cfg.OwnerEmail, cfg.GoogleAuthFake)
+	}
+}
+
+func TestLoadConfig_RateLimitDefaults(t *testing.T) {
+	setAllEnv(t)
+	cfg, err := LoadConfig()
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if cfg.UpstashRedisURL != "" {
+		t.Errorf("UpstashRedisURL default: got %q, want empty", cfg.UpstashRedisURL)
+	}
+	if cfg.RateLimitTimeoutMS != 200 {
+		t.Errorf("RateLimitTimeoutMS default: got %d, want 200", cfg.RateLimitTimeoutMS)
 	}
 }
 

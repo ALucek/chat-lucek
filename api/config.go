@@ -32,6 +32,8 @@ type Config struct {
 	OwnerEmail         string
 	LangsmithAPIKey    string
 	LangsmithEndpoint  string
+	UpstashRedisURL    string
+	RateLimitTimeoutMS int
 	GoogleAuthFake     bool
 	SignupOpen         bool
 	Maintenance        bool
@@ -62,6 +64,8 @@ func LoadConfig() (Config, error) {
 		OwnerEmail:         os.Getenv("OWNER_EMAIL"),
 		LangsmithAPIKey:    os.Getenv("LANGSMITH_API_KEY"),
 		LangsmithEndpoint:  getenvDefault("LANGSMITH_ENDPOINT", "https://api.smith.langchain.com"),
+		UpstashRedisURL:    os.Getenv("UPSTASH_REDIS_URL"),
+		RateLimitTimeoutMS: getenvInt("RATE_LIMIT_TIMEOUT_MS", 200),
 		GoogleAuthFake:     os.Getenv("GOOGLE_AUTH_FAKE") == "1",
 		SignupOpen:         os.Getenv("SIGNUP_OPEN") == "true",
 		Maintenance:        os.Getenv("MAINTENANCE_MODE") == "1",

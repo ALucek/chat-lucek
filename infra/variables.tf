@@ -133,3 +133,9 @@ variable "alert_email_from" {
   description = "From address for alert emails; must be a verified Resend sender."
   default     = "alerts@lucek.ai"
 }
+variable "upstash_redis_url" {
+  type        = string
+  default     = ""
+  sensitive   = true
+  description = "Upstash Redis rediss:// URL for global rate limiting; empty leaves API limiters in-memory."
+}

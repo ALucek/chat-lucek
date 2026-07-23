@@ -13,6 +13,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/redis/go-redis/v9"
 	"google.golang.org/api/idtoken"
 )
 
@@ -55,6 +56,16 @@ func main() {
 	}
 	defer pool.Close()
 
+	var rdb *redis.Client
+	if cfg.UpstashRedisURL != "" {
+		rdb, err = newRedisClient(cfg.UpstashRedisURL)
+		if err != nil {
+			slog.Error("redis", "err", err)
+			os.Exit(1)
+		}
+		defer rdb.Close()
+	}
+
 	check := func(ctx context.Context) error { return Healthy(ctx, pool) }
 
 	auth := &Auth{pool: pool, secret: []byte(cfg.JWTSecret), verify: selectGoogleVerifier(cfg), exchange: selectGoogleExchanger(cfg), signupOpen: cfg.SignupOpen, mailer: selectMailer(cfg), linkBase: cfg.AllowedOrigin, allowedOrigins: cfg.AllowedOrigins}
@@ -80,7 +91,8 @@ func main() {
 	chat := &Chat{pool: pool, agent: agent, runsBudget: cfg.RunsBudgetDaily, ownerEmail: normalizeEmail(cfg.OwnerEmail), usageSecret: []byte(cfg.UsageHashSecret), mirror: newLangsmithClient(cfg.LangsmithEndpoint, cfg.LangsmithAPIKey), devHost: cfg.DevHost}
 	account := &Account{pool: pool}
 
-	mux := newMux(check, auth, chat, account)
+	mux := newMux(check, auth, chat, account,
+		withRateLimitBackend(rdb, time.Duration(cfg.RateLimitTimeoutMS)*time.Millisecond))
 
 	handler := withRequestID(withLogging(withRecover(withSecurityHeaders(withCORS(cfg.AllowedOrigins, withOriginCheck(cfg.AllowedOrigins, withMaxBody(withMaintenance(cfg.Maintenance, mux))))))))
 	server := newServer(":"+cfg.Port, handler)
@@ -164,23 +176,41 @@ func decodeJSON(w http.ResponseWriter, r *http.Request, dst any) bool {
 	return true
 }
 
+// muxOptions configures optional newMux behavior.
+type muxOptions struct {
+	rdb       *redis.Client
+	rlTimeout time.Duration
+}
+
+// muxOption sets a field on muxOptions.
+type muxOption func(*muxOptions)
+
+// withRateLimitBackend routes limiters through Redis when rdb is non-nil.
+func withRateLimitBackend(rdb *redis.Client, timeout time.Duration) muxOption {
+	return func(o *muxOptions) { o.rdb = rdb; o.rlTimeout = timeout }
+}
+
 // newMux registers every route.
-func newMux(check func(context.Context) error, auth *Auth, chat *Chat, account *Account) *http.ServeMux {
+func newMux(check func(context.Context) error, auth *Auth, chat *Chat, account *Account, opts ...muxOption) *http.ServeMux {
+	o := muxOptions{rlTimeout: 200 * time.Millisecond}
+	for _, fn := range opts {
+		fn(&o)
+	}
 	protect := func(h http.HandlerFunc) http.Handler { return auth.Middleware(http.HandlerFunc(h)) }
 
-	chatLimiter := newLimiter(chatRatePerMin, chatRateBurst)
-	limitUser := chatLimiter.middleware(func(r *http.Request) string {
+	chatLimiter := userLimiter(o.rdb, "chat", chatRatePerMin, chatRateBurst, o.rlTimeout)
+	limitUser := rateLimit(chatLimiter, func(r *http.Request) string {
 		uid, _ := userIDFromContext(r.Context())
 		return strconv.FormatInt(uid, 10)
 	})
 
-	exportLimiter := newLimiter(exportRatePerMin, exportRateBurst)
-	limitExport := exportLimiter.middleware(func(r *http.Request) string {
+	exportLimiter := userLimiter(o.rdb, "export", exportRatePerMin, exportRateBurst, o.rlTimeout)
+	limitExport := rateLimit(exportLimiter, func(r *http.Request) string {
 		uid, _ := userIDFromContext(r.Context())
 		return strconv.FormatInt(uid, 10)
 	})
 
-	auth.magicLimiter = newLimiter(magicRatePerMin, magicRateBurst)
+	auth.magicLimiter = userLimiter(o.rdb, "magic", magicRatePerMin, magicRateBurst, o.rlTimeout)
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /livez", liveHandler())

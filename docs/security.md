@@ -30,7 +30,7 @@ CI runs these in [security.yml](../.github/workflows/security.yml) on every push
 - **Refresh tokens:** stored hashed, delivered in an httpOnly, Secure, SameSite=Strict cookie scoped to `/api`. Each refresh rotates the token within a family; reusing a revoked token revokes the whole family as suspected theft.
 - **Origin checks:** state-changing requests (POST, PATCH, DELETE) with a mismatched Origin are refused.
 - **Security headers:** CSP, HSTS, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, and Permissions-Policy on every response.
-- **Limits:** request bodies are capped at 1 MiB, chat sends are rate-limited per user, and each user has a daily run budget.
+- **Limits:** request bodies are capped at 1 MiB, chat sends and account exports are rate-limited per user, magic-link requests per IP and email, and each user has a daily run budget. With Upstash configured these request limits are enforced globally across instances; otherwise they are per instance.
 
 ## Infrastructure
 
