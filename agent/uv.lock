@@ -233,7 +233,7 @@ evals = [
 requires-dist = [
     { name = "fastapi", specifier = ">=0.139.2" },
     { name = "langchain-openai", specifier = ">=1.3.4" },
-    { name = "langchain-openrouter", specifier = ">=0.2.5" },
+    { name = "langchain-openrouter", specifier = ">=0.2.7" },
     { name = "langgraph", specifier = ">=1.2.8" },
     { name = "pydantic", specifier = ">=2.13.4" },
     { name = "pydantic-settings", specifier = ">=2.14.2" },
@@ -798,15 +798,15 @@ wheels = [
 
 [[package]]
 name = "langchain-openrouter"
-version = "0.2.5"
+version = "0.2.7"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "langchain-core" },
     { name = "openrouter" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/29/0b/3be32cf9b8a3f797cbdb67b4e181311bd7d5982f1357c6148d40c464a4e5/langchain_openrouter-0.2.5.tar.gz", hash = "sha256:e0e8f6bcddbba9977c99bc2a428eaf4e9d04aee1fda279c5d5c9879c0b922fe1", size = 180328, upload-time = "2026-06-29T19:47:11.925Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/48/89/cf39b374bdf0172af99cbd85807feaa07bc7b1f5d05dd6524436222ebff7/langchain_openrouter-0.2.7.tar.gz", hash = "sha256:07f6fc26db08b97eb60bab330d45af7668777f596d48b5ce5098b21e063e964b", size = 182317, upload-time = "2026-07-22T20:16:18.85Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/98/c4/7a9dc7ce7c5629eefac96f159d1e712e6de7f09753e34b3115d79534fe64/langchain_openrouter-0.2.5-py3-none-any.whl", hash = "sha256:a9910f3a8afa45f191a967f8d0f42759d4c93f6808b878e74db98dba3f1766e3", size = 28682, upload-time = "2026-06-29T19:47:10.983Z" },
+    { url = "https://files.pythonhosted.org/packages/65/70/6c003f4d250feecd57bd102fd36eb199ab2e9ccc7dc70f3d5f3e10e15000/langchain_openrouter-0.2.7-py3-none-any.whl", hash = "sha256:d4a06f93fd9ffdd2d8840013e1c70ae071aef0faf8b9b30f2c6642ece2828d8a", size = 29214, upload-time = "2026-07-22T20:16:17.739Z" },
 ]
 
 [[package]]

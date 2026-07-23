@@ -7,7 +7,7 @@ requires-python = ">=3.13"
 dependencies = [
     "langgraph>=1.2.8",
     "pydantic>=2.13.4",
-    "langchain-openrouter>=0.2.5",
+    "langchain-openrouter>=0.2.7",
     "fastapi>=0.139.2",
     "uvicorn[standard]>=0.51.0",
     "pydantic-settings>=2.14.2",
