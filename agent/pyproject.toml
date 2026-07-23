@@ -29,7 +29,7 @@ dev = [
     "ruff>=0.15.22",
 ]
 evals = [
-    "langsmith[pytest]>=0.10.5",
+    "langsmith[pytest]>=0.10.10",
 ]
 
 [tool.pytest.ini_options]
