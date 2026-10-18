@@ -74,7 +74,7 @@ variable "billing_account" {
 variable "budget_amount" {
   type        = number
   description = "Monthly budget in USD; thresholds alert as spend crosses it."
-  default     = 20
+  default     = 50
 }
 
 variable "agent_default_model" {
