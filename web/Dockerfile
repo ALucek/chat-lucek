@@ -1,5 +1,5 @@
 # ---- build ----
-FROM node:26-alpine@sha256:e88a35be04478413b7c71c455cd9865de9b9360e1f43456be5951032d7ac1a66 AS build
+FROM node:26-alpine@sha256:6f08a523443ddedf52941874c203475b0ad503e859ad70cb26ab8be9a517dbd5 AS build
 WORKDIR /app
 RUN npm install -g pnpm@11.8.0
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
@@ -14,7 +14,7 @@ ENV NEXT_PUBLIC_GOOGLE_CLIENT_ID=$NEXT_PUBLIC_GOOGLE_CLIENT_ID
 RUN pnpm build
 
 # ---- runtime ----
-FROM node:26-alpine@sha256:e88a35be04478413b7c71c455cd9865de9b9360e1f43456be5951032d7ac1a66 AS runtime
+FROM node:26-alpine@sha256:6f08a523443ddedf52941874c203475b0ad503e859ad70cb26ab8be9a517dbd5 AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
 # In-layer CVE patch — node:26-alpine has not yet been rebuilt upstream with these fixes
