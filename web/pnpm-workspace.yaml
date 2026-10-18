@@ -2,3 +2,8 @@ allowBuilds:
   '@ast-grep/cli': false
   sharp: true
   unrs-resolver: true
+auditConfig:
+  ignoreGhsas:
+    # braces DoS via deeply nested patterns; no patched release exists yet and
+    # it is only reachable through eslint-config-next's dev-time globbing.
+    - GHSA-vfj7-8cjw-p6xm
