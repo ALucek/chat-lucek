@@ -80,7 +80,7 @@ variable "budget_amount" {
 variable "agent_default_model" {
   type        = string
   description = "Default model the agent uses, overridable per run."
-  default     = "deepseek/deepseek-v4-flash"
+  default     = "deepseek/deepseek-v4.1-flash-1017"
 }
 
 variable "agent_max_searches" {
