@@ -60,7 +60,7 @@ To sign in locally: set the three Google vars, generate the two secrets, and set
 | `LANGSMITH_TRACING` | no | `true` to send traces |
 | `LANGSMITH_ENDPOINT` `LANGSMITH_PROJECT` `LANGSMITH_PROJECT_DEV` | no | Tracing destination (dev-host runs use the `_DEV` project) |
 | `OPENAI_API_KEY` | no | Only to publish online LLM-judge evaluators; any placeholder works |
-| `DEFAULT_MODEL` | no | Agent model (default `deepseek/deepseek-v4-flash`) |
+| `DEFAULT_MODEL` | no | Agent model (default `deepseek/deepseek-v4.1-flash-1017`) |
 | `MAX_SEARCHES` | no | Web searches per agent run (default 5) |
 | `MAX_TOKENS` | no | Max output tokens per model call (default 8192) |
 | `SUMMARY_THRESHOLD` | no | Approx-token context size that triggers conversation compaction (default 100000) |

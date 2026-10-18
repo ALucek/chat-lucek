@@ -13,7 +13,7 @@ class Settings(BaseSettings):
 
     model_config = SettingsConfigDict(extra="ignore")
 
-    default_model: str = "deepseek/deepseek-v4-flash"
+    default_model: str = "deepseek/deepseek-v4.1-flash-1017"
     max_searches: int = 5
     max_tokens: int = 8192
     recursion_limit: int = 100
