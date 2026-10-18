@@ -5,9 +5,9 @@ from langchain_core.runnables import RunnableConfig
 from langgraph.graph import END, START, StateGraph
 
 from src.config import AgentConfig, get_settings
+from src.middleware.summarization import compact
 from src.prompts.subagent_prompt import get_subagent_system_prompt
 from src.state import SubagentState
-from src.middleware.summarization import compact
 from src.tools.web_search import build_web_search_tool
 from src.utils import build_chat_model, build_messages
 

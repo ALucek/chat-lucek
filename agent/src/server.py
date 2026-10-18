@@ -3,7 +3,7 @@ import json
 import logging
 import os
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from fastapi import FastAPI, Request
@@ -71,7 +71,7 @@ def _make_tracer(dev: bool = False) -> LangChainTracer | None:
 
 def _close_open_runs(tracer: LangChainTracer) -> None:
     # Interrupt strands in-flight nested runs; close them so the trace ends.
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     for run_id, run in list(tracer.run_map.items()):
         if run.end_time is None:
             try:
@@ -108,7 +108,7 @@ async def run(req: Request) -> StreamingResponse:
             if tracer is not None:
                 _close_open_runs(tracer)
             raise
-        except Exception:  # noqa: BLE001
+        except Exception:
             logger.exception("agent run failed")
             yield _sse(
                 {

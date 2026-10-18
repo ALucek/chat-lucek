@@ -4,13 +4,12 @@ from langgraph.graph import END, START, StateGraph
 from langgraph.prebuilt import ToolNode
 
 from src.config import AgentConfig, get_settings
+from src.middleware.summarization import compact
 from src.prompts.agent_prompt import get_agent_system_prompt
 from src.state import AgentState
-from src.middleware.summarization import compact
 from src.tools.subagent_tool import build_subagent_tool
 from src.tools.todo_list import build_todo_tool
 from src.utils import build_chat_model, build_messages
-
 
 tools = [build_subagent_tool(), build_todo_tool()]
 

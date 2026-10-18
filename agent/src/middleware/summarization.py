@@ -59,7 +59,7 @@ async def compact(state: dict, config: RunnableConfig) -> dict:
     wid = _newest_durable_id(head)
     try:
         kept = [await _summarize(head, cfg, config, wid), *tail]
-    except Exception:  # noqa: BLE001
+    except Exception:
         logger.warning("summarization failed", exc_info=True)
         kept = [HumanMessage("[earlier conversation omitted]"), *tail]
     return {"messages": [RemoveMessage(id=REMOVE_ALL_MESSAGES), *kept]}
